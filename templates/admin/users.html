@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}User Management | Smart Study Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .role-badge-select {
+        font-weight: 600;
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-7">
+            <h3 class="fw-bold mb-1"><i class="bi bi-people-fill me-2 text-dark"></i>User Directory & Role Management</h3>
+            <p class="text-muted mb-0">Control account authorizations, promote educators, or assign administrative privileges.</p>
+        </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0 d-flex justify-content-md-end align-items-center gap-2">
+            <div class="input-group shadow-sm" style="max-width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="userSearchInput" class="form-control border-start-0" placeholder="Search accounts..." onkeyup="filterUserList()">
+            </div>
+            <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm px-3 fw-bold">
+                <i class="bi bi-arrow-left me-1"></i>Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert / Toast notice -->
+    <div id="actionAlert" class="alert alert-success d-none py-2 px-3 small d-flex align-items-center mb-3">
+        <i class="bi bi-check-circle-fill me-2"></i><span id="actionAlertText">Action performed successfully.</span>
+    </div>
+
+    <!-- Users Table Card -->
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark">All Registered Accounts ({{ users|length }})</span>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary active" onclick="filterRole('all', this)">All</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="filterRole('student', this)">Students</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="filterRole('educator', this)">Educators</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="filterRole('admin', this)">Admins</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="usersTable">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">USER ID</th>
+                        <th>NAME & USERNAME</th>
+                        <th>EMAIL</th>
+                        <th>DISCIPLINE</th>
+                        <th class="text-center">ASSIGNED ROLE</th>
+                        <th class="text-center pe-4">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    {% for u in users %}
+                    <tr class="user-row" data-role="{{ u.role }}" data-name="{{ u.fullname|lower }} {{ u.username|lower }} {{ u.email|lower }}">
+                        <td class="ps-4 text-muted small fw-bold">#{{ u.id }}</td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ u.fullname }}</div>
+                            <small class="text-muted">@{{ u.username }}</small>
+                        </td>
+                        <td class="small">{{ u.email }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ u.student_type or 'General' }}</span>
+                        </td>
+                        <td class="text-center">
+                            <select class="form-select form-select-sm role-badge-select d-inline-block w-auto mx-auto shadow-sm"
+                                    onchange="updateUserRole({{ u.id }}, this.value, this)">
+                                <option value="student" {% if u.role == 'student' %}selected{% endif %}>Student</option>
+                                <option value="educator" {% if u.role == 'educator' %}selected{% endif %}>Educator</option>
+                                <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
+                            </select>
+                        </td>
+                        <td class="text-center pe-4">
+                            {% if u.id != session.get('user_id') %}
+                            <button class="btn btn-sm btn-outline-danger border-0 p-1 px-2" 
+                                    onclick="deleteUserAccount({{ u.id }}, '{{ u.username }}')" title="Delete User">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                            {% else %}
+                            <span class="badge bg-light text-muted border small">Current Session</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let activeRoleFilter = 'all';
+
+    function filterUserList() {
+        const query = document.getElementById('userSearchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('.user-row');
+
+        rows.forEach(row => {
+            const role = row.getAttribute('data-role');
+            const dataText = row.getAttribute('data-name');
+            const matchesRole = (activeRoleFilter === 'all' || role === activeRoleFilter);
+            const matchesQuery = dataText.includes(query);
+
+            if (matchesRole && matchesQuery) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function filterRole(role, btn) {
+        activeRoleFilter = role;
+        document.querySelectorAll('.card-header .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filterUserList();
+    }
+
+    async function updateUserRole(userId, newRole, selectEl) {
+        selectEl.disabled = true;
+        try {
+            const res = await fetch('/admin/api/update-role', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: userId, role: newRole })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message || "Role updated successfully!");
+                selectEl.closest('tr').setAttribute('data-role', newRole);
+            } else {
+                alert(data.message || "Failed to update role.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Network error.");
+        }
+        selectEl.disabled = false;
+    }
+
+    async function deleteUserAccount(userId, username) {
+        if (!confirm(`Are you sure you want to permanently delete user @${username}? This action cannot be undone.`)) return;
+
+        try {
+            const res = await fetch(`/admin/api/delete-user/${userId}`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message || "User deleted.");
+                const row = document.querySelector(`tr[data-name*="${username.toLowerCase()}"]`);
+                if (row) row.remove();
+            } else {
+                alert(data.message || "Failed to delete user.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Network error.");
+        }
+    }
+
+    function showAlert(msg) {
+        const alertBox = document.getElementById('actionAlert');
+        document.getElementById('actionAlertText').textContent = msg;
+        alertBox.classList.remove('d-none');
+        setTimeout(() => alertBox.classList.add('d-none'), 3500);
+    }
+</script>
+{% endblock %}

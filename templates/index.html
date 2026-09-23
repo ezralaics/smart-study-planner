@@ -1,384 +1,369 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Smart Study Planner</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    
-    <style>
-        :root { --primary-blue: #0d6efd; --sidebar-dark: #212529; --bg-light: #f4f7f6; }
-        body { background-color: var(--bg-light); font-family: 'Inter', sans-serif; }
-        .offcanvas { width: 280px !important; background-color: var(--sidebar-dark); color: white; }
-        .nav-link { color: rgba(255,255,255,0.7); transition: 0.3s; padding: 12px 20px; border-radius: 8px; margin: 4px 10px; cursor: pointer; text-decoration: none; display: block; }
-        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
-        .nav-link i { margin-right: 12px; }
+{% extends "base.html" %}
 
-        .clock-container { text-align: right; line-height: 1.2; border-right: 1px solid #dee2e6; padding-right: 15px; margin-right: 15px; }
-        .profile-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+{% block title %}Dashboard | Smart Study Planner{% endblock %}
 
-        .stat-card { border-radius: 12px; border: none; transition: transform 0.2s, box-shadow 0.2s; border-left: 5px solid var(--primary-blue); cursor: pointer; }
-        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.08) !important; }
-        .stat-icon-wrapper { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-        .section-title { font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #495057; margin-bottom: 1rem; border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; }
-        .course-card { border-radius: 12px; border-left: 4px solid var(--primary-blue); transition: all 0.2s ease; cursor: pointer; background: white; }
-        .course-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.08) !important; }
-        .course-completed { opacity: 0.7; background-color: #f8f9fa; border-left-color: #198754; }
-        .clickable-item { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-        .clickable-item:hover { transform: translateY(-2px) translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important; filter: brightness(0.98); }
+{% block extra_css %}
+<style>
+    .stat-card { 
+        border-radius: 12px; 
+        border: none; 
+        transition: transform 0.2s, box-shadow 0.2s; 
+        border-left: 5px solid var(--primary-blue); 
+        cursor: pointer; 
+    }
+    .stat-card:hover { 
+        transform: translateY(-3px); 
+        box-shadow: 0 8px 15px rgba(0,0,0,0.08) !important; 
+    }
+    .stat-icon-wrapper { 
+        width: 48px; 
+        height: 48px; 
+        border-radius: 12px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1.5rem; 
+    }
+    .section-title { 
+        font-size: 1.1rem; 
+        font-weight: 700; 
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+        color: #495057; 
+        margin-bottom: 1rem; 
+        border-bottom: 2px solid #dee2e6; 
+        padding-bottom: 0.5rem; 
+    }
+    .course-card { 
+        border-radius: 12px; 
+        border-left: 4px solid var(--primary-blue); 
+        transition: all 0.2s ease; 
+        cursor: pointer; 
+        background: white; 
+    }
+    .course-card:hover { 
+        transform: translateY(-3px); 
+        box-shadow: 0 8px 15px rgba(0,0,0,0.08) !important; 
+    }
+    .course-completed { 
+        opacity: 0.7; 
+        background-color: #f8f9fa; 
+        border-left-color: #198754; 
+    }
+    .clickable-item { 
+        cursor: pointer; 
+        transition: transform 0.2s, box-shadow 0.2s; 
+    }
+    .clickable-item:hover { 
+        transform: translateY(-2px) translateX(2px); 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important; 
+        filter: brightness(0.98); 
+    }
+    .border-danger { border-color: #dc3545 !important; }
+    .border-warning { border-color: #ffc107 !important; }
+    .border-success { border-color: #198754 !important; }
+</style>
+{% endblock %}
 
-        /* Task Color Logic */
-        .border-danger { border-color: #dc3545 !important; }
-        .border-warning { border-color: #ffc107 !important; }
-        .border-success { border-color: #198754 !important; }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-light bg-white border-bottom sticky-top shadow-sm">
-        <div class="container-fluid d-flex align-items-center">
-            <button class="btn btn-light border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
-                <i class="bi bi-list fs-4"></i>
-            </button>
-            <a class="navbar-brand fw-bold text-primary ms-2" href="#"><i class="bi bi-cpu"></i> Smart Study Planner</a>
-            
-            <div class="d-flex align-items-center ms-auto">
-                <div class="clock-container d-none d-md-block">
-                    <div id="liveClock" class="fw-bold text-primary mb-0">--:--:--</div>
-                    <div id="liveDate" class="text-muted small">Loading...</div>
-                </div>
-                
-                <div class="dropdown">
-                    <button class="btn btn-light rounded-circle shadow-sm profile-btn" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-fill fs-5"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1">
-                        <li><a class="dropdown-item text-danger fw-bold" href="/logout"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu">
-        <div class="offcanvas-header border-bottom border-secondary">
-            <h5 class="offcanvas-title fw-bold">Navigation</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body p-0 pt-3">
-            <nav class="nav flex-column">
-                <a class="nav-link active" href="/dashboard"><i class="bi bi-grid-1x2"></i> Dashboard</a>
-                <a class="nav-link" href="/study-planner"><i class="bi bi-calendar2-check"></i> Study Planner</a>
-                <a class="nav-link" href="/classes"><i class="bi bi-building"></i> Classes</a>
-                <a class="nav-link" href="/calendar"><i class="bi bi-calendar3"></i> Calendar</a>
-                <a class="nav-link" href="/tasks"><i class="bi bi-list-task"></i> Tasks</a>
-                <a class="nav-link" href="/grades"><i class="bi bi-bar-chart"></i> Grades</a>
-            </nav>
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4 animate__animated animate__fadeInDown">
+        <div class="col-12">
+            <h2 class="fw-bold text-dark mb-1">
+                <span id="greetingTime">Welcome back</span>, <span id="userNameDisplay" class="text-primary">{{ session.get('username', 'Student') }}</span>! 👋
+            </h2>
+            <p class="text-muted">Here is your academic overview for today.</p>
         </div>
     </div>
-    <div class="container py-4">
-        
-        <div class="row mb-4 animate__animated animate__fadeInDown">
-            <div class="col-12">
-                <h2 class="fw-bold text-dark mb-1">
-                    <span id="greetingTime">Welcome back</span>, <span id="userNameDisplay" class="text-primary">Student</span>! 👋
-                </h2>
-                <p class="text-muted">Here is your academic overview for today.</p>
-            </div>
-        </div>
 
-        <div class="row g-3 mb-4 animate__animated animate__fadeInUp">
-            <div class="col-md-4">
-                <div class="card stat-card shadow-sm p-3 h-100" onclick="window.location.href='/study-planner'" title="Go to Study Planner">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted fw-bold text-uppercase">Active Semester</small>
-                            <h4 class="fw-bold mb-0 mt-1 text-dark" id="statSemester">--</h4>
-                        </div>
-                        <div class="stat-icon-wrapper bg-primary bg-opacity-10 text-primary"><i class="bi bi-calendar3"></i></div>
+    <div class="row g-3 mb-4 animate__animated animate__fadeInUp">
+        <div class="col-md-4">
+            <div class="card stat-card shadow-sm p-3 h-100" onclick="window.location.href='/study-planner'" title="Go to Study Planner">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted fw-bold text-uppercase">Active Semester</small>
+                        <h4 class="fw-bold mb-0 mt-1 text-dark" id="statSemester">--</h4>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card stat-card shadow-sm p-3 h-100" style="border-left-color: #dc3545;" onclick="window.location.href='/tasks'" title="Go to Tasks">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted fw-bold text-uppercase">Pending Tasks</small>
-                            <h4 class="fw-bold mb-0 mt-1 text-danger" id="statTasks">0</h4>
-                        </div>
-                        <div class="stat-icon-wrapper bg-danger bg-opacity-10 text-danger"><i class="bi bi-list-check"></i></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card stat-card shadow-sm p-3 h-100" style="border-left-color: #198754;" onclick="window.location.href='/classes'" title="Go to Classes">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted fw-bold text-uppercase">Classes Today</small>
-                            <h4 class="fw-bold mb-0 mt-1 text-success" id="statClasses">0</h4>
-                        </div>
-                        <div class="stat-icon-wrapper bg-success bg-opacity-10 text-success"><i class="bi bi-building"></i></div>
-                    </div>
+                    <div class="stat-icon-wrapper bg-primary bg-opacity-10 text-primary"><i class="bi bi-calendar3"></i></div>
                 </div>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-lg-7 col-xl-8 mb-4">
-                <h5 class="section-title"><i class="bi bi-journals me-2"></i>Current Courses</h5>
-                <div class="row g-3" id="courseContainer">
-                    <div class="col-12 text-center py-5 text-muted">
-                        <div class="spinner-border text-primary mb-3" role="status"></div>
-                        <p>Loading your courses...</p>
+        <div class="col-md-4">
+            <div class="card stat-card shadow-sm p-3 h-100" style="border-left-color: #dc3545;" onclick="window.location.href='/tasks'" title="Go to Tasks">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted fw-bold text-uppercase">Pending Tasks</small>
+                        <h4 class="fw-bold mb-0 mt-1 text-danger" id="statTasks">0</h4>
                     </div>
+                    <div class="stat-icon-wrapper bg-danger bg-opacity-10 text-danger"><i class="bi bi-list-check"></i></div>
                 </div>
             </div>
-
-            <div class="col-lg-5 col-xl-4">
-                
-                <h5 class="section-title"><i class="bi bi-clock-history me-2"></i>Today's Schedule</h5>
-                <div id="todayScheduleArea" class="mb-4 d-flex flex-column gap-2">
-                    <div class="text-center py-3 text-muted small border border-dashed rounded bg-white">Loading schedule...</div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card shadow-sm p-3 h-100" style="border-left-color: #198754;" onclick="window.location.href='/classes'" title="Go to Classes">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted fw-bold text-uppercase">Classes Today</small>
+                        <h4 class="fw-bold mb-0 mt-1 text-success" id="statClasses">0</h4>
+                    </div>
+                    <div class="stat-icon-wrapper bg-success bg-opacity-10 text-success"><i class="bi bi-building"></i></div>
                 </div>
-
-                <h5 class="section-title mt-4"><i class="bi bi-exclamation-circle me-2"></i>Upcoming Deadlines</h5>
-                <div id="taskCardArea" class="d-flex flex-column gap-2">
-                    <div class="text-center py-3 text-muted small border border-dashed rounded bg-white">Loading deadlines...</div>
-                </div>
-
             </div>
         </div>
     </div>
 
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1055;">
-        <div id="urgentReminderToast" class="toast align-items-center text-bg-danger border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body fw-bold" id="reminderToastMessage">
-                    </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    <div class="row">
+        <div class="col-lg-7 col-xl-8 mb-4">
+            <h5 class="section-title"><i class="bi bi-journals me-2"></i>Current Courses</h5>
+            <div class="row g-3" id="courseContainer">
+                <div class="col-12 text-center py-5 text-muted">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p>Loading your courses...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 col-xl-4">
+            <h5 class="section-title"><i class="bi bi-clock-history me-2"></i>Today's Schedule</h5>
+            <div id="todayScheduleArea" class="mb-4 d-flex flex-column gap-2">
+                <div class="text-center py-3 text-muted small border border-dashed rounded bg-white">Loading schedule...</div>
+            </div>
+
+            <h5 class="section-title mt-4"><i class="bi bi-exclamation-circle me-2"></i>Upcoming Deadlines</h5>
+            <div id="taskCardArea" class="d-flex flex-column gap-2">
+                <div class="text-center py-3 text-muted small border border-dashed rounded bg-white">Loading deadlines...</div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        window.onload = async () => {
-            initGreetingAndClock();
-            setInterval(updateClock, 1000);
-            await loadDashboardData();
-        };
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1055;">
+    <div id="urgentReminderToast" class="toast align-items-center text-bg-danger border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-bold" id="reminderToastMessage"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-        function initGreetingAndClock() {
-            const now = new Date();
-            const hour = now.getHours();
-            let greeting = "Good evening";
-            if (hour >= 5 && hour < 12) greeting = "Good morning";
-            else if (hour >= 12 && hour < 18) greeting = "Good afternoon";
-            document.getElementById('greetingTime').textContent = greeting;
-            updateClock();
-        }
+{% block extra_js %}
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        initGreeting();
+        await loadDashboardData();
+    });
 
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', hour12: true });
-            document.getElementById('liveDate').textContent = now.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short' });
-        }
+    function initGreeting() {
+        const now = new Date();
+        const hour = now.getHours();
+        let greeting = "Good evening";
+        if (hour >= 5 && hour < 12) greeting = "Good morning";
+        else if (hour >= 12 && hour < 18) greeting = "Good afternoon";
+        const greetingEl = document.getElementById('greetingTime');
+        if (greetingEl) greetingEl.textContent = greeting;
+    }
 
-        async function loadDashboardData() {
-            try {
-                // Fetch User Info, Courses, Tasks, and Schedules simultaneously
-                const [userRes, planRes, tasksRes, schedRes] = await Promise.all([
-                    fetch('/api/current-user').catch(() => null), // Graceful fail if endpoint doesn't exist yet
-                    fetch('/api/generate_plan'),
-                    fetch('/api/get-all-tasks'),
-                    fetch('/api/get-schedules')
-                ]);
-                
-                // 1. Handle User Name 
-                let userName = "Lai Kwang Zhe"; 
-                if (userRes && userRes.ok) {
-                    try {
-                        const userData = await userRes.json();
-                        if (userData.name) userName = userData.name;
-                    } catch(e) {}
+    async function loadDashboardData() {
+        try {
+            const [userRes, planRes, tasksRes, schedRes] = await Promise.all([
+                fetch('/api/current-user').catch(() => null),
+                fetch('/api/generate_plan'),
+                fetch('/api/get-all-tasks'),
+                fetch('/api/get-schedules')
+            ]);
+
+            if (userRes && userRes.ok) {
+                const userData = await userRes.json();
+                if (userData.name) {
+                    const nameDisp = document.getElementById('userNameDisplay');
+                    if (nameDisp) nameDisp.textContent = userData.name.split(' ')[0];
                 }
-                document.getElementById('userNameDisplay').textContent = userName;
+            }
 
-                // 2. Parse Data
-                const courses = planRes.ok ? await planRes.json() : [];
-                const globalTasks = tasksRes.ok ? await tasksRes.json() : [];
-                const schedules = schedRes.ok ? await schedRes.json() : [];
+            const courses = planRes.ok ? await planRes.json() : [];
+            const tasks = tasksRes.ok ? await tasksRes.json() : [];
+            const schedules = schedRes.ok ? await schedRes.json() : [];
 
-                // --- PROCESS COURSES ---
-                const courseContainer = document.getElementById('courseContainer');
+            // 1. Process Courses
+            const courseContainer = document.getElementById('courseContainer');
+            if (courses.length === 0) {
+                courseContainer.innerHTML = `
+                    <div class="col-12 text-center py-5 text-muted border border-dashed rounded bg-white clickable-item" onclick="window.location.href='/study-planner'" title="Go to Study Planner">
+                        <i class="bi bi-folder-plus fs-1 text-primary mb-2"></i>
+                        <h5>No Courses Found</h5>
+                        <p class="mb-0">Click here to head over to the Study Planner and register your first course.</p>
+                    </div>`;
+                document.getElementById('statSemester').textContent = "None";
+            } else {
+                const semesters = [...new Set(courses.map(c => c.semester).filter(Boolean))].sort().reverse();
+                const activeSemesters = semesters.filter(s => !s.includes('(Past)'));
+                const currentSemester = activeSemesters.length > 0 ? activeSemesters[0] : semesters[0];
                 
-                if (courses.length === 0) {
-                    courseContainer.innerHTML = `
-                        <div class="col-12 text-center border p-5 text-muted rounded bg-white shadow-sm clickable-item" onclick="window.location.href='/study-planner'">
-                            <i class="bi bi-journal-plus fs-1 mb-3 d-block text-primary opacity-50"></i>
-                            <h5>No Courses Found</h5>
-                            <p class="mb-0">Click here to head over to the Study Planner and register your first course.</p>
-                        </div>`;
-                    document.getElementById('statSemester').textContent = "None";
-                } else {
-                    // Find Active Semester
-                    const semesters = [...new Set(courses.map(c => c.semester).filter(Boolean))].sort().reverse();
-                    const activeSemesters = semesters.filter(s => !s.includes('(Past)'));
-                    const currentSemester = activeSemesters.length > 0 ? activeSemesters[0] : semesters[0];
-                    
-                    document.getElementById('statSemester').textContent = currentSemester.replace(' (Active)', '').replace(' (Past)', '');
-                    const currentCourses = courses.filter(c => c.semester === currentSemester);
+                document.getElementById('statSemester').textContent = currentSemester ? currentSemester.replace(' (Active)', '').replace(' (Past)', '') : 'Active';
+                const currentCourses = courses.filter(c => c.semester === currentSemester);
 
-                    courseContainer.innerHTML = ''; 
+                courseContainer.innerHTML = ''; 
 
-                    currentCourses.forEach(course => {
-                        
-                        const isCompleted = course.is_completed;
-                        const cardStyle = isCompleted ? 'course-completed' : '';
-                        const badgeHtml = isCompleted ? `<span class="badge bg-success position-absolute top-0 end-0 m-2 shadow-sm z-1"><i class="bi bi-check-circle-fill me-1"></i>Done</span>` : '';
+                currentCourses.forEach(course => {
+                    const isCompleted = course.is_completed;
+                    const cardStyle = isCompleted ? 'course-completed' : '';
+                    const badgeHtml = isCompleted ? `<span class="badge bg-success position-absolute top-0 end-0 m-2 shadow-sm z-1"><i class="bi bi-check-circle-fill me-1"></i>Done</span>` : '';
 
-                        courseContainer.innerHTML += `
-                            <div class="col-md-6 mb-2 position-relative animate__animated animate__fadeIn">
-                                ${badgeHtml}
-                                <div class="card p-3 shadow-sm h-100 d-flex flex-column course-card ${cardStyle}" 
-                                     onclick="window.location.href='/study-planner?edit=${encodeURIComponent(course.name)}'" 
-                                     title="Click to view details in Study Planner">
-                                    
-                                    <h6 class="fw-bold mb-3 lh-base pe-4 text-truncate" title="${course.name}">${course.name}</h6>
-                                    
-                                    <div class="mt-auto">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="text-muted small"><i class="bi bi-journal-bookmark me-1"></i>${course.credits} Credits</span>
-                                            <span class="badge bg-light text-primary border">Target: ${course.target_grade}%</span>
-                                        </div>
-                                        <div class="progress" style="height: 6px;">
-                                            <div class="progress-bar ${isCompleted ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${isCompleted ? '100' : '0'}%"></div>
-                                        </div>
+                    courseContainer.innerHTML += `
+                        <div class="col-md-6 mb-2 position-relative animate__animated animate__fadeIn">
+                            ${badgeHtml}
+                            <div class="card p-3 shadow-sm h-100 d-flex flex-column course-card ${cardStyle}" 
+                                 onclick="window.location.href='/study-planner?edit=${encodeURIComponent(course.name)}'" 
+                                 title="Click to view details in Study Planner">
+                                <h6 class="fw-bold mb-3 lh-base pe-4 text-truncate" title="${course.name}">${course.name}</h6>
+                                <div class="mt-auto">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted small"><i class="bi bi-journal-bookmark me-1"></i>${course.credits} Credits</span>
+                                        <span class="badge bg-light text-primary border">Target: ${course.target_grade}%</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar ${isCompleted ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${isCompleted ? '100' : '0'}%"></div>
                                     </div>
                                 </div>
                             </div>
-                        `;
-                    });
-                }
-                const schedArea = document.getElementById('todayScheduleArea');
-                const todayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()];
-                
-                const todaysClasses = schedules.filter(s => s.day === todayName);
-                todaysClasses.sort((a, b) => a.start_time.localeCompare(b.start_time));
-                
-                document.getElementById('statClasses').textContent = todaysClasses.length;
-
-                if (todaysClasses.length > 0) {
-                    schedArea.innerHTML = '';
-                    todaysClasses.forEach(sched => {
-                        const isAllDay = sched.start_time === "00:00" && sched.end_time === "23:59";
-                        const timeText = isAllDay ? "All Day" : `${sched.start_time} - ${sched.end_time}`;
-                        
-                        let colorClass = 'text-primary';
-                        if (sched.activity_type === 'Revision') colorClass = 'text-purple';
-                        else if (sched.activity_type === 'Training') colorClass = 'text-success';
-
-                        schedArea.innerHTML += `
-                            <div class="card p-2 shadow-sm border-0 border-start border-4 border-primary animate__animated animate__fadeInRight clickable-item mb-1" 
-                                 onclick="window.location.href='/classes'" title="View in Classes page">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="fw-bold small text-truncate pe-2">${sched.title.split('—')[0]}</div>
-                                    <span class="badge bg-light text-dark border" style="font-size:0.7rem;">${timeText}</span>
-                                </div>
-                                <div class="text-muted mt-1" style="font-size: 0.75rem;">
-                                    <i class="bi bi-geo-alt-fill me-1"></i>${sched.venue || 'TBA'}
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    schedArea.innerHTML = `
-                        <div class="card border-dashed p-3 text-center text-muted bg-white shadow-sm clickable-item" onclick="window.location.href='/classes'" title="Go to Classes">
-                            <i class="bi bi-cup-hot fs-3 text-secondary mb-1"></i>
-                            <p class="mb-0 small">No classes scheduled for today.</p>
-                        </div>`;
-                }
-
-                const taskArea = document.getElementById('taskCardArea');
-                const todayDate = new Date();
-                todayDate.setHours(0,0,0,0);
-                
-                let pendingTasks = globalTasks.filter(task => {
-                    if (task.is_completed || task.course_is_completed) return false;
-                    if (!task.due_date || task.due_date === "TBD" || task.due_date === "None") return false;
-                    return true;
+                        </div>
+                    `;
                 });
+            }
 
-                document.getElementById('statTasks').textContent = pendingTasks.length;
-                let urgentTaskCount = 0; 
+            // 2. Process Today's Schedule
+            const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const todayStr = daysMap[new Date().getDay()];
+            const todayDateStr = new Date().toISOString().split('T')[0];
 
-                if (pendingTasks.length > 0) {
-                    taskArea.innerHTML = ''; 
-                    
-                    pendingTasks.sort((a,b) => new Date(a.due_date) - new Date(b.due_date));
-                    
-                    pendingTasks.forEach(task => {
-                        const dueDateObj = new Date(task.due_date);
-                        const diffTime = dueDateObj - todayDate;
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        if (diffDays <= 1) urgentTaskCount++;
-                    });
+            const todayClasses = schedules.filter(s => {
+                const dayMatch = s.day === todayStr;
+                const afterStart = !s.start_date || todayDateStr >= s.start_date;
+                const beforeEnd = !s.end_date || todayDateStr <= s.end_date;
+                return dayMatch && afterStart && beforeEnd;
+            });
 
-                    pendingTasks.slice(0, 5).forEach(task => {
-                        const dueDateObj = new Date(task.due_date);
-                        const diffTime = dueDateObj - todayDate;
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
-                        let borderColor = 'border-success';
-                        let textColor = 'text-success';
-                        let daysText = `In ${diffDays} days`;
-                        
-                        if (diffDays <= 7 && diffDays > 3) {
-                            borderColor = 'border-warning';
-                            textColor = 'text-warning';
-                        } 
-                        else if (diffDays <= 3) {
-                            borderColor = 'border-danger';
-                            textColor = 'text-danger';
-                            if (diffDays === 0) daysText = 'Today!';
-                            else if (diffDays === 1) daysText = 'Tomorrow!';
-                            else if (diffDays < 0) daysText = 'Overdue!';
-                        }
+            document.getElementById('statClasses').textContent = todayClasses.length;
 
-                        taskArea.innerHTML += `
-                            <div class="card p-3 shadow-sm border-0 border-start border-4 ${borderColor} animate__animated animate__fadeInRight clickable-item mb-2"
-                                 onclick="window.location.href='/tasks'" title="View in Tasks Manager">
-                                <div class="fw-bold small text-truncate" title="${task.task_name}">${task.task_name}</div>
-                                <div class="d-flex justify-content-between align-items-center mt-2">
-                                    <span class="badge bg-light text-dark border border-secondary text-truncate" style="font-size:0.65rem; max-width: 120px;">${task.course_name.split('—')[0]}</span>
-                                    <small class="fw-bold ${textColor}" style="font-size:0.75rem;">
-                                        <i class="bi bi-clock-fill me-1"></i>${daysText}
-                                    </small>
-                                </div>
+            const schedArea = document.getElementById('todayScheduleArea');
+            if (todayClasses.length > 0) {
+                todayClasses.sort((a,b) => a.start_time.localeCompare(b.start_time));
+                schedArea.innerHTML = '';
+                todayClasses.forEach(item => {
+                    let badgeBg = "bg-primary";
+                    if (item.activity_type === 'Lab') badgeBg = "bg-warning text-dark";
+                    if (item.activity_type === 'Tutorial') badgeBg = "bg-info text-dark";
+
+                    schedArea.innerHTML += `
+                        <div class="card p-3 shadow-sm border-0 border-start border-4 border-primary animate__animated animate__fadeInRight clickable-item"
+                             onclick="window.location.href='/classes'" title="View in Classes Timetable">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-dark small text-truncate pe-2" title="${item.title}">${item.title}</span>
+                                <span class="badge ${badgeBg}" style="font-size:0.7rem;">${item.activity_type}</span>
                             </div>
-                        `;
-                    });
+                            <div class="d-flex justify-content-between text-muted mt-2" style="font-size: 0.75rem;">
+                                <span><i class="bi bi-clock me-1 text-primary"></i>${item.start_time} - ${item.end_time}</span>
+                                <span><i class="bi bi-geo-alt me-1 text-danger"></i>${item.venue || 'TBA'}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                schedArea.innerHTML = `
+                    <div class="card border-dashed p-4 text-center text-muted shadow-sm bg-white clickable-item" onclick="window.location.href='/classes'" title="Go to Classes">
+                        <i class="bi bi-cup-hot-fill fs-2 text-primary mb-2"></i>
+                        <p class="mb-0 small">No classes scheduled for today. Take some time to study!</p>
+                    </div>`;
+            }
 
-                    if (urgentTaskCount > 0) {
-                        document.getElementById('reminderToastMessage').innerHTML = `<i class="bi bi-bell-fill me-2"></i>Reminder: You have ${urgentTaskCount} task(s) due today or tomorrow!`;
-                        const toastEl = document.getElementById('urgentReminderToast');
-                        const toast = new bootstrap.Toast(toastEl, { autohide: false }); 
-                        toast.show();
+            // 3. Process Deadlines
+            const pendingTasks = tasks.filter(t => !t.is_completed);
+            document.getElementById('statTasks').textContent = pendingTasks.length;
+
+            const upcomingTasks = pendingTasks
+                .filter(t => t.due_date)
+                .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+            const taskArea = document.getElementById('taskCardArea');
+            if (upcomingTasks.length > 0) {
+                taskArea.innerHTML = '';
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                let urgentTaskCount = 0;
+
+                upcomingTasks.slice(0, 4).forEach(task => {
+                    const dueDate = new Date(task.due_date);
+                    dueDate.setHours(0,0,0,0);
+                    const diffTime = dueDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    let daysText = "";
+                    let borderColor = "border-success";
+                    let textColor = "text-success";
+
+                    if (diffDays < 0) {
+                        daysText = `${Math.abs(diffDays)}d overdue`;
+                        borderColor = "border-danger";
+                        textColor = "text-danger";
+                        urgentTaskCount++;
+                    } else if (diffDays === 0) {
+                        daysText = "Due Today";
+                        borderColor = "border-danger";
+                        textColor = "text-danger";
+                        urgentTaskCount++;
+                    } else if (diffDays === 1) {
+                        daysText = "Due Tomorrow";
+                        borderColor = "border-danger";
+                        textColor = "text-danger";
+                        urgentTaskCount++;
+                    } else if (diffDays <= 3) {
+                        daysText = `In ${diffDays} days`;
+                        borderColor = "border-warning";
+                        textColor = "text-warning";
+                    } else {
+                        daysText = `In ${diffDays} days`;
+                        borderColor = "border-success";
+                        textColor = "text-success";
                     }
 
-                } else {
-                    taskArea.innerHTML = `
-                        <div class="card border-dashed p-4 text-center text-muted shadow-sm bg-white clickable-item" onclick="window.location.href='/tasks'" title="Go to Tasks">
-                            <i class="bi bi-check-circle-fill fs-2 text-success mb-2"></i>
-                            <p class="mb-0 small">No upcoming deadlines! You are all caught up.</p>
-                        </div>`;
-                }
+                    taskArea.innerHTML += `
+                        <div class="card p-3 shadow-sm border-0 border-start border-4 ${borderColor} animate__animated animate__fadeInRight clickable-item mb-2"
+                             onclick="window.location.href='/tasks'" title="View in Tasks Manager">
+                            <div class="fw-bold small text-truncate" title="${task.task_name}">${task.task_name}</div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="badge bg-light text-dark border border-secondary text-truncate" style="font-size:0.65rem; max-width: 120px;">${task.course_name.split('—')[0]}</span>
+                                <small class="fw-bold ${textColor}" style="font-size:0.75rem;">
+                                    <i class="bi bi-clock-fill me-1"></i>${daysText}
+                                </small>
+                            </div>
+                        </div>
+                    `;
+                });
 
-            } catch (err) {
-                console.error("Error loading dashboard data:", err);
+                if (urgentTaskCount > 0) {
+                    const reminderMsg = document.getElementById('reminderToastMessage');
+                    if (reminderMsg) {
+                        reminderMsg.innerHTML = `<i class="bi bi-bell-fill me-2"></i>Reminder: You have ${urgentTaskCount} task(s) due today or tomorrow!`;
+                        const toastEl = document.getElementById('urgentReminderToast');
+                        if (toastEl) {
+                            const toast = new bootstrap.Toast(toastEl, { autohide: false }); 
+                            toast.show();
+                        }
+                    }
+                }
+            } else {
+                taskArea.innerHTML = `
+                    <div class="card border-dashed p-4 text-center text-muted shadow-sm bg-white clickable-item" onclick="window.location.href='/tasks'" title="Go to Tasks">
+                        <i class="bi bi-check-circle-fill fs-2 text-success mb-2"></i>
+                        <p class="mb-0 small">No upcoming deadlines! You are all caught up.</p>
+                    </div>`;
             }
+
+        } catch (err) {
+            console.error("Error loading dashboard data:", err);
         }
-    </script>
-</body>
-</html>
+    }
+</script>
+{% endblock %}

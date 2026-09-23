@@ -1,624 +1,822 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Planner | Smart Study Planner</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    
-    <style>
-        :root { --primary-blue: #0d6efd; --sidebar-dark: #212529; --bg-light: #f4f7f6; }
-        body { background-color: var(--bg-light); font-family: 'Inter', sans-serif; }
-        .offcanvas { width: 280px !important; background-color: var(--sidebar-dark); color: white; }
-        .nav-link { color: rgba(255,255,255,0.7); transition: 0.3s; padding: 12px 20px; border-radius: 8px; margin: 4px 10px; cursor: pointer; text-decoration: none; display: block; }
-        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
-        .nav-link i { margin-right: 12px; }
+{% extends "base.html" %}
 
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .task-row { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid var(--primary-blue); }
-        .clock-container { text-align: right; line-height: 1.2; border-right: 1px solid #dee2e6; padding-right: 15px; margin-right: 15px; }
-        .profile-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
-        
-        .course-card { transition: transform 0.2s; }
-        .course-card:hover { transform: translateY(-5px); }
-    </style>
-</head>
-<body>
+{% block title %}Study Planner | Smart Study Planner{% endblock %}
 
-    <nav class="navbar navbar-light bg-white border-bottom sticky-top">
-        <div class="container-fluid d-flex align-items-center">
-            <button class="btn btn-light border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
-                <i class="bi bi-list fs-4"></i>
+{% block extra_css %}
+<style>
+    .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .task-row { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid var(--primary-blue); }
+    .course-card { transition: transform 0.2s; }
+    .course-card:hover { transform: translateY(-5px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-5">
+            <h3 class="fw-bold mb-0" id="pageHeaderTitle">Study Planner</h3>
+            <p class="text-muted">Manage your courses, credits, and target grades.</p>
+        </div>
+        <div class="col-md-7 text-md-end d-flex justify-content-md-end align-items-center gap-2 flex-wrap">
+            <button id="autoSchedulerBtn" class="btn text-white shadow-sm px-3" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);" onclick="openAutoSchedulerModal()">
+                <i class="bi bi-magic me-1"></i>⚡ Auto-Scheduler
             </button>
-            <a class="navbar-brand fw-bold text-primary ms-2" href="#"><i class="bi bi-cpu"></i> Smart Study Planner</a>
-            
-            <div class="d-flex align-items-center ms-auto">
-                <div class="clock-container d-none d-md-block">
-                    <div id="liveClock" class="fw-bold text-primary mb-0">--:--:--</div>
-                    <div id="liveDate" class="text-muted small">Loading...</div>
-                </div>
-                
+            <div class="input-group shadow-sm" style="max-width: 240px;">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-calendar3"></i></span>
+                <select id="globalSemesterSelect" class="form-select border-start-0 fw-bold text-primary" onchange="handleGlobalSemesterChange()">
+                    <option value="" disabled selected>Select Semester...</option>
+                    <option value="ADD_NEW">+ Add New Semester</option>
+                </select>
             </div>
-        </div>
-    </nav>
-
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu">
-        <div class="offcanvas-header border-bottom border-secondary">
-            <h5 class="offcanvas-title fw-bold">Navigation</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body p-0 pt-3">
-            <nav class="nav flex-column">
-                <a class="nav-link" href="/dashboard"><i class="bi bi-grid-1x2"></i> Dashboard</a>
-                <a class="nav-link active" href="/study-planner"><i class="bi bi-calendar2-check"></i> Study Planner</a>
-                <a class="nav-link" href="/classes"><i class="bi bi-building"></i> Classes</a>
-                <a class="nav-link" href="/calendar"><i class="bi bi-calendar3"></i> Calendar</a>
-                <a class="nav-link" href="/tasks"><i class="bi bi-list-task"></i> Tasks</a>
-                <a class="nav-link" href="/grades"><i class="bi bi-bar-chart"></i> Grades</a>
-            </nav>
+            <button id="registerCourseBtn" class="btn btn-primary shadow-sm px-3" onclick="toggleView('form')" disabled>
+                <i class="bi bi-plus-lg me-1"></i>Register Course
+            </button>
         </div>
     </div>
 
-    <div class="container py-4">
-        
-        <div class="row align-items-center mb-4">
-            <div class="col-md-5">
-                <h3 class="fw-bold mb-0" id="pageHeaderTitle">Study Planner</h3>
-                <p class="text-muted">Manage your courses, credits, and target grades.</p>
+    <section id="courseListSection">
+        <div class="row g-4" id="courseInventoryContainer">
+            <div class="col-12 text-center py-5 text-muted">
+                <i class="bi bi-calendar-plus fs-1"></i>
+                <p class="mt-2">Welcome! Please select or add a semester from the top right to begin.</p>
             </div>
-            <div class="col-md-7 text-md-end d-flex justify-content-md-end align-items-center gap-2 flex-wrap">
-                <div class="input-group shadow-sm" style="max-width: 260px;">
-                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-calendar3"></i></span>
-                    <select id="globalSemesterSelect" class="form-select border-start-0 fw-bold text-primary" onchange="handleGlobalSemesterChange()">
-                        <option value="" disabled selected>Select Semester...</option>
-                        <option value="ADD_NEW">+ Add New Semester</option>
-                    </select>
+        </div>
+    </section>
+
+    <section id="courseFormSection" style="display: none;">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card p-4 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="fw-bold text-primary mb-0" id="formTitle">Register New Course</h4>
+                        <button class="btn btn-light btn-sm" onclick="toggleView('list')"><i class="bi bi-arrow-left me-1"></i> Back to List</button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted">COURSE NAME</label>
+                        <div id="predefinedContainer">
+                            <select id="courseSelect" class="form-select shadow-sm" onchange="autoFillCourseDetails()">
+                                <option value="" selected disabled>-- Select a Course --</option>
+                                <optgroup label="IT Core Courses">
+                                    <option value="CD102 — Computer Ethics" data-credits="3">CD102 — Computer Ethics (Diploma)</option>
+                                    <option value="CD103 — Fundamental of Database Systems" data-credits="4">CD103 — Fundamental of Database Systems</option>
+                                    <option value="CD105 — System Analysis & Design" data-credits="4">CD105 — System Analysis & Design</option>
+                                    <option value="CD106 — Java Programming 1" data-credits="4">CD106 — Java Programming 1 (Diploma)</option>
+                                    <option value="CD107 — Java Programming 2" data-credits="4">CD107 — Java Programming 2 (Diploma)</option>
+                                    <option value="CD108 — Discrete Mathematics 1" data-credits="3">CD108 — Discrete Mathematics 1 (Diploma)</option>
+                                    <option value="CD109 — Introduction to Information Technology" data-credits="4">CD109 — Introduction to Information Technology (Diploma)</option>
+                                    <option value="CD110 — Introduction to Internet Technologies" data-credits="4">CD110 — Introduction to Internet Technologies (Diploma)</option>
+                                    <option value="CD204 — User Interface Design" data-credits="3">CD204 — User Interface Design</option>
+                                    <option value="CD206 — Business Programming" data-credits="4">CD206 — Business Programming</option>
+                                    <option value="CD209 — Managing and Implementing Business Project" data-credits="4">CD209 — Managing and Implementing Business Project</option>
+                                    <option value="CD210 — Creative Problem Solving" data-credits="3">CD210 — Creative Problem Solving (Diploma)</option>
+                                    <option value="CD211 — Wireless and Mobile Technologies" data-credits="3">CD211 — Wireless and Mobile Technologies (Diploma)</option>
+                                    <option value="CD212 — Object-Oriented Modeling" data-credits="4">CD212 — Object-Oriented Modeling (Diploma)</option>
+                                    <option value="CD214 — Operating Systems & Networks" data-credits="4">CD214 — Operating Systems & Networks (Diploma)</option>
+                                    <option value="CD215 — Multimedia Programming" data-credits="4">CD215 — Multimedia Programming (Diploma)</option>
+                                </optgroup>
+                                <optgroup label="MPU & General Courses">
+                                    <option value="BD100 — Business Communication" data-credits="3">BD100 — Business Communication</option>
+                                    <option value="MPU21103 — Penghayatan Etika and Peradaban" data-credits="3">MPU21103 — Penghayatan Etika and Peradaban</option>
+                                    <option value="MPU2221 — University Life" data-credits="1">MPU2221 — University Life</option>
+                                    <option value="MPU2232 — Integriti dan Antirasuah" data-credits="2">MPU2232 — Integriti dan Antirasuah</option>
+                                </optgroup>
+                                <option value="MANUAL">-- Add Manually / Other Course --</option>
+                            </select>
+                        </div>
+                        <div id="manualNameContainer" class="mt-3 d-none">
+                            <div class="input-group">
+                                <input type="text" id="manualCourseName" class="form-control shadow-sm" placeholder="Enter Manual Course Name">
+                                <button class="btn btn-outline-secondary" type="button" onclick="resetToDropdown()">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">SEMESTER</label>
+                            <input type="text" id="subSemester" class="form-control shadow-sm bg-light" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">CREDIT HOURS</label>
+                            <select id="subCredits" class="form-select shadow-sm">
+                                <option value="1">1 Credit</option>
+                                <option value="2">2 Credits</option>
+                                <option value="3" selected>3 Credits</option>
+                                <option value="4">4 Credits</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">TARGET GRADE (%)</label>
+                            <input type="number" id="subTarget" class="form-control shadow-sm" value="80">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-muted mb-0">Grade Components (Tasks/Exams)</h6>
+                        <button class="btn btn-sm btn-outline-primary" onclick="addTaskRow()">
+                            <i class="bi bi-plus-lg me-1"></i>Add Row
+                        </button>
+                    </div>
+
+                    <div id="tasksWrapper"></div>
+
+                    <div class="card bg-light border-0 mt-3 mb-4">
+                        <div class="card-body d-flex justify-content-between align-items-center py-2">
+                            <span class="fw-bold small text-muted text-uppercase">Total Weightage:</span>
+                            <div id="weightageBadgeContainer">
+                                <span id="totalWeightDisplay" class="badge bg-warning text-dark fs-6">0%</span>
+                                <i id="weightageStatusIcon" class="bi bi-exclamation-circle-fill text-danger ms-2" title="Total must equal 100%"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="button" id="saveBtn" class="btn btn-primary btn-lg shadow-sm">Save Course & Information</button>
+                    </div>
                 </div>
-                <button id="registerCourseBtn" class="btn btn-primary shadow-sm px-3" onclick="toggleView('form')" disabled>
-                    <i class="bi bi-plus-lg me-1"></i>Register Course
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Add Semester Modal -->
+<div class="modal fade" id="addSemesterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title fw-bold">Add Semester</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <label class="form-label fw-bold small text-muted">SELECT MONTH/YEAR</label>
+                <input type="month" id="newSemesterInput" class="form-control form-control-lg shadow-sm text-center mb-3">
+                
+                <div class="form-check form-switch text-start bg-light p-3 rounded border">
+                    <input class="form-check-input ms-0 me-2" type="checkbox" id="isPastSemesterToggle">
+                    <label class="form-check-label fw-bold small text-muted" for="isPastSemesterToggle">Mark as Past Semester</label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-primary w-100 shadow-sm" onclick="confirmAddSemester()">Confirm Semester</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-Scheduler Modal -->
+<div class="modal fade" id="autoSchedulerModal" tabindex="-1" aria-labelledby="autoSchedulerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fs-4">⚡</span>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="autoSchedulerModalLabel">Intelligent Study Auto-Scheduler</h5>
+                        <small class="opacity-75">Algorithmically allocates revision sessions based on urgency, weightage & calendar availability</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Preference Controls -->
+                <div class="card bg-light border-0 p-3 mb-4">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">DAILY STUDY TARGET</label>
+                            <select id="autoDailyHours" class="form-select shadow-sm">
+                                <option value="1">1 hour / day</option>
+                                <option value="2" selected>2 hours / day (Recommended)</option>
+                                <option value="3">3 hours / day</option>
+                                <option value="4">4 hours / day</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">PREFERRED STUDY WINDOW</label>
+                            <select id="autoPreferredWindow" class="form-select shadow-sm">
+                                <option value="morning">Morning (09:00 - 12:00)</option>
+                                <option value="afternoon">Afternoon (14:00 - 18:00)</option>
+                                <option value="evening" selected>Evening (18:00 - 22:00)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">PLANNING HORIZON</label>
+                            <select id="autoDaysAhead" class="form-select shadow-sm">
+                                <option value="7" selected>Next 7 Days</option>
+                                <option value="14">Next 14 Days</option>
+                            </select>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="button" class="btn text-white px-4 fw-bold shadow-sm" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);" id="btnGeneratePreview" onclick="generateAutoSchedulePreview()">
+                                <i class="bi bi-cpu me-1"></i> Compute Optimized Schedule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Container -->
+                <div id="schedulerLoading" class="text-center py-4 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Calculating slots...</span>
+                    </div>
+                    <p class="text-muted mt-2 small">Scanning deadlines, calculating priority weights & checking timetable collisions...</p>
+                </div>
+
+                <div id="schedulerResults" class="d-none">
+                    <!-- Metrics Summary -->
+                    <div class="row g-3 mb-3" id="schedulerMetrics">
+                        <div class="col-sm-4">
+                            <div class="p-3 bg-primary-subtle text-primary rounded-3 text-center">
+                                <div class="fs-4 fw-bold" id="metricTasksCount">0</div>
+                                <div class="small fw-semibold">Upcoming Tasks Analyzed</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-3 bg-success-subtle text-success rounded-3 text-center">
+                                <div class="fs-4 fw-bold" id="metricSessionsCount">0</div>
+                                <div class="small fw-semibold">Optimized Sessions Generated</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-3 bg-info-subtle text-info rounded-3 text-center">
+                                <div class="fs-4 fw-bold" id="metricTotalHours">0h</div>
+                                <div class="small fw-semibold">Total Study Time</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sessions Table -->
+                    <div class="table-responsive border rounded-3 mb-3" style="max-height: 320px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr class="small text-muted text-uppercase">
+                                    <th>Date & Day</th>
+                                    <th>Time Window</th>
+                                    <th>Focus Subject / Task</th>
+                                    <th class="text-center">Priority Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedulerPreviewBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-info py-2 small d-flex align-items-center mb-0">
+                        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                        <div>
+                            <strong>Conflict-free guarantee:</strong> Sessions are scheduled around your existing classes and timetable commitments.
+                        </div>
+                    </div>
+                </div>
+
+                <div id="schedulerEmpty" class="text-center py-4 text-muted d-none">
+                    <i class="bi bi-calendar-check fs-1 text-secondary"></i>
+                    <p class="mt-2 mb-0">No upcoming tasks or exams found needing revision in this timeframe.<br>Register course assignments or exams with due dates first!</p>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success fw-bold px-4" id="btnApplySchedule" onclick="applyGeneratedSchedule()" disabled>
+                    <i class="bi bi-calendar-plus me-1"></i> Apply & Sync to Calendar
                 </button>
             </div>
         </div>
-
-        <section id="courseListSection">
-            <div class="row g-4" id="courseInventoryContainer">
-                <div class="col-12 text-center py-5 text-muted">
-                    <i class="bi bi-calendar-plus fs-1"></i>
-                    <p class="mt-2">Welcome! Please select or add a semester from the top right to begin.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="courseFormSection" style="display: none;">
-            <div class="row justify-content-center">
-                <div class="col-lg-10">
-                    <div class="card p-4 shadow-sm">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="fw-bold text-primary mb-0" id="formTitle">Register New Course</h4>
-                            <button class="btn btn-light btn-sm" onclick="toggleView('list')"><i class="bi bi-arrow-left me-1"></i> Back to List</button>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label class="form-label fw-bold small text-muted">COURSE NAME</label>
-                            <div id="predefinedContainer">
-                                <select id="courseSelect" class="form-select shadow-sm" onchange="autoFillCourseDetails()">
-                                    <option value="" selected disabled>-- Select a Course --</option>
-                                    <optgroup label="IT Core Courses">
-                                        <option value="CD102 — Computer Ethics" data-credits="3">CD102 — Computer Ethics (Diploma)</option>
-                                        <option value="CD103 — Fundamental of Database Systems" data-credits="4">CD103 — Fundamental of Database Systems</option>
-                                        <option value="CD105 — System Analysis & Design" data-credits="4">CD105 — System Analysis & Design</option>
-                                        <option value="CD106 — Java Programming 1" data-credits="4">CD106 — Java Programming 1 (Diploma)</option>
-                                        <option value="CD107 — Java Programming 2" data-credits="4">CD107 — Java Programming 2 (Diploma)</option>
-                                        <option value="CD108 — Discrete Mathematics 1" data-credits="3">CD108 — Discrete Mathematics 1 (Diploma)</option>
-                                        <option value="CD109 — Introduction to Information Technology" data-credits="4">CD109 — Introduction to Information Technology (Diploma)</option>
-                                        <option value="CD110 — Introduction to Internet Technologies" data-credits="4">CD110 — Introduction to Internet Technologies (Diploma)</option>
-                                        <option value="CD204 — User Interface Design" data-credits="3">CD204 — User Interface Design</option>
-                                        <option value="CD206 — Business Programming" data-credits="4">CD206 — Business Programming</option>
-                                        <option value="CD209 — Managing and Implementing Business Project" data-credits="4">CD209 — Managing and Implementing Business Project</option>
-                                        <option value="CD210 — Creative Problem Solving" data-credits="3">CD210 — Creative Problem Solving (Diploma)</option>
-                                        <option value="CD211 — Wireless and Mobile Technologies" data-credits="3">CD211 — Wireless and Mobile Technologies (Diploma)</option>
-                                        <option value="CD212 — Object-Oriented Modeling" data-credits="4">CD212 — Object-Oriented Modeling (Diploma)</option>
-                                        <option value="CD214 — Operating Systems & Networks" data-credits="4">CD214 — Operating Systems & Networks (Diploma)</option>
-                                        <option value="CD215 — Multimedia Programming" data-credits="4">CD215 — Multimedia Programming (Diploma)</option>
-                                    </optgroup>
-                                    <optgroup label="MPU & General Courses">
-                                        <option value="BD100 — Business Communication" data-credits="3">BD100 — Business Communication</option>
-                                        <option value="MPU21103 — Penghayatan Etika and Peradaban" data-credits="3">MPU21103 — Penghayatan Etika and Peradaban</option>
-                                        <option value="MPU2221 — University Life" data-credits="1">MPU2221 — University Life</option>
-                                        <option value="MPU2232 — Integriti dan Antirasuah" data-credits="2">MPU2232 — Integriti dan Antirasuah</option>
-                                    </optgroup>
-                                    <option value="MANUAL">-- Add Manually / Other Course --</option>
-                                </select>
-                            </div>
-                            <div id="manualNameContainer" class="mt-3 d-none">
-                                <div class="input-group">
-                                    <input type="text" id="manualCourseName" class="form-control shadow-sm" placeholder="Enter Manual Course Name">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="resetToDropdown()">Reset</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">SEMESTER</label>
-                                <input type="text" id="subSemester" class="form-control shadow-sm bg-light" readonly>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">CREDIT HOURS</label>
-                                <select id="subCredits" class="form-select shadow-sm">
-                                    <option value="1">1 Credit</option>
-                                    <option value="2">2 Credits</option>
-                                    <option value="3" selected>3 Credits</option>
-                                    <option value="4">4 Credits</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">TARGET GRADE (%)</label>
-                                <input type="number" id="subTarget" class="form-control shadow-sm" value="80">
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold text-muted mb-0">Grade Components (Tasks/Exams)</h6>
-                            <button class="btn btn-sm btn-outline-primary" onclick="addTaskRow()">
-                                <i class="bi bi-plus-lg me-1"></i>Add Row
-                            </button>
-                        </div>
-
-                        <div id="tasksWrapper"></div>
-
-                        <div class="card bg-light border-0 mt-3 mb-4">
-                            <div class="card-body d-flex justify-content-between align-items-center py-2">
-                                <span class="fw-bold small text-muted text-uppercase">Total Weightage:</span>
-                                <div id="weightageBadgeContainer">
-                                    <span id="totalWeightDisplay" class="badge bg-warning text-dark fs-6">0%</span>
-                                    <i id="weightageStatusIcon" class="bi bi-exclamation-circle-fill text-danger ms-2" title="Total must equal 100%"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="button" id="saveBtn" class="btn btn-primary btn-lg shadow-sm">Save Course & Information</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
     </div>
+</div>
+{% endblock %}
 
-    <div class="modal fade" id="addSemesterModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-primary text-white">
-                    <h6 class="modal-title fw-bold">Add Semester</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 text-center">
-                    <label class="form-label fw-bold small text-muted">SELECT MONTH/YEAR</label>
-                    <input type="month" id="newSemesterInput" class="form-control form-control-lg shadow-sm text-center mb-3">
-                    
-                    <div class="form-check form-switch text-start bg-light p-3 rounded border">
-                        <input class="form-check-input ms-0 me-2" type="checkbox" id="isPastSemesterToggle">
-                        <label class="form-check-label fw-bold small text-muted" for="isPastSemesterToggle">Mark as Past Semester</label>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-primary w-100 shadow-sm" onclick="confirmAddSemester()">Confirm Semester</button>
-                </div>
-            </div>
-        </div>
-    </div>
+{% block extra_js %}
+<script>
+    let globalCourses = []; 
+    let currentSemester = ""; 
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-        let globalCourses = []; 
-        let currentSemester = ""; 
-
-        function handleGlobalSemesterChange() {
-            const select = document.getElementById('globalSemesterSelect');
-            if (select.value === "ADD_NEW") {
-                const modal = new bootstrap.Modal(document.getElementById('addSemesterModal'));
-                const now = new Date();
-                document.getElementById('newSemesterInput').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-                document.getElementById('isPastSemesterToggle').checked = false; // Reset toggle
-                modal.show();
-            } else {
-                currentSemester = select.value;
-                document.getElementById('registerCourseBtn').disabled = false;
-                renderCoursesForSemester(currentSemester);
-            }
-        }
-
-        function resetSemesterDropdown() {
-            const select = document.getElementById('globalSemesterSelect');
-            select.value = currentSemester ? currentSemester : "";
-        }
-
-        document.getElementById('addSemesterModal').addEventListener('hidden.bs.modal', resetSemesterDropdown);
-
-        function confirmAddSemester() {
-            const dateVal = document.getElementById('newSemesterInput').value;
-            const isPast = document.getElementById('isPastSemesterToggle').checked;
-            if (!dateVal) { alert("Please select a valid month/year."); return; }
-            
-            const suffix = isPast ? " (Past)" : " (Active)";
-            const newVal = dateVal + suffix;
-            
-            const select = document.getElementById('globalSemesterSelect');
-            
-            let exists = false;
-            for (let i = 0; i < select.options.length; i++) {
-                if (select.options[i].value === newVal) exists = true;
-            }
-            
-            if (!exists) {
-                let group = select.querySelector(`optgroup[label="${isPast ? 'Past Semesters' : 'Active Semesters'}"]`);
-                if (!group) {
-                    group = document.createElement('optgroup');
-                    group.label = isPast ? 'Past Semesters' : 'Active Semesters';
-                    select.insertBefore(group, select.lastElementChild);
-                }
-                group.appendChild(new Option(newVal, newVal));
-            }
-            
-            select.value = newVal;
-            currentSemester = newVal;
+    function handleGlobalSemesterChange() {
+        const select = document.getElementById('globalSemesterSelect');
+        if (select.value === "ADD_NEW") {
+            const modal = new bootstrap.Modal(document.getElementById('addSemesterModal'));
+            const now = new Date();
+            document.getElementById('newSemesterInput').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            document.getElementById('isPastSemesterToggle').checked = false;
+            modal.show();
+        } else {
+            currentSemester = select.value;
             document.getElementById('registerCourseBtn').disabled = false;
-            
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addSemesterModal'));
-            modal.hide();
-            
             renderCoursesForSemester(currentSemester);
         }
+    }
 
-        async function loadPlannerCourses() {
-            try {
-                const response = await fetch('/api/generate_plan');
-                globalCourses = await response.json(); 
-                
-                const select = document.getElementById('globalSemesterSelect');
-                const semesters = [...new Set(globalCourses.map(c => c.semester).filter(Boolean))].sort().reverse();
-                
-                const activeSemesters = semesters.filter(s => !s.includes('(Past)'));
-                const pastSemesters = semesters.filter(s => s.includes('(Past)'));
+    function resetSemesterDropdown() {
+        const select = document.getElementById('globalSemesterSelect');
+        select.value = currentSemester ? currentSemester : "";
+    }
 
-                select.innerHTML = '<option value="" disabled selected>Select Semester...</option>';
-                
-                if (activeSemesters.length > 0) {
-                    const activeGroup = document.createElement('optgroup');
-                    activeGroup.label = "Active Semesters";
-                    activeSemesters.forEach(sem => activeGroup.appendChild(new Option(sem, sem)));
-                    select.appendChild(activeGroup);
-                }
-                
-                if (pastSemesters.length > 0) {
-                    const pastGroup = document.createElement('optgroup');
-                    pastGroup.label = "Past Semesters";
-                    pastSemesters.forEach(sem => pastGroup.appendChild(new Option(sem, sem)));
-                    select.appendChild(pastGroup);
-                }
+    document.getElementById('addSemesterModal').addEventListener('hidden.bs.modal', resetSemesterDropdown);
 
-                select.add(new Option("+ Add New Semester", "ADD_NEW"));
-
-                if (semesters.length > 0) {
-                    currentSemester = activeSemesters.length > 0 ? activeSemesters[0] : pastSemesters[0]; 
-
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const courseToEdit = urlParams.get('edit');
-                    
-                    if (courseToEdit) {
-                        const targetCourse = globalCourses.find(c => c.name === courseToEdit);
-                        if (targetCourse && targetCourse.semester) {
-                            currentSemester = targetCourse.semester;
-                        }
-                    }
-
-                    select.value = currentSemester;
-                    document.getElementById('registerCourseBtn').disabled = false;
-                    renderCoursesForSemester(currentSemester);
-
-                    if (courseToEdit) {
-                        setTimeout(() => {
-                            editCourse(courseToEdit);
-                            window.history.replaceState({}, document.title, "/study-planner"); 
-                        }, 100);
-                    }
-                }
-            } catch (err) {
-                console.error("Error loading planner courses:", err);
-            }
+    function confirmAddSemester() {
+        const dateVal = document.getElementById('newSemesterInput').value;
+        const isPast = document.getElementById('isPastSemesterToggle').checked;
+        if (!dateVal) { alert("Please select a valid month/year."); return; }
+        
+        const suffix = isPast ? " (Past)" : " (Active)";
+        const newVal = dateVal + suffix;
+        
+        const select = document.getElementById('globalSemesterSelect');
+        
+        let exists = false;
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === newVal) exists = true;
         }
+        
+        if (!exists) {
+            let group = select.querySelector(`optgroup[label="${isPast ? 'Past Semesters' : 'Active Semesters'}"]`);
+            if (!group) {
+                group = document.createElement('optgroup');
+                group.label = isPast ? 'Past Semesters' : 'Active Semesters';
+                select.insertBefore(group, select.lastElementChild);
+            }
+            group.appendChild(new Option(newVal, newVal));
+        }
+        
+        select.value = newVal;
+        currentSemester = newVal;
+        document.getElementById('registerCourseBtn').disabled = false;
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addSemesterModal'));
+        modal.hide();
+        
+        renderCoursesForSemester(currentSemester);
+    }
 
-        function renderCoursesForSemester(semester) {
-            const container = document.getElementById('courseInventoryContainer');
-            const filteredCourses = globalCourses.filter(c => c.semester === semester);
+    async function loadPlannerCourses() {
+        try {
+            const response = await fetch('/api/generate_plan');
+            globalCourses = await response.json(); 
             
-            const isPast = semester.includes('(Past)');
-            const badgeHTML = isPast ? `<span class="badge bg-secondary ms-2 align-middle" style="font-size: 0.8rem;">Past Semester</span>` : '';
-            document.getElementById('pageHeaderTitle').innerHTML = `Study Planner ${badgeHTML}`;
-
-            if (filteredCourses.length === 0) {
-                container.innerHTML = `
-                    <div class="col-12 text-center py-5 text-muted animate__animated animate__fadeIn">
-                        <i class="bi bi-journal-x fs-1"></i>
-                        <p class="mt-2">No courses registered for <strong>${semester}</strong> yet. Click "Register Course" to begin.</p>
-                    </div>`;
-                return;
-            }
-
-            container.innerHTML = ''; 
+            const select = document.getElementById('globalSemesterSelect');
+            const semesters = [...new Set(globalCourses.map(c => c.semester).filter(Boolean))].sort().reverse();
             
-            filteredCourses.forEach(course => {
-                let tasksHtml = '';
-                if(course.tasks && course.tasks.length > 0) {
-                    tasksHtml = '<ul class="small text-muted mt-2 ps-3 mb-0">';
-                    course.tasks.forEach(t => {
-                        tasksHtml += `<li>${t.name} <span class="badge bg-light text-dark border ms-1">${t.weight}%</span></li>`;
-                    });
-                    tasksHtml += '</ul>';
-                } else {
-                    tasksHtml = '<p class="small text-muted mt-2 mb-0">No components added.</p>';
+            const activeSemesters = semesters.filter(s => !s.includes('(Past)'));
+            const pastSemesters = semesters.filter(s => s.includes('(Past)'));
+
+            select.innerHTML = '<option value="" disabled selected>Select Semester...</option>';
+            
+            if (activeSemesters.length > 0) {
+                const activeGroup = document.createElement('optgroup');
+                activeGroup.label = "Active Semesters";
+                activeSemesters.forEach(sem => activeGroup.appendChild(new Option(sem, sem)));
+                select.appendChild(activeGroup);
+            }
+            
+            if (pastSemesters.length > 0) {
+                const pastGroup = document.createElement('optgroup');
+                pastGroup.label = "Past Semesters";
+                pastSemesters.forEach(sem => pastGroup.appendChild(new Option(sem, sem)));
+                select.appendChild(pastGroup);
+            }
+
+            select.add(new Option("+ Add New Semester", "ADD_NEW"));
+
+            if (semesters.length > 0) {
+                currentSemester = activeSemesters.length > 0 ? activeSemesters[0] : pastSemesters[0]; 
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const courseToEdit = urlParams.get('edit');
+                
+                if (courseToEdit) {
+                    const targetCourse = globalCourses.find(c => c.name === courseToEdit);
+                    if (targetCourse && targetCourse.semester) {
+                        currentSemester = targetCourse.semester;
+                    }
                 }
 
-                const isCompleted = course.is_completed;
-                const completedBadge = isCompleted ? `<span class="badge bg-success mt-1 ms-1" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>` : '';
-                const completedStyle = isCompleted ? 'opacity: 0.7; background-color: #f8f9fa;' : '';
+                select.value = currentSemester;
+                document.getElementById('registerCourseBtn').disabled = false;
+                renderCoursesForSemester(currentSemester);
 
-                container.innerHTML += `
-                    <div class="col-md-6 col-lg-4 animate__animated animate__fadeIn">
-                        <div class="card p-3 shadow-sm course-card h-100 border-0" 
-                             style="border-top: 4px solid var(${isPast ? '--sidebar-dark' : '--primary-blue'}) !important; cursor: pointer; ${completedStyle}" 
-                             onclick="editCourse('${course.name}')" title="Click to Edit">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div class="pe-2">
-                                    <h6 class="fw-bold mb-1 lh-base" title="${course.name}">${course.name}</h6>
-                                    <span class="badge bg-light text-dark border mt-1" style="font-size: 0.7rem;"><i class="bi bi-calendar3 me-1"></i>${course.semester}</span>
-                                    ${completedBadge}
-                                </div>
-                                <button class="btn btn-sm btn-outline-danger border-0 p-1 flex-shrink-0" 
-                                        onclick="event.stopPropagation(); deleteCourse('${course.name}')" title="Delete Course">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                            <div class="d-flex justify-content-between small text-muted mb-2 mt-3">
-                                <span><i class="bi bi-bullseye text-primary me-1"></i>Target: ${course.target_grade}%</span>
-                                <span><i class="bi bi-journal-bookmark me-1"></i>${course.credits} Credits</span>
-                            </div>
-                            <hr class="my-2">
-                            <span class="fw-bold small text-dark">Assessments:</span>
-                            ${tasksHtml}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function toggleView(view) {
-            if (view === 'form') {
-                document.getElementById('courseListSection').style.display = 'none';
-                document.getElementById('courseFormSection').style.display = 'block';
-                if (document.getElementById('tasksWrapper').children.length === 0) initDefaultTasks();
-                
-                document.getElementById('subSemester').value = currentSemester;
-            } else {
-                document.getElementById('courseListSection').style.display = 'block';
-                document.getElementById('courseFormSection').style.display = 'none';
-                
-                // Reset form
-                document.getElementById('formTitle').textContent = "Register New Course";
-                document.getElementById('saveBtn').innerHTML = "Save Course & Information";
-                document.getElementById('courseSelect').disabled = false;
-                document.getElementById('manualCourseName').disabled = false;
-                document.getElementById('courseSelect').selectedIndex = 0;
-                resetToDropdown();
-                document.getElementById('tasksWrapper').innerHTML = '';
-            }
-        }
-
-        function updateClock() {
-            const now = new Date();
-            if(document.getElementById('liveClock')) {
-                document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', hour12: true });
-                document.getElementById('liveDate').textContent = now.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short' , year: 'numeric'});
-            }
-        }
-        setInterval(updateClock, 1000); updateClock();
-
-        function autoFillCourseDetails() {
-            const select = document.getElementById('courseSelect');
-            if (select.value === "MANUAL") {
-                document.getElementById('predefinedContainer').classList.add('d-none');
-                document.getElementById('manualNameContainer').classList.remove('d-none');
-            } else {
-                const selectedOption = select.options[select.selectedIndex];
-                if(document.getElementById('subCredits')) {
-                    document.getElementById('subCredits').value = selectedOption.getAttribute('data-credits') || 3;
+                if (courseToEdit) {
+                    setTimeout(() => {
+                        editCourse(courseToEdit);
+                        window.history.replaceState({}, document.title, "/study-planner"); 
+                    }, 100);
                 }
             }
+        } catch (err) {
+            console.error("Error loading planner courses:", err);
         }
+    }
 
-        function resetToDropdown() {
-            document.getElementById('manualNameContainer').classList.add('d-none');
-            document.getElementById('predefinedContainer').classList.remove('d-none');
-            document.getElementById('courseSelect').value = "";
-        }
+    function renderCoursesForSemester(semester) {
+        const container = document.getElementById('courseInventoryContainer');
+        const filteredCourses = globalCourses.filter(c => c.semester === semester);
+        
+        const isPast = semester.includes('(Past)');
+        const badgeHTML = isPast ? `<span class="badge bg-secondary ms-2 align-middle" style="font-size: 0.8rem;">Past Semester</span>` : '';
+        document.getElementById('pageHeaderTitle').innerHTML = `Study Planner ${badgeHTML}`;
 
-        function addTaskRow(name = '', weight = '', date = '') {
-            const wrapper = document.getElementById('tasksWrapper');
-            const rowId = Date.now() + Math.floor(Math.random() * 1000);
-            const div = document.createElement('div');
-            div.className = 'task-row row g-2 align-items-center shadow-sm';
-            div.id = `row-${rowId}`;
-            div.innerHTML = `
-                <div class="col-md-5">
-                    <label class="small text-muted fw-bold">COMPONENT NAME</label>
-                    <input type="text" class="form-control comp-name" value="${name}" placeholder="e.g. Midterm Exam">
-                </div>
-                <div class="col-md-3">
-                    <label class="small text-muted fw-bold">WEIGHT (%)</label>
-                    <input type="number" class="form-control comp-weight" value="${weight}" oninput="calculateTotalWeight()">
-                </div>
-                <div class="col-md-3">
-                    <label class="small text-muted fw-bold">DUE DATE</label>
-                    <input type="date" class="form-control comp-date" value="${date}">
-                </div>
-                <div class="col-md-1 text-end">
-                    <button class="btn btn-outline-danger btn-sm mt-3" onclick="document.getElementById('row-${rowId}').remove(); calculateTotalWeight();">
-                        <i class="bi bi-trash"></i>
-                    </button>
+        if (filteredCourses.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center py-5 text-muted animate__animated animate__fadeIn">
+                    <i class="bi bi-journal-x fs-1"></i>
+                    <p class="mt-2">No courses registered for <strong>${semester}</strong> yet. Click "Register Course" to begin.</p>
                 </div>`;
-            wrapper.appendChild(div);
-            calculateTotalWeight();
+            return;
         }
 
-        function initDefaultTasks() {
-            addTaskRow('Assignment', 30);
-            addTaskRow('Midterm', 30);
-            addTaskRow('Final Exam', 40);
-        }
-
-        function calculateTotalWeight() {
-            let total = 0;
-            document.querySelectorAll('.comp-weight').forEach(input => {
-                const val = parseFloat(input.value);
-                if (!isNaN(val)) total += val;
-            });
-
-            const display = document.getElementById('totalWeightDisplay');
-            const icon = document.getElementById('weightageStatusIcon');
-            display.textContent = total + '%';
-            
-            if (total === 100) {
-                display.className = "badge bg-success fs-6";
-                icon.className = "bi bi-check-circle-fill text-success ms-2";
-            } else {
-                display.className = "badge bg-warning text-dark fs-6";
-                icon.className = "bi bi-exclamation-circle-fill text-danger ms-2";
-            }
-        }
-
-        function editCourse(courseName) {
-            const course = globalCourses.find(c => c.name === courseName && c.semester === currentSemester);
-            if (!course) return;
-
-            toggleView('form');
-            document.getElementById('formTitle').textContent = "Edit Course";
-            document.getElementById('saveBtn').innerHTML = "Update Course";
-
-            const selectEl = document.getElementById('courseSelect');
-            let found = false;
-            for (let i = 0; i < selectEl.options.length; i++) {
-                if (selectEl.options[i].text === course.name || selectEl.options[i].value === course.name) {
-                    selectEl.selectedIndex = i;
-                    found = true;
-                    break;
-                }
-            }
-
-            if (found) {
-                document.getElementById('predefinedContainer').classList.remove('d-none');
-                document.getElementById('manualNameContainer').classList.add('d-none');
-            } else {
-                selectEl.value = "MANUAL";
-                document.getElementById('predefinedContainer').classList.add('d-none');
-                document.getElementById('manualNameContainer').classList.remove('d-none');
-                document.getElementById('manualCourseName').value = course.name;
-            }
-            
-            selectEl.disabled = true;
-            document.getElementById('manualCourseName').disabled = true;
-
-            document.getElementById('subCredits').value = course.credits;
-            document.getElementById('subTarget').value = course.target_grade;
-
-            const wrapper = document.getElementById('tasksWrapper');
-            wrapper.innerHTML = '';
-            if (course.tasks && course.tasks.length > 0) {
-                course.tasks.forEach(t => addTaskRow(t.name, t.weight, (t.deadline && t.deadline !== "None") ? t.deadline : ''));
-            } else {
-                initDefaultTasks();
-            }
-        }
-
-        async function deleteCourse(courseName) {
-            if(!confirm(`Are you sure you want to delete ${courseName}? All linked tasks, deadlines, and grades will be erased.`)) return;
-            try {
-                const res = await fetch('/api/delete_subject', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({name: courseName})
+        container.innerHTML = ''; 
+        
+        filteredCourses.forEach(course => {
+            let tasksHtml = '';
+            if(course.tasks && course.tasks.length > 0) {
+                tasksHtml = '<ul class="small text-muted mt-2 ps-3 mb-0">';
+                course.tasks.forEach(t => {
+                    tasksHtml += `<li>${t.name} <span class="badge bg-light text-dark border ms-1">${t.weight}%</span></li>`;
                 });
-                if(res.ok) { window.location.reload(); } 
-                else { alert("Failed to delete course."); }
-            } catch (err) { console.error(err); }
+                tasksHtml += '</ul>';
+            } else {
+                tasksHtml = '<p class="small text-muted mt-2 mb-0">No components added.</p>';
+            }
+
+            const isCompleted = course.is_completed;
+            const completedBadge = isCompleted ? `<span class="badge bg-success mt-1 ms-1" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>` : '';
+            const completedStyle = isCompleted ? 'opacity: 0.7; background-color: #f8f9fa;' : '';
+
+            container.innerHTML += `
+                <div class="col-md-6 col-lg-4 animate__animated animate__fadeIn">
+                    <div class="card p-3 shadow-sm course-card h-100 border-0" 
+                         style="border-top: 4px solid var(${isPast ? '--sidebar-dark' : '--primary-blue'}) !important; cursor: pointer; ${completedStyle}" 
+                         onclick="editCourse('${course.name}')" title="Click to Edit">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="pe-2">
+                                <h6 class="fw-bold mb-1 lh-base" title="${course.name}">${course.name}</h6>
+                                <span class="badge bg-light text-dark border mt-1" style="font-size: 0.7rem;"><i class="bi bi-calendar3 me-1"></i>${course.semester}</span>
+                                ${completedBadge}
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger border-0 p-1 flex-shrink-0" 
+                                    onclick="event.stopPropagation(); deleteCourse('${course.name}')" title="Delete Course">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted mb-2 mt-3">
+                            <span><i class="bi bi-bullseye text-primary me-1"></i>Target: ${course.target_grade}%</span>
+                            <span><i class="bi bi-journal-bookmark me-1"></i>${course.credits} Credits</span>
+                        </div>
+                        <hr class="my-2">
+                        <span class="fw-bold small text-dark">Assessments:</span>
+                        ${tasksHtml}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function toggleView(view) {
+        if (view === 'form') {
+            document.getElementById('courseListSection').style.display = 'none';
+            document.getElementById('courseFormSection').style.display = 'block';
+            if (document.getElementById('tasksWrapper').children.length === 0) initDefaultTasks();
+            document.getElementById('subSemester').value = currentSemester;
+        } else {
+            document.getElementById('courseListSection').style.display = 'block';
+            document.getElementById('courseFormSection').style.display = 'none';
+            
+            document.getElementById('formTitle').textContent = "Register New Course";
+            document.getElementById('saveBtn').innerHTML = "Save Course & Information";
+            document.getElementById('courseSelect').disabled = false;
+            document.getElementById('manualCourseName').disabled = false;
+            document.getElementById('courseSelect').selectedIndex = 0;
+            resetToDropdown();
+            document.getElementById('tasksWrapper').innerHTML = '';
+        }
+    }
+
+    function autoFillCourseDetails() {
+        const select = document.getElementById('courseSelect');
+        if (select.value === "MANUAL") {
+            document.getElementById('predefinedContainer').classList.add('d-none');
+            document.getElementById('manualNameContainer').classList.remove('d-none');
+        } else {
+            const selectedOption = select.options[select.selectedIndex];
+            if(document.getElementById('subCredits')) {
+                document.getElementById('subCredits').value = selectedOption.getAttribute('data-credits') || 3;
+            }
+        }
+    }
+
+    function resetToDropdown() {
+        document.getElementById('manualNameContainer').classList.add('d-none');
+        document.getElementById('predefinedContainer').classList.remove('d-none');
+        document.getElementById('courseSelect').value = "";
+    }
+
+    function addTaskRow(name = '', weight = '', date = '') {
+        const wrapper = document.getElementById('tasksWrapper');
+        const rowId = Date.now() + Math.floor(Math.random() * 1000);
+        const div = document.createElement('div');
+        div.className = 'task-row row g-2 align-items-center shadow-sm';
+        div.id = `row-${rowId}`;
+        div.innerHTML = `
+            <div class="col-md-5">
+                <label class="small text-muted fw-bold">COMPONENT NAME</label>
+                <input type="text" class="form-control comp-name" value="${name}" placeholder="e.g. Midterm Exam">
+            </div>
+            <div class="col-md-3">
+                <label class="small text-muted fw-bold">WEIGHT (%)</label>
+                <input type="number" class="form-control comp-weight" value="${weight}" oninput="calculateTotalWeight()">
+            </div>
+            <div class="col-md-3">
+                <label class="small text-muted fw-bold">DUE DATE</label>
+                <input type="date" class="form-control comp-date" value="${date}">
+            </div>
+            <div class="col-md-1 text-end">
+                <button class="btn btn-outline-danger btn-sm mt-3" onclick="document.getElementById('row-${rowId}').remove(); calculateTotalWeight();">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>`;
+        wrapper.appendChild(div);
+        calculateTotalWeight();
+    }
+
+    function initDefaultTasks() {
+        addTaskRow('Assignment', 30);
+        addTaskRow('Midterm', 30);
+        addTaskRow('Final Exam', 40);
+    }
+
+    function calculateTotalWeight() {
+        let total = 0;
+        document.querySelectorAll('.comp-weight').forEach(input => {
+            const val = parseFloat(input.value);
+            if (!isNaN(val)) total += val;
+        });
+
+        const display = document.getElementById('totalWeightDisplay');
+        const icon = document.getElementById('weightageStatusIcon');
+        display.textContent = total + '%';
+        
+        if (total === 100) {
+            display.className = "badge bg-success fs-6";
+            icon.className = "bi bi-check-circle-fill text-success ms-2";
+        } else {
+            display.className = "badge bg-warning text-dark fs-6";
+            icon.className = "bi bi-exclamation-circle-fill text-danger ms-2";
+        }
+    }
+
+    function editCourse(courseName) {
+        const course = globalCourses.find(c => c.name === courseName && c.semester === currentSemester);
+        if (!course) return;
+
+        toggleView('form');
+        document.getElementById('formTitle').textContent = "Edit Course";
+        document.getElementById('saveBtn').innerHTML = "Update Course";
+
+        const selectEl = document.getElementById('courseSelect');
+        let found = false;
+        for (let i = 0; i < selectEl.options.length; i++) {
+            if (selectEl.options[i].text === course.name || selectEl.options[i].value === course.name) {
+                selectEl.selectedIndex = i;
+                found = true;
+                break;
+            }
         }
 
-        document.getElementById('saveBtn').addEventListener('click', async function () {
-            const saveBtn = this;
-            
-            const totalWeightDisplay = document.getElementById('totalWeightDisplay').innerText;
-            if (totalWeightDisplay !== '100%') {
-                alert("Cannot save: Total weightage must be exactly 100%.");
-                return;
-            }
+        if (found) {
+            document.getElementById('predefinedContainer').classList.remove('d-none');
+            document.getElementById('manualNameContainer').classList.add('d-none');
+        } else {
+            selectEl.value = "MANUAL";
+            document.getElementById('predefinedContainer').classList.add('d-none');
+            document.getElementById('manualNameContainer').classList.remove('d-none');
+            document.getElementById('manualCourseName').value = course.name;
+        }
+        
+        selectEl.disabled = true;
+        document.getElementById('manualCourseName').disabled = true;
 
-            const selectEl = document.getElementById('courseSelect');
-            let finalName = "";
-            if (!selectEl.value) {
-                alert("Please select a course."); return;
-            } else if (selectEl.value === "MANUAL") {
-                finalName = document.getElementById('manualCourseName').value.trim();
-                if (!finalName) { alert("Please enter a manual course name."); return; }
-            } else {
-                finalName = selectEl.options[selectEl.selectedIndex].text;
-            }
+        document.getElementById('subCredits').value = course.credits;
+        document.getElementById('subTarget').value = course.target_grade;
 
-            const tasks = [];
-            document.querySelectorAll('.task-row').forEach(row => {
-                const tName = row.querySelector('.comp-name').value;
-                const tWeight = row.querySelector('.comp-weight').value;
-                const tDate = row.querySelector('.comp-date').value;
-                if (tName && tWeight) {
-                    tasks.push({ task_name: tName, weightage: tWeight, due_date: tDate });
-                }
+        const wrapper = document.getElementById('tasksWrapper');
+        wrapper.innerHTML = '';
+        if (course.tasks && course.tasks.length > 0) {
+            course.tasks.forEach(t => addTaskRow(t.name, t.weight, (t.deadline && t.deadline !== "None") ? t.deadline : ''));
+        } else {
+            initDefaultTasks();
+        }
+    }
+
+    async function deleteCourse(courseName) {
+        if(!confirm(`Are you sure you want to delete ${courseName}? All linked tasks, deadlines, and grades will be erased.`)) return;
+        try {
+            const res = await fetch('/api/delete_subject', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: courseName})
             });
+            if(res.ok) { window.location.reload(); } 
+            else { alert("Failed to delete course."); }
+        } catch (err) { console.error(err); }
+    }
 
-            const payload = {
-                course_name: finalName,
-                semester: currentSemester, 
-                credits: document.getElementById('subCredits').value,
-                target_grade: document.getElementById('subTarget').value,
-                tasks: tasks
-            };
+    document.getElementById('saveBtn').addEventListener('click', async function () {
+        const saveBtn = this;
+        
+        const totalWeightDisplay = document.getElementById('totalWeightDisplay').innerText;
+        if (totalWeightDisplay !== '100%') {
+            alert("Cannot save: Total weightage must be exactly 100%.");
+            return;
+        }
 
-            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
-            saveBtn.disabled = true;
+        const selectEl = document.getElementById('courseSelect');
+        let finalName = "";
+        if (!selectEl.value) {
+            alert("Please select a course."); return;
+        } else if (selectEl.value === "MANUAL") {
+            finalName = document.getElementById('manualCourseName').value.trim();
+            if (!finalName) { alert("Please enter a manual course name."); return; }
+        } else {
+            finalName = selectEl.options[selectEl.selectedIndex].text;
+        }
 
-            try {
-                const response = await fetch('/api/save-course', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    alert("Success! " + (result.message || "Course saved."));
-                    window.location.reload();
-                } else {
-                    alert("Failed to save. Error: " + (result.message));
-                    saveBtn.innerHTML = 'Save / Update Course';
-                    saveBtn.disabled = false;
-                }
-            } catch (err) {
-                console.error(err);
-                alert("Network error. Is your Flask app running?");
-                saveBtn.innerHTML = 'Save / Update Course';
-                saveBtn.disabled = false;
+        const tasks = [];
+        document.querySelectorAll('.task-row').forEach(row => {
+            const tName = row.querySelector('.comp-name').value;
+            const tWeight = row.querySelector('.comp-weight').value;
+            const tDate = row.querySelector('.comp-date').value;
+            if (tName && tWeight) {
+                tasks.push({ task_name: tName, weightage: tWeight, due_date: tDate });
             }
         });
-        window.addEventListener('load', loadPlannerCourses);
-    </script>
-</body>
-</html>
+
+        const payload = {
+            course_name: finalName,
+            semester: currentSemester, 
+            credits: document.getElementById('subCredits').value,
+            target_grade: document.getElementById('subTarget').value,
+            tasks: tasks
+        };
+
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+        saveBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/save-course', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert("Success! " + (result.message || "Course saved."));
+                window.location.reload();
+            } else {
+                alert("Failed to save. Error: " + (result.message));
+                saveBtn.innerHTML = 'Save Course & Information';
+                saveBtn.disabled = false;
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Network error. Is your Flask app running?");
+            saveBtn.innerHTML = 'Save Course & Information';
+            saveBtn.disabled = false;
+        }
+    });
+
+    // ==========================================
+    // Intelligent Auto-Scheduler Client Logic
+    // ==========================================
+    let currentPreviewSessions = [];
+
+    function openAutoSchedulerModal() {
+        const modalEl = document.getElementById('autoSchedulerModal');
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+
+    async function generateAutoSchedulePreview() {
+        const btn = document.getElementById('btnGeneratePreview');
+        const loading = document.getElementById('schedulerLoading');
+        const results = document.getElementById('schedulerResults');
+        const empty = document.getElementById('schedulerEmpty');
+        const applyBtn = document.getElementById('btnApplySchedule');
+
+        btn.disabled = true;
+        loading.classList.remove('d-none');
+        results.classList.add('d-none');
+        empty.classList.add('d-none');
+        applyBtn.disabled = true;
+
+        try {
+            const payload = {
+                daily_hours: parseInt(document.getElementById('autoDailyHours').value) || 2,
+                preferred_window: document.getElementById('autoPreferredWindow').value || 'evening',
+                days_ahead: parseInt(document.getElementById('autoDaysAhead').value) || 7
+            };
+
+            const res = await fetch('/api/auto-schedule/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            loading.classList.add('d-none');
+            btn.disabled = false;
+
+            if (!res.ok) {
+                alert(data.error || 'Failed to generate schedule.');
+                return;
+            }
+
+            currentPreviewSessions = data.sessions || [];
+
+            if (currentPreviewSessions.length === 0) {
+                empty.classList.remove('d-none');
+                return;
+            }
+
+            // Metrics
+            document.getElementById('metricTasksCount').innerText = data.tasks_considered || 0;
+            document.getElementById('metricSessionsCount').innerText = currentPreviewSessions.length;
+            document.getElementById('metricTotalHours').innerText = `${data.total_hours_scheduled || currentPreviewSessions.length}h`;
+
+            // Table rows
+            const tbody = document.getElementById('schedulerPreviewBody');
+            tbody.innerHTML = '';
+            currentPreviewSessions.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="fw-bold">${s.date}</div>
+                        <small class="text-muted">${s.day_of_week}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border px-2 py-1">
+                            <i class="bi bi-clock me-1 text-primary"></i>${s.start_time} - ${s.end_time}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="fw-bold text-primary">${s.course_name}</div>
+                        <small class="text-muted">${s.task_name} (Due: ${s.due_date || 'N/A'})</small>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge text-white px-2 py-1" style="background-color: #6366f1;">
+                            Score: ${s.priority_score}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            results.classList.remove('d-none');
+            applyBtn.disabled = false;
+        } catch (err) {
+            console.error(err);
+            loading.classList.add('d-none');
+            btn.disabled = false;
+            alert('Network or server error while generating schedule.');
+        }
+    }
+
+    async function applyGeneratedSchedule() {
+        if (!currentPreviewSessions || currentPreviewSessions.length === 0) {
+            alert('No sessions to apply.');
+            return;
+        }
+
+        const applyBtn = document.getElementById('btnApplySchedule');
+        applyBtn.disabled = true;
+        applyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Applying...';
+
+        try {
+            const res = await fetch('/api/auto-schedule/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessions: currentPreviewSessions })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                alert(`🎉 Success! ${data.count} study sessions have been added to your timetable.`);
+                const modalEl = document.getElementById('autoSchedulerModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                window.location.href = '/calendar';
+            } else {
+                alert(data.error || 'Failed to apply schedule.');
+                applyBtn.disabled = false;
+                applyBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Apply & Sync to Calendar';
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Network error while saving schedule.');
+            applyBtn.disabled = false;
+            applyBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Apply & Sync to Calendar';
+        }
+    }
+
+    window.addEventListener('load', loadPlannerCourses);
+</script>
+{% endblock %}

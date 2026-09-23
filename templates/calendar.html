@@ -1,308 +1,275 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar | Smart Study Planner</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+{% extends "base.html" %}
+
+{% block title %}Calendar | Smart Study Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    #calendar-wrapper { 
+        background: white; 
+        border-radius: 12px; 
+        padding: 25px; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+    }
+    .fc-header-toolbar { margin-bottom: 1.5rem !important; }
+    .fc-button-primary { 
+        background-color: var(--primary-blue) !important; 
+        border: none !important; 
+        text-transform: capitalize !important; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    }
+    .fc-button-active { background-color: #0043a8 !important; }
     
-    <style>
-        :root { --primary-blue: #0d6efd; --sidebar-dark: #212529; --bg-light: #f4f7f6; }
-        body { background-color: var(--bg-light); font-family: 'Inter', sans-serif; }
-        
-        
-        .offcanvas { width: 280px !important; background-color: var(--sidebar-dark); color: white; }
-        .nav-link { color: rgba(255,255,255,0.7); transition: 0.3s; padding: 12px 20px; border-radius: 8px; margin: 4px 10px; cursor: pointer; text-decoration: none; display: block; }
-        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
-        .nav-link i { margin-right: 12px; }
+    .fc-day-today {
+        background-color: #eef6fc !important; 
+        box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.3); 
+    }
+    .fc-day-today .fc-daygrid-day-number {
+        background-color: var(--primary-blue);
+        color: white !important;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 4px;
+        font-weight: bold;
+        box-shadow: 0 3px 6px rgba(13, 110, 253, 0.4);
+    }
+    .fc-day-today .fc-col-header-cell-cushion { color: var(--primary-blue); font-weight: 800; }
 
-        .clock-container { text-align: right; line-height: 1.2; border-right: 1px solid #dee2e6; padding-right: 15px; margin-right: 15px; }
-        .profile-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+    .fc-event { 
+        cursor: pointer !important; 
+        border: none !important; 
+        transition: transform 0.2s, box-shadow 0.2s; 
+        border-radius: 6px !important; 
+        margin: 1px 2px !important; 
+    }
+    .fc-event:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15); 
+        filter: brightness(1.05); 
+        z-index: 10; 
+    }
+    
+    .filter-panel { 
+        background: #fff; 
+        padding: 15px 20px; 
+        border-radius: 12px; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+        margin-bottom: 20px; 
+    }
+    .form-switch .form-check-input:checked { 
+        background-color: var(--primary-blue); 
+        border-color: var(--primary-blue); 
+    }
+</style>
+{% endblock %}
 
-        
-        #calendar-wrapper { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .fc-header-toolbar { margin-bottom: 1.5rem !important; }
-        .fc-button-primary { background-color: var(--primary-blue) !important; border: none !important; text-transform: capitalize !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .fc-button-active { background-color: #0043a8 !important; }
-        
-       
-        .fc-day-today {
-            background-color: #eef6fc !important; 
-            box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.3); 
-        }
-        .fc-day-today .fc-daygrid-day-number {
-            background-color: var(--primary-blue);
-            color: white !important;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 4px;
-            font-weight: bold;
-            box-shadow: 0 3px 6px rgba(13, 110, 253, 0.4);
-        }
-        .fc-day-today .fc-col-header-cell-cushion { color: var(--primary-blue); font-weight: 800; }
-
-        /* Custom Event Styling */
-        .fc-event { cursor: pointer !important; border: none !important; transition: transform 0.2s, box-shadow 0.2s; border-radius: 6px !important; margin: 1px 2px !important; }
-        .fc-event:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); filter: brightness(1.05); z-index: 10; }
-        
-        /* Filter Toggles */
-        .filter-panel { background: #fff; padding: 15px 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .form-switch .form-check-input:checked { background-color: var(--primary-blue); border-color: var(--primary-blue); }
-    </style>
-</head>
-<body>
-
-    <nav class="navbar navbar-light bg-white border-bottom sticky-top">
-        <div class="container-fluid d-flex align-items-center">
-            <button class="btn btn-light border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
-                <i class="bi bi-list fs-4"></i>
-            </button>
-            <a class="navbar-brand fw-bold text-primary ms-2" href="#"><i class="bi bi-cpu"></i> Smart Study</a>
-            
-            <div class="d-flex align-items-center ms-auto">
-                <div class="clock-container d-none d-md-block">
-                    <div id="liveClock" class="fw-bold text-primary mb-0">--:--:--</div>
-                    <div id="liveDate" class="text-muted small">Loading...</div>
-                </div>
-                
-            </div>
+{% block content %}
+<div class="container py-4">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6">
+            <h3 class="fw-bold mb-0">Master Calendar</h3>
+            <p class="text-muted mb-0">View and filter your academic schedule.</p>
         </div>
-    </nav>
-
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu">
-        <div class="offcanvas-header border-bottom border-secondary">
-            <h5 class="offcanvas-title fw-bold">Navigation</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body p-0 pt-3">
-            <nav class="nav flex-column">
-                <a class="nav-link" href="/dashboard"><i class="bi bi-grid-1x2"></i> Dashboard</a>
-                <a class="nav-link" href="/study-planner"><i class="bi bi-calendar2-check"></i> Study Planner</a>
-                <a class="nav-link" href="/classes"><i class="bi bi-building"></i> Classes</a>
-                <a class="nav-link active" href="/calendar"><i class="bi bi-calendar3"></i> Calendar</a>
-                <a class="nav-link" href="/tasks"><i class="bi bi-list-task"></i> Tasks</a>
-                <a class="nav-link" href="/grades"><i class="bi bi-bar-chart"></i> Grades</a>
-            </nav>
+        <div class="col-md-6 text-md-end mt-3 mt-md-0">
+            <a href="/study_planner" class="btn text-white shadow-sm" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                <i class="bi bi-magic me-1"></i> ⚡ Auto-Schedule Study Sessions
+            </a>
         </div>
     </div>
 
-    <div class="container py-4">
-        <div class="row align-items-end mb-4">
-            <div class="col-md-6">
-                <h3 class="fw-bold mb-0">Master Calendar</h3>
-                <p class="text-muted mb-0">View and filter your academic schedule.</p>
-            </div>
+    <div class="filter-panel d-flex flex-wrap gap-4 align-items-center">
+        <span class="fw-bold small text-muted text-uppercase me-2"><i class="bi bi-funnel-fill me-1"></i> Filters:</span>
+        
+        <div class="form-check form-switch">
+            <input class="form-check-input filter-toggle" type="checkbox" id="filterTasks" value="task" checked>
+            <label class="form-check-label small fw-bold text-danger" for="filterTasks"><i class="bi bi-exclamation-circle-fill me-1"></i>Tasks / Deadlines</label>
         </div>
-
-        <div class="filter-panel d-flex flex-wrap gap-4 align-items-center">
-            <span class="fw-bold small text-muted text-uppercase me-2"><i class="bi bi-funnel-fill me-1"></i> Filters:</span>
-            
-            <div class="form-check form-switch">
-                <input class="form-check-input filter-toggle" type="checkbox" id="filterTasks" value="task" checked>
-                <label class="form-check-label small fw-bold text-danger" for="filterTasks"><i class="bi bi-exclamation-circle-fill me-1"></i>Tasks / Deadlines</label>
-            </div>
-            <div class="form-check form-switch">
-                <input class="form-check-input filter-toggle" type="checkbox" id="filterClasses" value="Class" checked>
-                <label class="form-check-label small fw-bold text-primary" for="filterClasses"><i class="bi bi-journal-bookmark-fill me-1"></i>Classes</label>
-            </div>
-            <div class="form-check form-switch">
-                <input class="form-check-input filter-toggle" type="checkbox" id="filterRevisions" value="Revision" checked>
-                <label class="form-check-label small fw-bold" style="color: #6f42c1;" for="filterRevisions"><i class="bi bi-book-half me-1"></i>Revisions</label>
-            </div>
-            <div class="form-check form-switch">
-                <input class="form-check-input filter-toggle" type="checkbox" id="filterTrainings" value="Training" checked>
-                <label class="form-check-label small fw-bold text-success" for="filterTrainings"><i class="bi bi-lightning-charge-fill me-1"></i>Trainings / Clubs</label>
-            </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input filter-toggle" type="checkbox" id="filterClasses" value="Class" checked>
+            <label class="form-check-label small fw-bold text-primary" for="filterClasses"><i class="bi bi-journal-bookmark-fill me-1"></i>Classes</label>
         </div>
-
-        <div id="calendar-wrapper">
-            <div id="calendar"></div>
+        <div class="form-check form-switch">
+            <input class="form-check-input filter-toggle" type="checkbox" id="filterRevisions" value="Revision" checked>
+            <label class="form-check-label small fw-bold" style="color: #6f42c1;" for="filterRevisions"><i class="bi bi-book-half me-1"></i>Revisions</label>
+        </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input filter-toggle" type="checkbox" id="filterTrainings" value="Training" checked>
+            <label class="form-check-label small fw-bold text-success" for="filterTrainings"><i class="bi bi-lightning-charge-fill me-1"></i>Trainings / Clubs</label>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        let allCalendarEvents = [];
-        let calendarInstance = null;
+    <div id="calendar-wrapper">
+        <div id="calendar"></div>
+    </div>
+</div>
+{% endblock %}
 
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', hour12: true });
-            document.getElementById('liveDate').textContent = now.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short' });
-        }
-        setInterval(updateClock, 1000); updateClock();
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script>
+    let allCalendarEvents = [];
+    let calendarInstance = null;
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            await fetchCalendarData();
-            initCalendar();
-            
-            document.querySelectorAll('.filter-toggle').forEach(toggle => {
-                toggle.addEventListener('change', applyFilters);
-            });
+    document.addEventListener('DOMContentLoaded', async function() {
+        await fetchCalendarData();
+        initCalendar();
+        
+        document.querySelectorAll('.filter-toggle').forEach(toggle => {
+            toggle.addEventListener('change', applyFilters);
         });
+    });
 
-        async function fetchCalendarData() {
-            const dayMap = { "Sunday":0, "Monday":1, "Tuesday":2, "Wednesday":3, "Thursday":4, "Friday":5, "Saturday":6 };
+    async function fetchCalendarData() {
+        const dayMap = { "Sunday":0, "Monday":1, "Tuesday":2, "Wednesday":3, "Thursday":4, "Friday":5, "Saturday":6 };
 
-            try {
-                const [planRes, tasksRes, schedRes] = await Promise.all([
-                    fetch('/api/generate_plan'),
-                    fetch('/api/get-all-tasks'),
-                    fetch('/api/get-schedules')
-                ]);
+        try {
+            const [planRes, tasksRes, schedRes] = await Promise.all([
+                fetch('/api/generate_plan'),
+                fetch('/api/get-all-tasks'),
+                fetch('/api/get-schedules')
+            ]);
 
-                const courses = await planRes.json();
-                const globalTasks = await tasksRes.json();
-                const schedules = await schedRes.json();
+            const courses = await planRes.json();
+            const globalTasks = await tasksRes.json();
+            const schedules = await schedRes.json();
 
-                globalTasks.forEach(task => {
-                    if (task.due_date && task.due_date !== "TBD" && task.due_date !== "None") {
-                        
-                        let fullCourseName = null;
-                        let isPastSemester = false;
+            globalTasks.forEach(task => {
+                if (task.due_date && task.due_date !== "TBD" && task.due_date !== "None") {
+                    let fullCourseName = null;
+                    let isPastSemester = false;
 
-                        if (task.course_id) {
-                            const c = courses.find(c => c.id === task.course_id);
-                            if (c) {
-                                fullCourseName = c.name;
-                                if (c.semester && c.semester.includes('(Past)')) isPastSemester = true;
-                            }
+                    if (task.course_id) {
+                        const c = courses.find(c => c.id === task.course_id);
+                        if (c) {
+                            fullCourseName = c.name;
+                            if (c.semester && c.semester.includes('(Past)')) isPastSemester = true;
                         }
-
-                        if (isPastSemester) return;
-
-                        const bgColor = task.is_completed ? '#6c757d' : '#dc3545'; 
-                        const icon = task.is_completed ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill';
-                        const titlePrefix = task.course_name !== 'General' ? `${task.course_name} - ` : '';
-
-                        allCalendarEvents.push({
-                            id: `task-${task.id}`,
-                            title: `Task: ${titlePrefix}${task.task_name}`,
-                            start: task.due_date,
-                            allDay: true,
-                            extendedProps: { 
-                                fullCourseName: fullCourseName, 
-                                type: 'task', 
-                                filterCategory: 'task',
-                                icon: icon,
-                                isCompleted: task.is_completed
-                            },
-                            backgroundColor: bgColor,
-                            borderColor: bgColor
-                        });
                     }
-                });
 
-                schedules.forEach(sched => {
-                    let color = '#0d6efd'; // Class Blue
-                    let icon = 'bi-journal-bookmark-fill';
-                
-                    if (sched.activity_type === 'Revision') { color = '#6f42c1'; icon = 'bi-book-half'; } 
-                    if (sched.activity_type === 'Training') { color = '#198754'; icon = 'bi-lightning-charge-fill'; } 
+                    if (isPastSemester) return;
 
-                    const shortTitle = sched.title.split('—')[0].trim();
-                    const isAllDay = sched.start_time === "00:00" && sched.end_time === "23:59";
-
-                    if (sched.start_date && sched.end_date) {
-                        allCalendarEvents.push({
-                            id: `sched-${sched.id}`,
-                            title: `${sched.activity_type}: ${shortTitle}`,
-                            daysOfWeek: [ dayMap[sched.day] ], 
-                            startTime: isAllDay ? undefined : sched.start_time + ":00",
-                            endTime: isAllDay ? undefined : sched.end_time + ":00",
-                            startRecur: sched.start_date, 
-                            endRecur: sched.end_date + "T23:59:59", 
-                            allDay: isAllDay,
-                            extendedProps: { 
-                                fullCourseName: sched.title, 
-                                type: 'class', 
-                                filterCategory: sched.activity_type,
-                                venue: sched.venue,
-                                details: sched.details,
-                                icon: icon,
-                                isCompleted: false
-                            },
-                            backgroundColor: color,
-                            borderColor: color
-                        });
-                    }
-                });
-            } catch (err) {
-                console.error("Failed to load calendar events:", err);
-            }
-        }
-
-        function initCalendar() {
-            const calendarEl = document.getElementById('calendar');
-            
-            calendarInstance = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
-                themeSystem: 'bootstrap5',
-                events: allCalendarEvents,
-                height: 'auto',
-                
-                eventContent: function(arg) {
-                    const props = arg.event.extendedProps;
-                    let timeHtml = '';
-                    
-                    if (!arg.event.allDay && arg.view.type !== 'dayGridMonth') {
-                        timeHtml = `<div class="fw-bold mb-1 opacity-75">${arg.timeText}</div>`;
-                    }
-                    
-                    const strikeClass = props.isCompleted ? 'text-decoration-line-through text-light opacity-75' : '';
-                    
-                    return {
-                        html: `
-                        <div class="p-1 w-100 overflow-hidden" title="${arg.event.title}${props.venue ? ' @ ' + props.venue : ''}">
-                            ${timeHtml}
-                            <div class="text-truncate fw-bold ${strikeClass}" style="font-size: 0.8rem;">
-                                <i class="bi ${props.icon} me-1"></i>${arg.event.title}
-                            </div>
-                        </div>`
-                    };
-                },
-                
-                eventClick: function(info) {
-                    const props = info.event.extendedProps;
-                    
-                    if (props.type === 'task' && props.fullCourseName) {
-                        // Linked to a Course -> Open Study Planner
-                        window.location.href = `/study-planner?edit=${encodeURIComponent(props.fullCourseName)}`;
-                    } else if (props.type === 'task' && !props.fullCourseName) {
-                        // Personal Task -> Open Tasks Page
-                        window.location.href = '/tasks';
-                    } else if (props.type === 'class') {
-                        // Timetable Class -> Open Classes Page
-                        window.location.href = '/classes';
-                    }
+                    const isComp = task.is_completed;
+                    allCalendarEvents.push({
+                        title: task.task_name,
+                        start: task.due_date,
+                        allDay: true,
+                        backgroundColor: isComp ? '#6c757d' : '#dc3545',
+                        borderColor: isComp ? '#6c757d' : '#dc3545',
+                        textColor: '#ffffff',
+                        extendedProps: {
+                            type: 'task',
+                            filterCategory: 'task',
+                            icon: isComp ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill',
+                            isCompleted: isComp,
+                            fullCourseName: fullCourseName
+                        }
+                    });
                 }
             });
-            
-            calendarInstance.render();
-        }
 
-        function applyFilters() {
-            const activeFilters = Array.from(document.querySelectorAll('.filter-toggle:checked')).map(cb => cb.value);
-            
-            const filteredEvents = allCalendarEvents.filter(event => {
-                return activeFilters.includes(event.extendedProps.filterCategory);
+            schedules.forEach(item => {
+                let color = '#0d6efd';
+                let icon = 'bi-journal-bookmark-fill';
+                
+                if (item.activity_type === 'Lab') {
+                    color = '#ffc107'; icon = 'bi-laptop';
+                } else if (item.activity_type === 'Tutorial') {
+                    color = '#0dcaf0'; icon = 'bi-people-fill';
+                } else if (item.activity_type === 'Revision') {
+                    color = '#6f42c1'; icon = 'bi-book-half';
+                } else if (item.activity_type === 'Training') {
+                    color = '#198754'; icon = 'bi-lightning-charge-fill';
+                }
+
+                const dayIndex = dayMap[item.day];
+
+                allCalendarEvents.push({
+                    title: item.title,
+                    daysOfWeek: [dayIndex],
+                    startTime: item.start_time,
+                    endTime: item.end_time,
+                    startRecur: item.start_date || undefined,
+                    endRecur: item.end_date || undefined,
+                    backgroundColor: color,
+                    borderColor: color,
+                    textColor: (item.activity_type === 'Lab' || item.activity_type === 'Tutorial') ? '#000000' : '#ffffff',
+                    extendedProps: {
+                        type: 'class',
+                        filterCategory: (item.activity_type === 'Revision') ? 'Revision' : (item.activity_type === 'Training' ? 'Training' : 'Class'),
+                        venue: item.venue,
+                        icon: icon,
+                        isCompleted: false
+                    }
+                });
             });
 
-            calendarInstance.removeAllEventSources();
-            calendarInstance.addEventSource(filteredEvents);
+        } catch (e) {
+            console.error("Error loading calendar data", e);
         }
-    </script>
-</body>
-</html>
+    }
+
+    function initCalendar() {
+        const calendarEl = document.getElementById('calendar');
+        calendarInstance = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            themeSystem: 'bootstrap5',
+            events: allCalendarEvents,
+            height: 'auto',
+            
+            eventContent: function(arg) {
+                const props = arg.event.extendedProps;
+                let timeHtml = '';
+                
+                if (!arg.event.allDay && arg.view.type !== 'dayGridMonth') {
+                    timeHtml = `<div class="fw-bold mb-1 opacity-75">${arg.timeText}</div>`;
+                }
+                
+                const strikeClass = props.isCompleted ? 'text-decoration-line-through text-light opacity-75' : '';
+                
+                return {
+                    html: `
+                    <div class="p-1 w-100 overflow-hidden" title="${arg.event.title}${props.venue ? ' @ ' + props.venue : ''}">
+                        ${timeHtml}
+                        <div class="text-truncate fw-bold ${strikeClass}" style="font-size: 0.8rem;">
+                            <i class="bi ${props.icon} me-1"></i>${arg.event.title}
+                        </div>
+                    </div>`
+                };
+            },
+            
+            eventClick: function(info) {
+                const props = info.event.extendedProps;
+                
+                if (props.type === 'task' && props.fullCourseName) {
+                    window.location.href = `/study-planner?edit=${encodeURIComponent(props.fullCourseName)}`;
+                } else if (props.type === 'task' && !props.fullCourseName) {
+                    window.location.href = '/tasks';
+                } else if (props.type === 'class') {
+                    window.location.href = '/classes';
+                }
+            }
+        });
+        
+        calendarInstance.render();
+    }
+
+    function applyFilters() {
+        const activeFilters = Array.from(document.querySelectorAll('.filter-toggle:checked')).map(cb => cb.value);
+        
+        const filteredEvents = allCalendarEvents.filter(event => {
+            return activeFilters.includes(event.extendedProps.filterCategory);
+        });
+
+        calendarInstance.removeAllEventSources();
+        calendarInstance.addEventSource(filteredEvents);
+    }
+</script>
+{% endblock %}

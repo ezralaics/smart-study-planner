@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | Smart Study Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card-admin {
+        border-radius: 12px;
+        border: none;
+        border-left: 5px solid #212529;
+        transition: transform 0.2s, box-shadow 0.2s;
+        background: white;
+    }
+    .stat-card-admin:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.08) !important;
+    }
+    .admin-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        background: rgba(33, 37, 41, 0.08);
+        color: #212529;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4 align-items-center animate__animated animate__fadeInDown">
+        <div class="col-md-7">
+            <h2 class="fw-bold text-dark mb-1">
+                System Administration <span class="badge bg-dark ms-2 fs-6">Superuser</span>
+            </h2>
+            <p class="text-muted mb-0">Platform health metrics, role authorizations, and institutional registry.</p>
+        </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+            <a href="/admin/users" class="btn btn-dark px-4 py-2 fw-bold shadow-sm rounded-pill">
+                <i class="bi bi-people-fill me-2"></i>Manage User Directory
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Matrix -->
+    <div class="row g-3 mb-4 animate__animated animate__fadeInUp">
+        <div class="col-md-3">
+            <div class="card stat-card-admin shadow-sm p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted fw-bold text-uppercase">Total Accounts</small>
+                        <h3 class="fw-bold mb-0 mt-1 text-dark">{{ total_users }}</h3>
+                    </div>
+                    <div class="admin-icon"><i class="bi bi-person-badge-fill"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card-admin shadow-sm p-3 h-100" style="border-left-color: #0d6efd;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted fw-bold text-uppercase">Students</small>
+                        <h3 class="fw-bold mb-0 mt-1 text-primary">{{ student_count }}</h3>
+                    </div>
+                    <div class="admin-icon" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd;">
+                        <i class="bi bi-mortarboard-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card-admin shadow-sm p-3 h-100" style="border-left-color: #6f42c1;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted fw-bold text-uppercase">Educators</small>
+                        <h3 class="fw-bold mb-0 mt-1" style="color: #6f42c1;">{{ educator_count }}</h3>
+                    </div>
+                    <div class="admin-icon" style="background: rgba(111, 66, 193, 0.1); color: #6f42c1;">
+                        <i class="bi bi-person-video3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card-admin shadow-sm p-3 h-100" style="border-left-color: #198754;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted fw-bold text-uppercase">Active Modules</small>
+                        <h3 class="fw-bold mb-0 mt-1 text-success">{{ total_courses }}</h3>
+                    </div>
+                    <div class="admin-icon" style="background: rgba(25, 135, 84, 0.1); color: #198754;">
+                        <i class="bi bi-journal-richtext"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Section -->
+    <div class="row">
+        <!-- Recent Registrations -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm rounded-3 bg-white">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark"><i class="bi bi-clock-history me-2 text-primary"></i>Recently Registered Accounts</span>
+                    <a href="/admin/users" class="small fw-bold text-decoration-none">View All Users <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr class="small text-muted">
+                                <th class="ps-4">NAME & USERNAME</th>
+                                <th>EMAIL</th>
+                                <th class="text-center">ROLE</th>
+                                <th class="text-center pe-4">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in recent_users %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">{{ u.fullname }}</div>
+                                    <small class="text-muted">@{{ u.username }}</small>
+                                </td>
+                                <td class="small">{{ u.email }}</td>
+                                <td class="text-center">
+                                    {% if u.role == 'admin' %}
+                                        <span class="badge bg-dark">Admin</span>
+                                    {% elif u.role == 'educator' %}
+                                        <span class="badge" style="background-color: #6f42c1;">Educator</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">Student</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center pe-4">
+                                    <a href="/admin/users" class="btn btn-sm btn-outline-secondary py-1 px-3 rounded-pill">
+                                        Inspect
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status & Quick Links -->
+        <div class="col-lg-4 mb-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-gear-wide-connected me-2"></i>System Health</h5>
+            <div class="card shadow-sm border-0 p-3 bg-white mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small text-muted fw-bold">Database Engine:</span>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">PostgreSQL / Active</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small text-muted fw-bold">Password Encryption:</span>
+                    <span class="badge bg-info bg-opacity-10 text-info border border-info-subtle">Werkzeug Scrypt</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small text-muted fw-bold">RBAC Enforcement:</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">Strict Multi-Tenant</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small text-muted fw-bold">Total Assessment Tasks:</span>
+                    <span class="fw-bold text-dark">{{ total_tasks }}</span>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 p-3 bg-white">
+                <span class="small text-muted fw-bold text-uppercase mb-2">Portal Shortcuts</span>
+                <div class="d-grid gap-2">
+                    <a href="/dashboard" class="btn btn-outline-primary btn-sm text-start py-2">
+                        <i class="bi bi-grid-1x2 me-2"></i>Launch Student Portal
+                    </a>
+                    <a href="/educator/dashboard" class="btn btn-outline-secondary btn-sm text-start py-2" style="color: #6f42c1; border-color: #6f42c1;">
+                        <i class="bi bi-mortarboard me-2"></i>Launch Educator Portal
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

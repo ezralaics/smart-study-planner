@@ -45,12 +45,19 @@
                                     <input type="email" name="email" class="form-control" placeholder="john@university.edu" required>
                                 </div>
 
-                                <div class="col-md-12">
-                                    <label class="form-label small fw-bold text-muted">STUDENT TYPE</label>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">ACCOUNT ROLE</label>
+                                    <select name="role" id="user_role" class="form-select" required>
+                                        <option value="student" selected>Student</option>
+                                        <option value="educator">Educator / Lecturer</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">STUDENT / FACULTY TYPE</label>
                                     <select name="student_type" id="student_type" class="form-select" required>
-                                        <option value="" disabled selected>Select your programme type...</option>
-                                        <option value="IT">IT Student (Predefined Modules)</option>
-                                        <option value="Other">Other Programme Student (Manual Entry)</option>
+                                        <option value="IT" selected>IT Programme / Faculty</option>
+                                        <option value="Other">Other Discipline</option>
                                     </select>
                                 </div>
                                 <div class="col-md-12">
