@@ -45,10 +45,12 @@ def register():
             print(f"Registration Error: {e}")
             return "There was an error creating your account.", 500
 
-    return render_template('register.html')
+    client_id = current_app.config.get('GOOGLE_CLIENT_ID', '')
+    return render_template('register.html', google_client_id=client_id)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    client_id = current_app.config.get('GOOGLE_CLIENT_ID', '')
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
@@ -67,9 +69,9 @@ def login():
                 return redirect(url_for('admin.dashboard'))
             return redirect(url_for('student.dashboard'))
             
-        return render_template('login.html', error="Invalid Credentials")
+        return render_template('login.html', error="Invalid Credentials", google_client_id=client_id)
 
-    return render_template('login.html')
+    return render_template('login.html', google_client_id=client_id)
 
 @auth_bp.route('/demo-login/<role>')
 def demo_login(role):
@@ -125,7 +127,7 @@ def google_login():
     state = secrets.token_urlsafe(16)
     session['oauth_state'] = state
     
-    redirect_uri = url_for('auth.google_callback', _external=True)
+    redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('auth.google_callback', _external=True)
     params = {
         'client_id': client_id,
         'redirect_uri': redirect_uri,
@@ -142,18 +144,26 @@ def google_login():
 @auth_bp.route('/login/google/callback')
 def google_callback():
     """Handles OAuth 2.0 callback from Google."""
+    client_id = current_app.config.get('GOOGLE_CLIENT_ID', '')
+    
+    # Check if Google returned an error (e.g. user cancelled consent)
+    oauth_error = request.args.get('error')
+    if oauth_error:
+        if oauth_error == 'access_denied':
+            return render_template('login.html', error="Google Sign-In was cancelled.", google_client_id=client_id)
+        return render_template('login.html', error=f"Google authorization failed: {oauth_error}", google_client_id=client_id)
+
     state = request.args.get('state')
     expected_state = session.get('oauth_state')
     if not state or state != expected_state:
-        return render_template('login.html', error="Google authentication failed: State mismatch or expired session.")
+        return render_template('login.html', error="Google authentication failed: State mismatch or expired session.", google_client_id=client_id)
     
     code = request.args.get('code')
     if not code:
-        return render_template('login.html', error="Google authorization code missing.")
+        return render_template('login.html', error="Google authorization code missing.", google_client_id=client_id)
     
-    client_id = current_app.config.get('GOOGLE_CLIENT_ID')
     client_secret = current_app.config.get('GOOGLE_CLIENT_SECRET')
-    redirect_uri = url_for('auth.google_callback', _external=True)
+    redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('auth.google_callback', _external=True)
     
     try:
         token_res = requests.post(
@@ -170,7 +180,7 @@ def google_callback():
         token_data = token_res.json()
         access_token = token_data.get('access_token')
         if not access_token:
-            return render_template('login.html', error=f"Google token exchange failed: {token_data.get('error_description', 'Invalid token response')}")
+            return render_template('login.html', error=f"Google token exchange failed: {token_data.get('error_description', 'Invalid token response')}", google_client_id=client_id)
         
         userinfo_res = requests.get(
             'https://www.googleapis.com/oauth2/v3/userinfo',
@@ -180,7 +190,7 @@ def google_callback():
         userinfo = userinfo_res.json()
         return process_google_user(userinfo)
     except Exception as e:
-        return render_template('login.html', error=f"Error connecting to Google: {str(e)}")
+        return render_template('login.html', error=f"Error connecting to Google: {str(e)}", google_client_id=client_id)
 
 def process_google_user(userinfo):
     """Processes verified Google user profile, creates account if needed, logs in."""
@@ -270,4 +280,46 @@ def google_sandbox():
 
     client_id = current_app.config.get('GOOGLE_CLIENT_ID')
     return render_template('auth/google_sandbox.html', client_id=client_id)
+
+@auth_bp.route('/api/auth/google-verify-token', methods=['POST'])
+def google_verify_token():
+    """
+    Verifies Google ID Token sent by Google Identity Services (GIS).
+    Used by real websites with the Google One Tap / Sign In with Google button.
+    """
+    data = request.get_json() or {}
+    token = data.get('credential')
+    if not token:
+        return jsonify({"status": "error", "message": "Missing credential token"}), 400
+
+    client_id = current_app.config.get('GOOGLE_CLIENT_ID')
+    try:
+        from google.oauth2 import id_token
+        from google.auth.transport import requests as google_requests
+        
+        # Verify with Google's public cryptographic certs
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id if client_id else None)
+        
+        userinfo = {
+            'sub': idinfo.get('sub'),
+            'email': idinfo.get('email'),
+            'name': idinfo.get('name'),
+            'picture': idinfo.get('picture')
+        }
+        process_google_user(userinfo)
+        
+        target_url = '/student/dashboard'
+        if session.get('role') == 'educator':
+            target_url = '/educator/dashboard'
+        elif session.get('role') == 'admin':
+            target_url = '/admin/dashboard'
+
+        return jsonify({
+            "status": "success",
+            "message": "Authenticated with Google successfully.",
+            "redirect_url": target_url
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Token verification failed: {str(e)}"}), 401
+
 
