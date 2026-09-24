@@ -1,4 +1,8 @@
-from flask import render_template, request, jsonify, redirect, url_for, session
+import os
+import secrets
+from urllib.parse import urlencode
+import requests
+from flask import render_template, request, jsonify, redirect, url_for, session, current_app
 from extensions import db
 from models.user import User
 from blueprints.auth import auth_bp
@@ -103,3 +107,167 @@ def current_user():
             "role": getattr(user, 'role', 'student')
         })
     return jsonify({}), 404
+
+# ==========================================
+# Google OAuth 2.0 Sign-In
+# ==========================================
+
+@auth_bp.route('/auth/google')
+@auth_bp.route('/login/google')
+def google_login():
+    """Initiates Google OAuth 2.0 flow or Sandbox if not configured."""
+    client_id = current_app.config.get('GOOGLE_CLIENT_ID')
+    
+    # If Google Client ID is not configured, redirect to Sandbox & Setup Guide
+    if not client_id or client_id.strip() == '':
+        return redirect(url_for('auth.google_sandbox'))
+    
+    state = secrets.token_urlsafe(16)
+    session['oauth_state'] = state
+    
+    redirect_uri = url_for('auth.google_callback', _external=True)
+    params = {
+        'client_id': client_id,
+        'redirect_uri': redirect_uri,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'state': state,
+        'access_type': 'online',
+        'prompt': 'select_account'
+    }
+    google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    return redirect(google_auth_url)
+
+@auth_bp.route('/auth/google/callback')
+@auth_bp.route('/login/google/callback')
+def google_callback():
+    """Handles OAuth 2.0 callback from Google."""
+    state = request.args.get('state')
+    expected_state = session.get('oauth_state')
+    if not state or state != expected_state:
+        return render_template('login.html', error="Google authentication failed: State mismatch or expired session.")
+    
+    code = request.args.get('code')
+    if not code:
+        return render_template('login.html', error="Google authorization code missing.")
+    
+    client_id = current_app.config.get('GOOGLE_CLIENT_ID')
+    client_secret = current_app.config.get('GOOGLE_CLIENT_SECRET')
+    redirect_uri = url_for('auth.google_callback', _external=True)
+    
+    try:
+        token_res = requests.post(
+            'https://oauth2.googleapis.com/token',
+            data={
+                'code': code,
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'redirect_uri': redirect_uri,
+                'grant_type': 'authorization_code'
+            },
+            timeout=10
+        )
+        token_data = token_res.json()
+        access_token = token_data.get('access_token')
+        if not access_token:
+            return render_template('login.html', error=f"Google token exchange failed: {token_data.get('error_description', 'Invalid token response')}")
+        
+        userinfo_res = requests.get(
+            'https://www.googleapis.com/oauth2/v3/userinfo',
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10
+        )
+        userinfo = userinfo_res.json()
+        return process_google_user(userinfo)
+    except Exception as e:
+        return render_template('login.html', error=f"Error connecting to Google: {str(e)}")
+
+def process_google_user(userinfo):
+    """Processes verified Google user profile, creates account if needed, logs in."""
+    google_id = userinfo.get('sub')
+    email = userinfo.get('email')
+    name = userinfo.get('name') or email.split('@')[0]
+    picture = userinfo.get('picture')
+
+    if not email:
+        return render_template('login.html', error="Unable to obtain verified email from Google.")
+
+    # Find existing user by google_id or email
+    user = User.query.filter((User.google_id == google_id) | (User.email == email)).first()
+
+    if not user:
+        # Generate unique username
+        base_username = email.split('@')[0].replace('.', '_')
+        username = base_username
+        suffix = 1
+        while User.query.filter_by(username=username).first():
+            username = f"{base_username}_{suffix}"
+            suffix += 1
+
+        user = User(
+            fullname=name,
+            email=email,
+            username=username,
+            student_type='IT',
+            role='student',
+            google_id=google_id,
+            avatar_url=picture
+        )
+        user.set_password(secrets.token_urlsafe(32))
+        db.session.add(user)
+        db.session.commit()
+    else:
+        # Update existing user's Google ID & avatar if not set
+        if not user.google_id:
+            user.google_id = google_id
+        if picture and not user.avatar_url:
+            user.avatar_url = picture
+        db.session.commit()
+
+    # Establish session
+    session.clear()
+    session['user_id'] = user.id
+    session['username'] = user.fullname
+    session['role'] = getattr(user, 'role', 'student')
+    session['avatar_url'] = user.avatar_url
+
+    if user.role == 'educator':
+        return redirect(url_for('educator.dashboard'))
+    elif user.role == 'admin':
+        return redirect(url_for('admin.dashboard'))
+    return redirect(url_for('student.dashboard'))
+
+@auth_bp.route('/auth/google/sandbox', methods=['GET', 'POST'])
+def google_sandbox():
+    """
+    Simulated Google OAuth 2.0 Sandbox.
+    Allows testing Google Sign-In immediately without configuring Google Cloud Console keys.
+    """
+    if request.method == 'POST':
+        email = request.form.get('email', 'alex.student@gmail.com').strip()
+        name = request.form.get('name', 'Alex Johnson').strip()
+        role = request.form.get('role', 'student')
+        
+        simulated_userinfo = {
+            'sub': f'google_sub_{abs(hash(email)) % 10000000}',
+            'email': email,
+            'name': name,
+            'picture': 'https://lh3.googleusercontent.com/a/default-user=s96-c'
+        }
+        res = process_google_user(simulated_userinfo)
+        if 'user_id' in session:
+            user = User.query.get(session['user_id'])
+            if user:
+                user.role = role
+                session['role'] = role
+                db.session.commit()
+                if role == 'educator':
+                    return redirect(url_for('educator.dashboard'))
+                elif role == 'admin':
+                    return redirect(url_for('admin.dashboard'))
+                return redirect(url_for('student.dashboard'))
+        return res
+
+    client_id = current_app.config.get('GOOGLE_CLIENT_ID')
+    return render_template('auth/google_sandbox.html', client_id=client_id)
+

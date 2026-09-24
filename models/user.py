@@ -11,6 +11,8 @@ class User(db.Model):
     password = db.Column(db.String(255), nullable=False)
     student_type = db.Column(db.String(20), default='Other')
     role = db.Column(db.String(20), default='student')
+    google_id = db.Column(db.String(100), unique=True, nullable=True)
+    avatar_url = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     courses = db.relationship('Course', backref='student', lazy=True, cascade="all, delete-orphan")
@@ -43,5 +45,7 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "student_type": self.student_type,
-            "role": self.role
+            "role": self.role,
+            "avatar_url": self.avatar_url,
+            "is_google_user": bool(self.google_id)
         }
