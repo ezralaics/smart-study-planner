@@ -30,8 +30,21 @@ def create_app(config_class=Config):
     with app.app_context():
         try:
             db.create_all()
+            # Auto-migrate schema: ensure columns added in updates exist in existing databases
+            from sqlalchemy import text, inspect
+            inspector = inspect(db.engine)
+            if 'users' in inspector.get_table_names():
+                columns = [c['name'] for c in inspector.get_columns('users')]
+                with db.engine.connect() as conn:
+                    if 'role' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'student';"))
+                    if 'google_id' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN google_id VARCHAR(100) UNIQUE;"))
+                    if 'avatar_url' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255);"))
+                    conn.commit()
         except Exception as e:
-            app.logger.warning(f"Database connection notice on startup: {e}")
+            app.logger.warning(f"Database connection or migration notice: {e}")
 
     @app.teardown_appcontext
     def shutdown_session(exception=None):
