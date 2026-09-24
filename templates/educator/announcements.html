@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Class Announcements | Faculty Portal{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-7">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge text-white px-2 py-1" style="background-color: #6f42c1;">Educator Portal</span>
+                <span class="text-muted small">• Cohort Noticeboard</span>
+            </div>
+            <h3 class="fw-bold mb-0">Class Announcements & Broadcasts</h3>
+            <p class="text-muted mb-0">Publish notices, assignment hints, and schedule updates to student cohorts.</p>
+        </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+            <button class="btn text-white shadow-sm" style="background-color: #6f42c1;" onclick="openNewAnnouncementModal()">
+                <i class="bi bi-plus-lg me-1"></i> New Announcement
+            </button>
+        </div>
+    </div>
+
+    <!-- Announcement Feed -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge bg-primary me-2">CD106 — Java Programming 1</span>
+                        <span class="text-muted small">Posted 2 hours ago</span>
+                    </div>
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">Urgent Notice</span>
+                </div>
+                <h5 class="fw-bold mt-2">Assignment 1 Deadline Extension & Office Hours</h5>
+                <p class="text-secondary small mb-3">
+                    Due to student requests regarding binary tree recursion questions, the submission deadline for Assignment 1 has been extended by 48 hours. Supplementary office hours will be held this Thursday at 4:00 PM in Lab 3.
+                </p>
+                <div class="d-flex align-items-center gap-2 text-muted small pt-2 border-top">
+                    <i class="bi bi-person-circle"></i>
+                    <span>Published by <strong>{{ session.get('username', 'Dr. Sarah Williams') }}</strong></span>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge bg-info text-white me-2">CD103 — Database Systems</span>
+                        <span class="text-muted small">Posted Yesterday</span>
+                    </div>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Materials</span>
+                </div>
+                <h5 class="fw-bold mt-2">Midterm Review Slides & Practice ERD Schema Available</h5>
+                <p class="text-secondary small mb-3">
+                    The lecture slides covering SQL query optimization, 3NF normalization, and sample ERD diagrams for next week's test have been uploaded to the student portal.
+                </p>
+                <div class="d-flex align-items-center gap-2 text-muted small pt-2 border-top">
+                    <i class="bi bi-person-circle"></i>
+                    <span>Published by <strong>{{ session.get('username', 'Dr. Sarah Williams') }}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4">
+                <h6 class="fw-bold mb-3"><i class="bi bi-broadcast text-primary me-2"></i>Quick Broadcast</h6>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">TARGET COHORT</label>
+                    <select class="form-select shadow-sm" id="broadcastCourseSelect">
+                        <option value="ALL">All Enrolled Students</option>
+                        <option value="CD106">CD106 — Java Programming 1</option>
+                        <option value="CD103">CD103 — Database Systems</option>
+                        <option value="CD204">CD204 — User Interface Design</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">MESSAGE</label>
+                    <textarea class="form-control shadow-sm" rows="3" placeholder="Enter quick update or reminder..." id="broadcastMessageInput"></textarea>
+                </div>
+                <button class="btn btn-primary w-100 shadow-sm" onclick="sendQuickBroadcast()">
+                    <i class="bi bi-send me-1"></i> Send Broadcast
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function sendQuickBroadcast() {
+    const msg = document.getElementById('broadcastMessageInput').value.trim();
+    if (!msg) {
+        alert("Please enter a broadcast message.");
+        return;
+    }
+    alert("Broadcast sent successfully to students in the selected cohort!");
+    document.getElementById('broadcastMessageInput').value = "";
+}
+function openNewAnnouncementModal() {
+    alert("New announcement creation dialog opened.");
+}
+</script>
+{% endblock %}

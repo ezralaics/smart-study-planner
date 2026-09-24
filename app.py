@@ -5,6 +5,7 @@ from extensions import db
 from blueprints.auth import auth_bp
 from blueprints.main import main_bp
 from blueprints.api import api_bp
+from blueprints.student import student_bp
 from blueprints.educator import educator_bp
 from blueprints.admin import admin_bp
 
@@ -22,6 +23,7 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(student_bp)
     app.register_blueprint(educator_bp)
     app.register_blueprint(admin_bp)
 

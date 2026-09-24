@@ -61,7 +61,7 @@ def login():
                 return redirect(url_for('educator.dashboard'))
             elif session['role'] == 'admin':
                 return redirect(url_for('admin.dashboard'))
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('student.dashboard'))
             
         return render_template('login.html', error="Invalid Credentials")
 
@@ -83,7 +83,7 @@ def demo_login(role):
         return redirect(url_for('educator.dashboard'))
     elif user.role == 'admin':
         return redirect(url_for('admin.dashboard'))
-    return redirect(url_for('main.dashboard'))
+    return redirect(url_for('student.dashboard'))
 
 @auth_bp.route('/logout')
 def logout():

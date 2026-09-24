@@ -117,36 +117,45 @@
         <div class="offcanvas-body p-0 pt-3">
             <nav class="nav flex-column">
                 {% if session.get('role') == 'educator' %}
-                    <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Educator Portal</div>
+                    <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Faculty Educator Module</div>
                     <a class="nav-link {% if active_page == 'educator_dashboard' %}active{% endif %}" href="/educator/dashboard">
                         <i class="bi bi-speedometer2"></i> Educator Dashboard
                     </a>
                     <a class="nav-link {% if active_page == 'educator_gradebook' %}active{% endif %}" href="/educator/gradebook">
-                        <i class="bi bi-journal-check"></i> Gradebook
+                        <i class="bi bi-journal-check"></i> Cohort Gradebook
                     </a>
-                    <a class="nav-link {% if active_page == 'classes' %}active{% endif %}" href="/classes">
-                        <i class="bi bi-building"></i> Teaching Schedule
+                    <a class="nav-link {% if active_page == 'educator_courses' %}active{% endif %}" href="/educator/courses">
+                        <i class="bi bi-book-half"></i> Teaching Modules
+                    </a>
+                    <a class="nav-link {% if active_page == 'educator_announcements' %}active{% endif %}" href="/educator/announcements">
+                        <i class="bi bi-megaphone-fill"></i> Class Announcements
                     </a>
                     <a class="nav-link {% if active_page == 'calendar' %}active{% endif %}" href="/calendar">
                         <i class="bi bi-calendar3"></i> Master Calendar
                     </a>
                     <hr class="border-secondary mx-3 my-2 opacity-25">
-                    <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Student View</div>
-                    <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/dashboard">
-                        <i class="bi bi-grid-1x2"></i> Student Preview
+                    <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Portal Previews</div>
+                    <a class="nav-link {% if active_page in ['dashboard', 'student_dashboard'] %}active{% endif %}" href="/student/dashboard">
+                        <i class="bi bi-grid-1x2"></i> Student Portal Preview
                     </a>
 
                 {% elif session.get('role') == 'admin' %}
-                    <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Administration</div>
+                    <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Institutional Admin Module</div>
                     <a class="nav-link {% if active_page == 'admin_dashboard' %}active{% endif %}" href="/admin/dashboard">
                         <i class="bi bi-shield-check"></i> System Dashboard
                     </a>
                     <a class="nav-link {% if active_page == 'admin_users' %}active{% endif %}" href="/admin/users">
                         <i class="bi bi-people-fill"></i> User Directory & Roles
                     </a>
+                    <a class="nav-link {% if active_page == 'admin_courses' %}active{% endif %}" href="/admin/courses">
+                        <i class="bi bi-collection-fill"></i> Master Course Catalog
+                    </a>
+                    <a class="nav-link {% if active_page == 'admin_system' %}active{% endif %}" href="/admin/system">
+                        <i class="bi bi-hdd-network-fill"></i> System Telemetry & Audit
+                    </a>
                     <hr class="border-secondary mx-3 my-2 opacity-25">
                     <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Portal Previews</div>
-                    <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/dashboard">
+                    <a class="nav-link {% if active_page in ['dashboard', 'student_dashboard'] %}active{% endif %}" href="/student/dashboard">
                         <i class="bi bi-grid-1x2"></i> Student Portal
                     </a>
                     <a class="nav-link {% if active_page == 'educator_dashboard' %}active{% endif %}" href="/educator/dashboard">
@@ -154,24 +163,25 @@
                     </a>
 
                 {% else %}
-                    <!-- Student Navigation -->
-                    <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/dashboard">
-                        <i class="bi bi-grid-1x2"></i> Dashboard
+                    <!-- Student Module Navigation -->
+                    <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Student Module</div>
+                    <a class="nav-link {% if active_page in ['dashboard', 'student_dashboard'] %}active{% endif %}" href="/student/dashboard">
+                        <i class="bi bi-grid-1x2"></i> Academic Dashboard
                     </a>
-                    <a class="nav-link {% if active_page == 'study_planner' %}active{% endif %}" href="/study-planner">
-                        <i class="bi bi-calendar2-check"></i> Study Planner
+                    <a class="nav-link {% if active_page in ['study_planner', 'student_planner'] %}active{% endif %}" href="/student/study-planner">
+                        <i class="bi bi-calendar2-check"></i> Study Planner & AI Scheduler
                     </a>
-                    <a class="nav-link {% if active_page == 'classes' %}active{% endif %}" href="/classes">
-                        <i class="bi bi-building"></i> Classes
+                    <a class="nav-link {% if active_page in ['classes', 'student_classes'] %}active{% endif %}" href="/student/courses">
+                        <i class="bi bi-building"></i> Enrolled Courses
                     </a>
-                    <a class="nav-link {% if active_page == 'calendar' %}active{% endif %}" href="/calendar">
-                        <i class="bi bi-calendar3"></i> Calendar
+                    <a class="nav-link {% if active_page in ['calendar', 'student_calendar'] %}active{% endif %}" href="/student/calendar">
+                        <i class="bi bi-calendar3"></i> Master Calendar
                     </a>
-                    <a class="nav-link {% if active_page == 'tasks' %}active{% endif %}" href="/tasks">
-                        <i class="bi bi-list-task"></i> Tasks
+                    <a class="nav-link {% if active_page in ['tasks', 'student_tasks'] %}active{% endif %}" href="/student/tasks">
+                        <i class="bi bi-list-task"></i> Tasks & Deadlines
                     </a>
-                    <a class="nav-link {% if active_page == 'grades' %}active{% endif %}" href="/grades">
-                        <i class="bi bi-bar-chart"></i> Grades
+                    <a class="nav-link {% if active_page in ['grades', 'student_grades'] %}active{% endif %}" href="/student/grades">
+                        <i class="bi bi-bar-chart"></i> Target Grade Simulator
                     </a>
                 {% endif %}
             </nav>

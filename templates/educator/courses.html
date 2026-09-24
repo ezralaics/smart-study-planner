@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Teaching Modules | Faculty Portal{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-7">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge text-white px-2 py-1" style="background-color: #6f42c1;">Educator Portal</span>
+                <span class="text-muted small">• Curriculum Management</span>
+            </div>
+            <h3 class="fw-bold mb-0">Assigned Teaching Modules</h3>
+            <p class="text-muted mb-0">Overview of courses, credit hours, and active cohorts under your instruction.</p>
+        </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+            <a href="/educator/gradebook" class="btn btn-outline-primary me-2">
+                <i class="bi bi-journal-check me-1"></i> Open Gradebook
+            </a>
+            <a href="/educator/announcements" class="btn text-white" style="background-color: #6f42c1;">
+                <i class="bi bi-megaphone me-1"></i> Post Announcement
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small fw-bold text-uppercase">Active Modules</span>
+                        <h2 class="fw-bold text-dark mb-0 mt-1">{{ courses|length if courses else 3 }}</h2>
+                    </div>
+                    <div class="rounded-circle p-3 text-white" style="background: linear-gradient(135deg, #6f42c1 0%, #a855f7 100%);">
+                        <i class="bi bi-book fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small fw-bold text-uppercase">Total Teaching Credits</span>
+                        <h2 class="fw-bold text-primary mb-0 mt-1">11 hrs</h2>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary text-white">
+                        <i class="bi bi-clock-history fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small fw-bold text-uppercase">Enrolled Students</span>
+                        <h2 class="fw-bold text-success mb-0 mt-1">64</h2>
+                    </div>
+                    <div class="rounded-circle p-3 bg-success text-white">
+                        <i class="bi bi-people fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Cards Grid -->
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">Core IT</span>
+                    <span class="badge bg-light text-dark border">4 Credits</span>
+                </div>
+                <h5 class="fw-bold mb-1">CD106 — Java Programming 1</h5>
+                <p class="text-muted small mb-3">Object-oriented programming paradigms, memory management, and data structures.</p>
+                <div class="border-top pt-3 mt-auto d-flex justify-content-between align-items-center">
+                    <span class="small text-muted"><i class="bi bi-person-fill me-1"></i>28 Enrolled</span>
+                    <a href="/educator/gradebook" class="btn btn-sm btn-outline-primary">Gradebook</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge bg-info bg-opacity-10 text-info border border-info-subtle">Database</span>
+                    <span class="badge bg-light text-dark border">4 Credits</span>
+                </div>
+                <h5 class="fw-bold mb-1">CD103 — Database Systems</h5>
+                <p class="text-muted small mb-3">Relational schema design, SQL optimization, normalization, and ACID transactions.</p>
+                <div class="border-top pt-3 mt-auto d-flex justify-content-between align-items-center">
+                    <span class="small text-muted"><i class="bi bi-person-fill me-1"></i>22 Enrolled</span>
+                    <a href="/educator/gradebook" class="btn btn-sm btn-outline-primary">Gradebook</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Design</span>
+                    <span class="badge bg-light text-dark border">3 Credits</span>
+                </div>
+                <h5 class="fw-bold mb-1">CD204 — User Interface Design</h5>
+                <p class="text-muted small mb-3">Design systems, usability heuristics, responsive interfaces, and accessibility.</p>
+                <div class="border-top pt-3 mt-auto d-flex justify-content-between align-items-center">
+                    <span class="small text-muted"><i class="bi bi-person-fill me-1"></i>14 Enrolled</span>
+                    <a href="/educator/gradebook" class="btn btn-sm btn-outline-primary">Gradebook</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

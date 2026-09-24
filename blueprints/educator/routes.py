@@ -10,14 +10,12 @@ from blueprints.educator import educator_bp
 @educator_bp.route('/dashboard')
 @role_required('educator', 'admin')
 def dashboard():
+    """Educator Portal: Faculty Overview & Schedule."""
     courses = Course.query.filter_by(user_id=session['user_id']).all()
     schedules = Schedule.query.filter_by(user_id=session['user_id']).all()
     
-    # Calculate educator metrics
     total_courses = len(courses)
     total_classes = len(schedules)
-    
-    # Count students in the system for educator overview
     student_count = User.query.filter_by(role='student').count()
     
     return render_template(
@@ -33,6 +31,7 @@ def dashboard():
 @educator_bp.route('/gradebook')
 @role_required('educator', 'admin')
 def gradebook():
+    """Educator Portal: Cohort Marks Matrix & Grading."""
     courses = Course.query.filter_by(user_id=session['user_id']).all()
     students = User.query.filter_by(role='student').all()
     
@@ -46,11 +45,23 @@ def gradebook():
 @educator_bp.route('/courses')
 @role_required('educator', 'admin')
 def courses():
-    courses = Course.query.filter_by(user_id=session['user_id']).all()
+    """Educator Portal: Assigned Teaching Modules & Syllabi."""
+    courses_list = Course.query.all() # In institutional view, shows all academic modules
     return render_template(
-        'educator/dashboard.html',
+        'educator/courses.html',
         active_page='educator_courses',
-        courses=courses
+        courses=courses_list
+    )
+
+@educator_bp.route('/announcements')
+@role_required('educator', 'admin')
+def announcements():
+    """Educator Portal: Cohort Announcements & Class Noticeboard."""
+    courses_list = Course.query.all()
+    return render_template(
+        'educator/announcements.html',
+        active_page='educator_announcements',
+        courses=courses_list
     )
 
 # ==========================================
@@ -63,7 +74,6 @@ def gradebook_data():
     courses = Course.query.filter_by(user_id=session['user_id']).all()
     students = User.query.filter_by(role='student').all()
     
-    # Generate structured gradebook roster
     roster = []
     sample_marks = {
         'Assignment 1': 88.0,
@@ -101,7 +111,6 @@ def save_grade():
     if not student_id or score is None:
         return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
-    # In institutional expansion, saves to student submission record
     return jsonify({
         "status": "success",
         "message": f"Grade of {score}% saved successfully for {component or 'component'}."

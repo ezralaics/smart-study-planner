@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Master Course Catalog | System Administration{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-7">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-dark border border-secondary text-light px-2 py-1">Administrator Portal</span>
+                <span class="text-muted small">• Academic Inventory</span>
+            </div>
+            <h3 class="fw-bold mb-0">Master Course Catalog</h3>
+            <p class="text-muted mb-0">Institutional registry of degree, diploma, and general elective modules.</p>
+        </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+            <a href="/admin/users" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-people-fill me-1"></i> User Directory
+            </a>
+            <a href="/admin/system" class="btn btn-dark">
+                <i class="bi bi-hdd-network me-1"></i> System Telemetry
+            </a>
+        </div>
+    </div>
+
+    <!-- Course Inventory Table -->
+    <div class="card border-0 shadow-sm p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="fw-bold mb-0">Institutional Curriculum Directory</h5>
+            <input type="text" class="form-control form-control-sm" style="max-width: 250px;" placeholder="Search catalog..." id="catalogSearchInput" onkeyup="filterCatalog()">
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="catalogTable">
+                <thead class="table-light">
+                    <tr class="small text-muted text-uppercase">
+                        <th>Course Code & Title</th>
+                        <th>Academic Category</th>
+                        <th>Credit Hours</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-primary">CD102 — Computer Ethics</div>
+                            <small class="text-muted">Professional practice, cyberlaw & intellectual property</small>
+                        </td>
+                        <td><span class="badge bg-primary bg-opacity-10 text-primary">IT Core</span></td>
+                        <td>3 Credits</td>
+                        <td><span class="badge bg-success">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-primary">CD103 — Fundamental of Database Systems</div>
+                            <small class="text-muted">Relational database design, SQL querying & normalization</small>
+                        </td>
+                        <td><span class="badge bg-primary bg-opacity-10 text-primary">IT Core</span></td>
+                        <td>4 Credits</td>
+                        <td><span class="badge bg-success">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-primary">CD106 — Java Programming 1</div>
+                            <small class="text-muted">OOP concepts, classes, inheritance & data structures</small>
+                        </td>
+                        <td><span class="badge bg-primary bg-opacity-10 text-primary">IT Core</span></td>
+                        <td>4 Credits</td>
+                        <td><span class="badge bg-success">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-primary">CD204 — User Interface Design</div>
+                            <small class="text-muted">HCI, responsive interface design, heuristics & usability testing</small>
+                        </td>
+                        <td><span class="badge bg-info bg-opacity-10 text-info">Design & Media</span></td>
+                        <td>3 Credits</td>
+                        <td><span class="badge bg-success">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-primary">BD100 — Business Communication</div>
+                            <small class="text-muted">Executive reporting, pitch delivery & technical writing</small>
+                        </td>
+                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary">General Studies</span></td>
+                        <td>3 Credits</td>
+                        <td><span class="badge bg-success">Active</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterCatalog() {
+    const input = document.getElementById("catalogSearchInput").value.toUpperCase();
+    const rows = document.getElementById("catalogTable").getElementsByTagName("tr");
+    for (let i = 1; i < rows.length; i++) {
+        const text = rows[i].textContent || rows[i].innerText;
+        rows[i].style.display = text.toUpperCase().indexOf(input) > -1 ? "" : "none";
+    }
+}
+</script>
+{% endblock %}
