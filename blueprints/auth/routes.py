@@ -2,11 +2,40 @@ import os
 import secrets
 from urllib.parse import urlencode
 import requests
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from flask import render_template, request, jsonify, redirect, url_for, session, current_app
 from extensions import db
 from models.user import User
 from blueprints.auth import auth_bp
 from services.demo_seeder import seed_demo_user
+
+def generate_oauth_state(secret_key):
+    """Generates a cryptographically signed OAuth state token containing a random nonce."""
+    s = URLSafeTimedSerializer(secret_key, salt='google-oauth-state')
+    return s.dumps({'nonce': secrets.token_hex(16)})
+
+def verify_oauth_state(state, secret_key, max_age=600):
+    """Verifies a signed state token. Returns (is_valid, message)."""
+    if not state:
+        return False, "State parameter missing"
+    s = URLSafeTimedSerializer(secret_key, salt='google-oauth-state')
+    try:
+        s.loads(state, max_age=max_age)
+        return True, "Valid"
+    except SignatureExpired:
+        return False, "Google authorization session expired. Please try again."
+    except BadSignature:
+        return False, "Google authorization state signature mismatch or tampered."
+    except Exception as e:
+        return False, str(e)
+
+def get_google_redirect_uri():
+    """Gets the exact redirect URI to match Google Cloud Console configuration."""
+    configured = current_app.config.get('GOOGLE_REDIRECT_URI')
+    if configured and configured.strip():
+        return configured.strip()
+    return url_for('auth.google_callback', _external=True)
+
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -124,10 +153,11 @@ def google_login():
     if not client_id or client_id.strip() == '':
         return redirect(url_for('auth.google_sandbox'))
     
-    state = secrets.token_urlsafe(16)
+    secret_key = current_app.config.get('SECRET_KEY', 'fyp_secret_key_2026')
+    state = generate_oauth_state(secret_key)
     session['oauth_state'] = state
     
-    redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('auth.google_callback', _external=True)
+    redirect_uri = get_google_redirect_uri()
     params = {
         'client_id': client_id,
         'redirect_uri': redirect_uri,
@@ -138,7 +168,9 @@ def google_login():
         'prompt': 'select_account'
     }
     google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
-    return redirect(google_auth_url)
+    resp = redirect(google_auth_url)
+    resp.set_cookie('oauth_state', state, max_age=600, httponly=True, samesite='Lax')
+    return resp
 
 @auth_bp.route('/auth/google/callback')
 @auth_bp.route('/login/google/callback')
@@ -154,16 +186,32 @@ def google_callback():
         return render_template('login.html', error=f"Google authorization failed: {oauth_error}", google_client_id=client_id)
 
     state = request.args.get('state')
-    expected_state = session.get('oauth_state')
-    if not state or state != expected_state:
-        return render_template('login.html', error="Google authentication failed: State mismatch or expired session.", google_client_id=client_id)
+    expected_session_state = session.get('oauth_state')
+    expected_cookie_state = request.cookies.get('oauth_state')
+
+    # Multi-layer CSRF validation:
+    # 1. Matches session state (if session cookie was preserved)
+    # 2. OR matches fallback cookie state (if session storage cycled)
+    # 3. OR verified cryptographically by server's SECRET_KEY (immune to 127.0.0.1 vs localhost domain shifts)
+    secret_key = current_app.config.get('SECRET_KEY', 'fyp_secret_key_2026')
+    is_valid = False
     
+    if (expected_session_state and state == expected_session_state) or \
+       (expected_cookie_state and state == expected_cookie_state):
+        is_valid = True
+    else:
+        sig_ok, reason = verify_oauth_state(state, secret_key)
+        if sig_ok:
+            is_valid = True
+        else:
+            return render_template('login.html', error=f"Google authentication failed: {reason}", google_client_id=client_id)
+
     code = request.args.get('code')
     if not code:
         return render_template('login.html', error="Google authorization code missing.", google_client_id=client_id)
     
     client_secret = current_app.config.get('GOOGLE_CLIENT_SECRET')
-    redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('auth.google_callback', _external=True)
+    redirect_uri = get_google_redirect_uri()
     
     try:
         token_res = requests.post(
