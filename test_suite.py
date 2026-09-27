@@ -364,5 +364,163 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
         self.assertEqual(apply_res.status_code, 200)
         self.assertEqual(apply_res.get_json()['status'], 'success')
 
+    def test_new_user_profile_flag_and_login_redirect(self):
+        """Verify new users default to is_profile_completed=False and are prompted to complete profile."""
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            self.assertFalse(student.is_profile_completed)
+
+        # Login as student_user
+        res = self.client.post('/login', data={
+            'username': 'student_user',
+            'password': 'pass123'
+        }, follow_redirects=False)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/complete-profile', res.headers['Location'])
+
+    def test_complete_profile_student(self):
+        """Submit student onboarding form and verify profile marked as completed."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.post('/complete-profile', data={
+            'phone_number': '+60123456789',
+            'bio': 'Passionate AI & Data Science scholar.',
+            'major_programme': 'BSc Computer Science',
+            'academic_year': 'Year 3',
+            'current_semester': 'Semester 1',
+            'target_cgpa': '3.85'
+        }, follow_redirects=True)
+        self.assertEqual(res.status_code, 200)
+
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            self.assertTrue(student.is_profile_completed)
+            self.assertEqual(student.major_programme, 'BSc Computer Science')
+            self.assertEqual(student.academic_year, 'Year 3')
+            self.assertEqual(student.current_semester, 'Semester 1')
+            self.assertEqual(student.target_cgpa, 3.85)
+            self.assertEqual(student.phone_number, '+60123456789')
+            self.assertEqual(student.bio, 'Passionate AI & Data Science scholar.')
+
+    def test_complete_profile_educator(self):
+        """Submit educator onboarding form and verify educator-specific metadata saved."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                educator = User.query.filter_by(username="educator_user").first()
+                sess['user_id'] = str(educator.id)
+                sess['username'] = educator.fullname
+                sess['role'] = 'educator'
+
+        res = self.client.post('/complete-profile', data={
+            'title_designation': 'Prof.',
+            'faculty_department': 'Department of Computing',
+            'office_location': 'Block B, Room 301',
+            'phone_number': '+601122334455',
+            'bio': 'Dean of AI & Machine Learning Research.'
+        }, follow_redirects=True)
+        self.assertEqual(res.status_code, 200)
+
+        with self.app.app_context():
+            educator = User.query.filter_by(username="educator_user").first()
+            self.assertTrue(educator.is_profile_completed)
+            self.assertEqual(educator.title_designation, 'Prof.')
+            self.assertEqual(educator.faculty_department, 'Department of Computing')
+            self.assertEqual(educator.office_location, 'Block B, Room 301')
+
+    def test_complete_profile_admin(self):
+        """Submit admin onboarding form and verify admin-specific metadata saved."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                admin = User.query.filter_by(username="admin_user").first()
+                sess['user_id'] = str(admin.id)
+                sess['username'] = admin.fullname
+                sess['role'] = 'admin'
+
+        res = self.client.post('/complete-profile', data={
+            'staff_id': 'ADM-9901',
+            'admin_department': 'Office of Academic Affairs',
+            'phone_number': '+60199998888',
+            'bio': 'System Administrator and Compliance Lead.'
+        }, follow_redirects=True)
+        self.assertEqual(res.status_code, 200)
+
+        with self.app.app_context():
+            admin = User.query.filter_by(username="admin_user").first()
+            self.assertTrue(admin.is_profile_completed)
+            self.assertEqual(admin.staff_id, 'ADM-9901')
+            self.assertEqual(admin.admin_department, 'Office of Academic Affairs')
+
+    def test_complete_profile_validation(self):
+        """Verify target_cgpa boundaries reject values > 4.0 or < 0.0 with HTTP 400."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        # Reject CGPA > 4.0
+        res_high = self.client.post('/complete-profile', data={
+            'major_programme': 'BSc Computer Science',
+            'target_cgpa': '5.0'
+        })
+        self.assertEqual(res_high.status_code, 400)
+
+        # Reject negative CGPA
+        res_low = self.client.post('/complete-profile', data={
+            'major_programme': 'BSc Computer Science',
+            'target_cgpa': '-1.0'
+        })
+        self.assertEqual(res_low.status_code, 400)
+
+    def test_skip_onboarding(self):
+        """Verify skip-onboarding sets session flag and routes to student dashboard."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.get('/skip-onboarding', follow_redirects=False)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/student/dashboard', res.headers['Location'])
+
+        with self.client.session_transaction() as sess:
+            self.assertTrue(sess.get('skipped_onboarding'))
+
+    def test_profile_update(self):
+        """Verify editing bio, phone, and role attributes via /profile persists to DB."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.post('/profile', data={
+            'fullname': 'Ezra Lai Kwang Zhe',
+            'phone_number': '+60198887777',
+            'bio': 'Updated software engineer bio.',
+            'major_programme': 'Software Engineering',
+            'academic_year': 'Year 4',
+            'current_semester': 'Semester 2',
+            'target_cgpa': '3.92'
+        }, follow_redirects=True)
+        self.assertEqual(res.status_code, 200)
+
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            self.assertEqual(student.fullname, 'Ezra Lai Kwang Zhe')
+            self.assertEqual(student.phone_number, '+60198887777')
+            self.assertEqual(student.bio, 'Updated software engineer bio.')
+            self.assertEqual(student.major_programme, 'Software Engineering')
+            self.assertEqual(student.target_cgpa, 3.92)
+
 if __name__ == '__main__':
     unittest.main()

@@ -44,6 +44,30 @@ def create_app(config_class=Config):
                         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);"))
                     if 'updated_at' not in columns:
                         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();"))
+                    if 'is_profile_completed' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_profile_completed BOOLEAN DEFAULT FALSE;"))
+                    if 'phone_number' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);"))
+                    if 'bio' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;"))
+                    if 'major_programme' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS major_programme VARCHAR(100);"))
+                    if 'academic_year' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS academic_year VARCHAR(20);"))
+                    if 'current_semester' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS current_semester VARCHAR(20);"))
+                    if 'target_cgpa' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS target_cgpa FLOAT;"))
+                    if 'faculty_department' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS faculty_department VARCHAR(100);"))
+                    if 'office_location' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS office_location VARCHAR(100);"))
+                    if 'title_designation' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS title_designation VARCHAR(50);"))
+                    if 'admin_department' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_department VARCHAR(100);"))
+                    if 'staff_id' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_id VARCHAR(50);"))
                     conn.commit()
         except Exception as e:
             app.logger.warning(f"Database connection or migration notice: {e}")

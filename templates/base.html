@@ -88,10 +88,14 @@
                 </div>
                 
                 <div class="dropdown">
-                    <button class="btn btn-light rounded-circle shadow-sm profile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-fill fs-5"></i>
+                    <button class="btn btn-light rounded-circle shadow-sm profile-btn p-0 overflow-hidden" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center;">
+                        {% if session.get('avatar_url') %}
+                            <img src="{{ session.get('avatar_url') }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                        {% else %}
+                            <i class="bi bi-person-fill fs-5"></i>
+                        {% endif %}
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1">
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1" style="min-width: 220px;">
                         <li>
                             <div class="px-3 py-2 border-bottom">
                                 <small class="text-muted d-block">Signed in as</small>
@@ -101,7 +105,9 @@
                                 </div>
                             </div>
                         </li>
-                        <li><a class="dropdown-item text-danger fw-bold mt-1" href="/logout"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                        <li><a class="dropdown-item py-2" href="/profile"><i class="bi bi-person-gear me-2 text-primary"></i> My Profile &amp; Settings</a></li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li><a class="dropdown-item text-danger fw-bold" href="/logout"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
                     </ul>
                 </div>
             </div>
@@ -184,9 +190,45 @@
                         <i class="bi bi-bar-chart"></i> Target Grade Simulator
                     </a>
                 {% endif %}
+                
+                <hr class="border-secondary mx-3 my-2 opacity-25">
+                <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Account &amp; Settings</div>
+                <a class="nav-link {% if active_page == 'profile' %}active{% endif %}" href="/profile">
+                    <i class="bi bi-person-circle"></i> My Profile
+                </a>
             </nav>
         </div>
     </div>
+
+    <!-- Profile Incompletion Notification Banner -->
+    {% if session.get('user_id') and not session.get('is_profile_completed', False) and request.path not in ['/complete-profile', '/profile'] %}
+    <div class="alert alert-primary alert-dismissible fade show rounded-0 mb-0 border-0 border-bottom py-2 px-3 small d-flex align-items-center justify-content-between shadow-sm" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-info-circle-fill me-2 fs-6"></i>
+            <div>
+                <strong>Complete your profile!</strong> Tell us your academic details to personalize your smart scheduler and grade simulations.
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/complete-profile" class="btn btn-sm btn-primary py-1 px-3 fw-semibold text-white text-decoration-none" style="font-size: 0.8rem;">Complete Now</a>
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close" style="font-size: 0.7rem;"></button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Flash Messages Container -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
     <!-- Main Page Content -->
     {% block content %}{% endblock %}

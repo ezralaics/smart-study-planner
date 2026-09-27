@@ -90,7 +90,13 @@ def login():
             session['user_id'] = str(user.id)
             session['username'] = user.fullname
             session['role'] = getattr(user, 'role', 'student')
+            session['avatar_url'] = getattr(user, 'avatar_url', None)
+            session['is_profile_completed'] = getattr(user, 'is_profile_completed', False)
             
+            # Check if profile needs completion and user hasn't skipped
+            if not getattr(user, 'is_profile_completed', False) and not session.get('skipped_onboarding'):
+                return redirect(url_for('main.complete_profile'))
+
             # Smart redirect based on user role
             if session['role'] == 'educator':
                 return redirect(url_for('educator.dashboard'))
@@ -113,6 +119,8 @@ def demo_login(role):
     session['user_id'] = str(user.id)
     session['username'] = user.fullname
     session['role'] = user.role
+    session['avatar_url'] = getattr(user, 'avatar_url', None)
+    session['is_profile_completed'] = True
 
     if user.role == 'educator':
         return redirect(url_for('educator.dashboard'))
@@ -288,6 +296,11 @@ def process_google_user(userinfo):
     session['username'] = user.fullname
     session['role'] = getattr(user, 'role', 'student')
     session['avatar_url'] = user.avatar_url
+    session['is_profile_completed'] = getattr(user, 'is_profile_completed', False)
+
+    # Check if onboarding is needed
+    if not getattr(user, 'is_profile_completed', False) and not session.get('skipped_onboarding'):
+        return redirect(url_for('main.complete_profile'))
 
     if user.role == 'educator':
         return redirect(url_for('educator.dashboard'))
@@ -319,6 +332,8 @@ def google_sandbox():
                 user.role = role
                 session['role'] = role
                 db.session.commit()
+                if not getattr(user, 'is_profile_completed', False) and not session.get('skipped_onboarding'):
+                    return redirect(url_for('main.complete_profile'))
                 if role == 'educator':
                     return redirect(url_for('educator.dashboard'))
                 elif role == 'admin':

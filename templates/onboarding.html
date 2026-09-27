@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Your Profile | Smart Study Planner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 15px;
+            color: #334155;
+        }
+        .onboarding-card {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 820px;
+        }
+        .onboarding-header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 36px 36px 28px 36px;
+            position: relative;
+        }
+        .form-label {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: #1e293b;
+            margin-bottom: 6px;
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.93rem;
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(37, 99, 235, 0.08);
+            color: #2563eb;
+            margin-bottom: 14px;
+        }
+        .helper-text {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        .btn-submit {
+            background: #2563eb;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 12px 28px;
+            border-radius: 10px;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        .btn-submit:hover {
+            background: #1d4ed8;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .btn-skip {
+            color: #64748b;
+            font-weight: 500;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: 1px solid transparent;
+        }
+        .btn-skip:hover {
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="onboarding-card">
+    <!-- Header -->
+    <div class="onboarding-header">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-person-badge fs-3 text-warning"></i>
+                <span class="badge bg-light text-dark fw-bold px-3 py-1 rounded-pill" style="font-size: 0.8rem;">
+                    Step 1 of 1 &bull; Personalization
+                </span>
+            </div>
+            <div>
+                {% if user.role == 'admin' %}
+                    <span class="badge bg-dark border border-light text-white px-2 py-1">Administrator Profile</span>
+                {% elif user.role == 'educator' %}
+                    <span class="badge bg-light text-primary px-2 py-1">Educator Profile</span>
+                {% else %}
+                    <span class="badge bg-white text-primary px-2 py-1">Student Profile</span>
+                {% endif %}
+            </div>
+        </div>
+        <h2 class="fw-bold mb-1">Welcome, {{ user.fullname }}!</h2>
+        <p class="opacity-80 mb-0 small">
+            Set up your profile to tailor your smart academic planner, grade simulations, and communication settings.
+        </p>
+    </div>
+
+    <!-- Body Form -->
+    <div class="p-4 p-md-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-4" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="/complete-profile" method="POST">
+            
+            {% if user.role == 'student' %}
+            <!-- Student Specific Fields -->
+            <div class="section-badge">
+                <i class="bi bi-mortarboard-fill"></i> Academic Credentials
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label" for="major_programme">Major / Degree Programme</label>
+                    <input type="text" class="form-control" id="major_programme" name="major_programme" 
+                           placeholder="e.g. BSc (Hons) Computer Science" value="{{ user.major_programme or '' }}" required>
+                    <div class="helper-text">Your primary field of study</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="academic_year">Academic Year</label>
+                    <select class="form-select" id="academic_year" name="academic_year" required>
+                        <option value="" disabled {% if not user.academic_year %}selected{% endif %}>Select year...</option>
+                        <option value="Year 1" {% if user.academic_year == 'Year 1' %}selected{% endif %}>Year 1 (Freshman)</option>
+                        <option value="Year 2" {% if user.academic_year == 'Year 2' %}selected{% endif %}>Year 2 (Sophomore)</option>
+                        <option value="Year 3" {% if user.academic_year == 'Year 3' %}selected{% endif %}>Year 3 (Junior)</option>
+                        <option value="Year 4" {% if user.academic_year == 'Year 4' %}selected{% endif %}>Year 4 (Senior)</option>
+                        <option value="Postgraduate" {% if user.academic_year == 'Postgraduate' %}selected{% endif %}>Postgraduate</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="current_semester">Current Semester</label>
+                    <select class="form-select" id="current_semester" name="current_semester" required>
+                        <option value="" disabled {% if not user.current_semester %}selected{% endif %}>Select sem...</option>
+                        <option value="Semester 1" {% if user.current_semester == 'Semester 1' %}selected{% endif %}>Semester 1</option>
+                        <option value="Semester 2" {% if user.current_semester == 'Semester 2' %}selected{% endif %}>Semester 2</option>
+                        <option value="Short Semester" {% if user.current_semester == 'Short Semester' %}selected{% endif %}>Short Semester</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="target_cgpa">Target CGPA (0.00 – 4.00)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted"><i class="bi bi-trophy-fill"></i></span>
+                        <input type="number" step="0.01" min="0.00" max="4.00" class="form-control" id="target_cgpa" 
+                               name="target_cgpa" placeholder="e.g. 3.75" value="{{ user.target_cgpa or '' }}">
+                    </div>
+                    <div class="helper-text">Power the Target Grade Simulator and AI pacing engine</div>
+                </div>
+            </div>
+
+            {% elif user.role == 'educator' %}
+            <!-- Educator Specific Fields -->
+            <div class="section-badge">
+                <i class="bi bi-book-half"></i> Faculty &amp; Academic Role
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label" for="title_designation">Academic Title</label>
+                    <select class="form-select" id="title_designation" name="title_designation" required>
+                        <option value="" disabled {% if not user.title_designation %}selected{% endif %}>Select title...</option>
+                        <option value="Prof." {% if user.title_designation == 'Prof.' %}selected{% endif %}>Prof.</option>
+                        <option value="Assoc. Prof." {% if user.title_designation == 'Assoc. Prof.' %}selected{% endif %}>Assoc. Prof.</option>
+                        <option value="Dr." {% if user.title_designation == 'Dr.' %}selected{% endif %}>Dr.</option>
+                        <option value="Lecturer" {% if user.title_designation == 'Lecturer' %}selected{% endif %}>Lecturer</option>
+                        <option value="Adjunct Professor" {% if user.title_designation == 'Adjunct Professor' %}selected{% endif %}>Adjunct Professor</option>
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="faculty_department">Faculty / Department</label>
+                    <input type="text" class="form-control" id="faculty_department" name="faculty_department" 
+                           placeholder="e.g. Department of Computer Science &amp; Data Science" value="{{ user.faculty_department or '' }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="office_location">Office Location &amp; Consultation Hours</label>
+                    <input type="text" class="form-control" id="office_location" name="office_location" 
+                           placeholder="e.g. Block B, Room 402 (Consultation: Mon &amp; Wed 2:00 PM - 4:00 PM)" value="{{ user.office_location or '' }}">
+                    <div class="helper-text">Visible to enrolled students on their course syllabus</div>
+                </div>
+            </div>
+
+            {% elif user.role == 'admin' %}
+            <!-- Administrator Specific Fields -->
+            <div class="section-badge">
+                <i class="bi bi-shield-lock-fill"></i> Institutional Governance
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label" for="staff_id">Staff / Administrator ID</label>
+                    <input type="text" class="form-control" id="staff_id" name="staff_id" 
+                           placeholder="e.g. ADM-2026-904" value="{{ user.staff_id or '' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="admin_department">Administrative Division</label>
+                    <input type="text" class="form-control" id="admin_department" name="admin_department" 
+                           placeholder="e.g. Academic Registrar / IT Services" value="{{ user.admin_department or '' }}" required>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Shared General Contact & Profile Fields -->
+            <div class="section-badge">
+                <i class="bi bi-chat-square-dots-fill"></i> Contact &amp; Bio
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label" for="phone_number">Phone Number (Optional)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted"><i class="bi bi-telephone-fill"></i></span>
+                        <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                               placeholder="e.g. +60 12-345 6789" value="{{ user.phone_number or '' }}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="email_display">Email Address (Read-Only)</label>
+                    <input type="email" class="form-control bg-light text-muted" id="email_display" value="{{ user.email }}" readonly>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="bio">Bio / Headline</label>
+                    <textarea class="form-control" id="bio" name="bio" rows="3" 
+                              placeholder="Tell us a little about your academic interests or background...">{{ user.bio or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3 pt-3 border-top">
+                <a href="/skip-onboarding" class="btn btn-skip order-2 order-sm-1">
+                    <i class="bi bi-clock-history me-1"></i> Complete Later / Skip for Now
+                </a>
+                <button type="submit" class="btn btn-submit d-flex align-items-center gap-2 order-1 order-sm-2 w-100 w-sm-auto justify-content-center">
+                    <span>Save &amp; Continue to Dashboard</span>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

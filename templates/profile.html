@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .profile-card {
+        border-radius: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        background: #ffffff;
+    }
+    .profile-header-bg {
+        height: 120px;
+        border-radius: 16px 16px 0 0;
+        background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
+    }
+    .profile-avatar-wrapper {
+        margin-top: -60px;
+        position: relative;
+        display: inline-block;
+    }
+    .profile-avatar-img {
+        width: 110px;
+        height: 110px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid #ffffff;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        background: #ffffff;
+    }
+    .avatar-placeholder {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        border: 4px solid #ffffff;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        background: #2563eb;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    .section-title {
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .form-label {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #334155;
+        margin-bottom: 4px;
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-size: 0.92rem;
+        border: 1px solid #cbd5e1;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .stat-badge {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/dashboard" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">My Profile &amp; Settings</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Left Column: User Summary Card -->
+        <div class="col-lg-4">
+            <div class="card profile-card overflow-hidden">
+                <div class="profile-header-bg"></div>
+                <div class="card-body text-center pt-0 px-4 pb-4">
+                    <div class="profile-avatar-wrapper mb-3">
+                        {% if user.avatar_url %}
+                            <img src="{{ user.avatar_url }}" alt="{{ user.fullname }}" class="profile-avatar-img">
+                        {% else %}
+                            <div class="avatar-placeholder mx-auto">
+                                {{ user.fullname[:1].upper() if user.fullname else 'U' }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <h5 class="fw-bold mb-1">{{ user.fullname }}</h5>
+                    <p class="text-muted small mb-2">@{{ user.username }}</p>
+                    
+                    <!-- Role Badge -->
+                    <div class="mb-3">
+                        {% if user.role == 'admin' %}
+                            <span class="badge bg-dark text-white px-3 py-1 rounded-pill">Institutional Admin</span>
+                        {% elif user.role == 'educator' %}
+                            <span class="badge text-white px-3 py-1 rounded-pill" style="background-color: #6f42c1;">Faculty Educator</span>
+                        {% else %}
+                            <span class="badge bg-primary px-3 py-1 rounded-pill">Student</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Bio -->
+                    {% if user.bio %}
+                    <p class="small text-secondary mb-3 fst-italic">"{{ user.bio }}"</p>
+                    {% endif %}
+
+                    <hr class="my-3 opacity-25">
+
+                    <!-- Metadata Details -->
+                    <div class="text-start small">
+                        <div class="d-flex justify-content-between py-1 text-muted">
+                            <span><i class="bi bi-envelope me-2"></i>Email</span>
+                            <span class="fw-semibold text-dark text-truncate" style="max-width: 170px;">{{ user.email }}</span>
+                        </div>
+                        {% if user.phone_number %}
+                        <div class="d-flex justify-content-between py-1 text-muted">
+                            <span><i class="bi bi-telephone me-2"></i>Phone</span>
+                            <span class="fw-semibold text-dark">{{ user.phone_number }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between py-1 text-muted">
+                            <span><i class="bi bi-patch-check me-2"></i>Profile</span>
+                            {% if user.is_profile_completed %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Completed</span>
+                            {% else %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle">Incomplete</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between py-1 text-muted">
+                            <span><i class="bi bi-shield-lock me-2"></i>Auth Type</span>
+                            {% if user.google_id %}
+                                <span class="badge bg-light text-dark border"><i class="bi bi-google me-1 text-danger"></i> Google Linked</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark border">Standard Credentials</span>
+                            {% endif %}
+                        </div>
+                        {% if user.created_at %}
+                        <div class="d-flex justify-content-between py-1 text-muted">
+                            <span><i class="bi bi-calendar-event me-2"></i>Member Since</span>
+                            <span class="fw-semibold text-dark">{{ user.created_at.strftime('%b %d, %Y') }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Role-Specific Side Stats -->
+            {% if user.role == 'student' and user.target_cgpa %}
+            <div class="card profile-card mt-3 p-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Target CGPA</small>
+                        <h3 class="fw-bold text-primary mb-0">{{ "%.2f"|format(user.target_cgpa) }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
+                        <i class="bi bi-trophy-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column: Profile Edit Form -->
+        <div class="col-lg-8">
+            <div class="card profile-card p-4">
+                <form action="/profile" method="POST">
+                    
+                    <!-- Basic Information Section -->
+                    <div class="section-title">
+                        <i class="bi bi-person-lines-fill text-primary"></i>
+                        <span>Basic &amp; Account Information</span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label" for="fullname">Full Name</label>
+                            <input type="text" class="form-control" id="fullname" name="fullname" value="{{ user.fullname }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="username">Username (System Locked)</label>
+                            <input type="text" class="form-control bg-light text-muted" id="username" value="{{ user.username }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="email">Email Address</label>
+                            <input type="email" class="form-control bg-light text-muted" id="email" value="{{ user.email }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="phone_number">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                   placeholder="e.g. +60 12-345 6789" value="{{ user.phone_number or '' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="avatar_url">Profile Avatar Image URL</label>
+                            <input type="url" class="form-control" id="avatar_url" name="avatar_url" 
+                                   placeholder="https://example.com/avatar.jpg" value="{{ user.avatar_url or '' }}">
+                            <small class="text-muted">Enter a direct image link or leave blank to use your name initials.</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="bio">Biography / Headline</label>
+                            <textarea class="form-control" id="bio" name="bio" rows="3" 
+                                      placeholder="Share a short headline or academic interests...">{{ user.bio or '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Role-Specific Information Section -->
+                    {% if user.role == 'student' %}
+                    <div class="section-title">
+                        <i class="bi bi-mortarboard text-primary"></i>
+                        <span>Student Academic Configuration</span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label" for="major_programme">Major / Degree Programme</label>
+                            <input type="text" class="form-control" id="major_programme" name="major_programme" 
+                                   placeholder="e.g. BSc (Hons) Computer Science" value="{{ user.major_programme or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="academic_year">Academic Year</label>
+                            <select class="form-select" id="academic_year" name="academic_year">
+                                <option value="" disabled {% if not user.academic_year %}selected{% endif %}>Select year...</option>
+                                <option value="Year 1" {% if user.academic_year == 'Year 1' %}selected{% endif %}>Year 1</option>
+                                <option value="Year 2" {% if user.academic_year == 'Year 2' %}selected{% endif %}>Year 2</option>
+                                <option value="Year 3" {% if user.academic_year == 'Year 3' %}selected{% endif %}>Year 3</option>
+                                <option value="Year 4" {% if user.academic_year == 'Year 4' %}selected{% endif %}>Year 4</option>
+                                <option value="Postgraduate" {% if user.academic_year == 'Postgraduate' %}selected{% endif %}>Postgraduate</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="current_semester">Current Semester</label>
+                            <select class="form-select" id="current_semester" name="current_semester">
+                                <option value="" disabled {% if not user.current_semester %}selected{% endif %}>Select semester...</option>
+                                <option value="Semester 1" {% if user.current_semester == 'Semester 1' %}selected{% endif %}>Semester 1</option>
+                                <option value="Semester 2" {% if user.current_semester == 'Semester 2' %}selected{% endif %}>Semester 2</option>
+                                <option value="Short Semester" {% if user.current_semester == 'Short Semester' %}selected{% endif %}>Short Semester</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="target_cgpa">Target CGPA (0.00 – 4.00)</label>
+                            <input type="number" step="0.01" min="0.00" max="4.00" class="form-control" id="target_cgpa" 
+                                   name="target_cgpa" placeholder="e.g. 3.75" value="{{ user.target_cgpa or '' }}">
+                        </div>
+                    </div>
+
+                    {% elif user.role == 'educator' %}
+                    <div class="section-title">
+                        <i class="bi bi-briefcase text-primary"></i>
+                        <span>Faculty &amp; Office Credentials</span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label" for="title_designation">Academic Title</label>
+                            <select class="form-select" id="title_designation" name="title_designation">
+                                <option value="" disabled {% if not user.title_designation %}selected{% endif %}>Select title...</option>
+                                <option value="Prof." {% if user.title_designation == 'Prof.' %}selected{% endif %}>Prof.</option>
+                                <option value="Assoc. Prof." {% if user.title_designation == 'Assoc. Prof.' %}selected{% endif %}>Assoc. Prof.</option>
+                                <option value="Dr." {% if user.title_designation == 'Dr.' %}selected{% endif %}>Dr.</option>
+                                <option value="Lecturer" {% if user.title_designation == 'Lecturer' %}selected{% endif %}>Lecturer</option>
+                                <option value="Adjunct Professor" {% if user.title_designation == 'Adjunct Professor' %}selected{% endif %}>Adjunct Professor</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="faculty_department">Faculty / Department</label>
+                            <input type="text" class="form-control" id="faculty_department" name="faculty_department" 
+                                   placeholder="e.g. Department of Computer Science &amp; Data Science" value="{{ user.faculty_department or '' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="office_location">Office Location &amp; Consultation Hours</label>
+                            <input type="text" class="form-control" id="office_location" name="office_location" 
+                                   placeholder="e.g. Block B, Room 402 (Consultation: Mon &amp; Wed 2:00 PM - 4:00 PM)" value="{{ user.office_location or '' }}">
+                        </div>
+                    </div>
+
+                    {% elif user.role == 'admin' %}
+                    <div class="section-title">
+                        <i class="bi bi-shield-check text-primary"></i>
+                        <span>Administrator Registry</span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label" for="staff_id">Staff / Administrator ID</label>
+                            <input type="text" class="form-control" id="staff_id" name="staff_id" 
+                                   placeholder="e.g. ADM-2026-904" value="{{ user.staff_id or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="admin_department">Administrative Division</label>
+                            <input type="text" class="form-control" id="admin_department" name="admin_department" 
+                                   placeholder="e.g. Academic Registrar / IT Services" value="{{ user.admin_department or '' }}">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Save Button -->
+                    <div class="d-flex justify-content-end pt-3 border-top">
+                        <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold d-flex align-items-center gap-2">
+                            <i class="bi bi-check2-circle"></i>
+                            <span>Save Profile Changes</span>
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
