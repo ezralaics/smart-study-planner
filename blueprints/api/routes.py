@@ -300,3 +300,70 @@ def auto_schedule_apply():
         "message": f"Successfully synced {created_count} revision session(s) into your timetable and calendar!"
     })
 
+# ==========================================
+# Data Export & Management Endpoints
+# ==========================================
+
+@api_bp.route('/api/export-data')
+@login_required
+def export_data():
+    from models.user import User
+    from flask import Response
+    import json
+    from datetime import timezone
+
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    courses = Course.query.filter_by(user_id=user.id).all()
+    tasks = Task.query.filter_by(user_id=user.id).all()
+    schedules = Schedule.query.filter_by(user_id=user.id).all()
+
+    payload = {
+        "export_metadata": {
+            "system": "Smart Study Planner",
+            "version": "2.0.0",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        },
+        "user_profile": user.to_dict(),
+        "courses": [c.to_dict() for c in courses],
+        "tasks": [t.to_dict() for t in tasks],
+        "schedules": [
+            {
+                "id": str(s.id),
+                "title": s.title,
+                "day_of_week": s.day_of_week,
+                "start_time": s.start_time,
+                "end_time": s.end_time,
+                "venue": s.venue,
+                "activity_type": s.activity_type,
+                "created_at": s.created_at.isoformat() if s.created_at else None
+            } for s in schedules
+        ]
+    }
+
+    json_str = json.dumps(payload, indent=2)
+    filename = f"study_planner_backup_{user.username}.json"
+    
+    return Response(
+        json_str,
+        mimetype="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@api_bp.route('/api/settings/clear-completed-tasks', methods=['POST'])
+@login_required
+def clear_completed_tasks():
+    user_id = session['user_id']
+    completed_tasks = Task.query.filter_by(user_id=user_id, is_completed=True).all()
+    count = len(completed_tasks)
+    for t in completed_tasks:
+        db.session.delete(t)
+    db.session.commit()
+    return jsonify({
+        "status": "success",
+        "deleted_count": count,
+        "message": f"Successfully cleared {count} completed task(s)."
+    })
+

@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Settings &amp; Preferences | Smart Study Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-container {
+        max-width: 1100px;
+    }
+    .settings-card {
+        border-radius: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        background: #ffffff;
+    }
+    [data-bs-theme="dark"] .settings-card {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    .settings-nav .nav-link {
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.93rem;
+        padding: 12px 18px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s ease;
+        margin: 4px 0;
+    }
+    [data-bs-theme="dark"] .settings-nav .nav-link {
+        color: #94a3b8;
+    }
+    .settings-nav .nav-link:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+    [data-bs-theme="dark"] .settings-nav .nav-link:hover {
+        background: #334155;
+        color: #f8fafc;
+    }
+    .settings-nav .nav-link.active {
+        background: #2563eb;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    .theme-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    [data-bs-theme="dark"] .theme-card {
+        border-color: #334155;
+    }
+    .theme-card.active, .theme-card:hover {
+        border-color: #2563eb;
+        transform: translateY(-2px);
+    }
+    .theme-preview-light {
+        height: 70px;
+        border-radius: 8px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .theme-preview-dark {
+        height: 70px;
+        border-radius: 8px;
+        background: #0f172a;
+        border: 1px solid #334155;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .danger-zone {
+        border: 1px solid #fecaca;
+        background: #fff5f5;
+        border-radius: 14px;
+    }
+    [data-bs-theme="dark"] .danger-zone {
+        border-color: #7f1d1d;
+        background: #450a0a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 settings-container">
+    <!-- Breadcrumb -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/dashboard" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Settings &amp; Preferences</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold mb-1">
+                <i class="bi bi-gear-wide-connected text-primary me-2"></i> Settings &amp; Preferences
+            </h3>
+            <p class="text-muted small mb-0">Customize your workspace appearance, study timer defaults, account security, and data exports.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/profile" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                <i class="bi bi-person-circle me-1"></i> Edit Profile
+            </a>
+        </div>
+    </div>
+
+    {% if password_error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ password_error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Sidebar Navigation Tabs -->
+        <div class="col-lg-3">
+            <div class="card settings-card p-3">
+                <div class="nav flex-column settings-nav" id="settings-tab" role="tablist">
+                    <button class="nav-link active" id="tab-appearance-btn" data-bs-toggle="pill" data-bs-target="#tab-appearance" type="button" role="tab">
+                        <i class="bi bi-palette-fill"></i>
+                        <span>Appearance</span>
+                    </button>
+                    <button class="nav-link" id="tab-study-btn" data-bs-toggle="pill" data-bs-target="#tab-study" type="button" role="tab">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Study Preferences</span>
+                    </button>
+                    <button class="nav-link" id="tab-security-btn" data-bs-toggle="pill" data-bs-target="#tab-security" type="button" role="tab">
+                        <i class="bi bi-shield-lock-fill"></i>
+                        <span>Account &amp; Security</span>
+                    </button>
+                    <button class="nav-link" id="tab-data-btn" data-bs-toggle="pill" data-bs-target="#tab-data" type="button" role="tab">
+                        <i class="bi bi-database-fill-gear"></i>
+                        <span>Data &amp; Privacy</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Panel -->
+        <div class="col-lg-9">
+            <div class="tab-content" id="settings-tabContent">
+                
+                <!-- TAB 1: APPEARANCE -->
+                <div class="tab-pane fade show active" id="tab-appearance" role="tabpanel">
+                    <div class="card settings-card p-4">
+                        <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-palette text-primary"></i> Theme &amp; Visual Appearance
+                        </h5>
+                        <p class="text-muted small mb-4">Choose how Smart Study Planner looks on your device. Selected theme persists across all sessions.</p>
+
+                        <!-- Theme Selection Cards -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <div class="theme-card text-center" id="theme-light-card" onclick="switchTheme('light')">
+                                    <div class="theme-preview-light mb-3">
+                                        <i class="bi bi-sun-fill fs-2 text-warning"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Light Mode</h6>
+                                    <p class="text-muted small mb-0">Clean, crisp light canvas for daytime study</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="theme-card text-center" id="theme-dark-card" onclick="switchTheme('dark')">
+                                    <div class="theme-preview-dark mb-3">
+                                        <i class="bi bi-moon-stars-fill fs-2 text-primary"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Dark Mode</h6>
+                                    <p class="text-muted small mb-0">Sleek, low-contrast dark palette for night sessions</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4 opacity-25">
+
+                        <!-- Calendar Display Preferences -->
+                        <h6 class="fw-bold mb-3">Calendar &amp; Time Preferences</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small" for="pref-calendar-view">Default Calendar View</label>
+                                <select class="form-select" id="pref-calendar-view" onchange="saveLocalPref('default_calendar_view', this.value)">
+                                    <option value="month">Month Grid View (Default)</option>
+                                    <option value="timeGridWeek">Week Timeline View</option>
+                                    <option value="timeGridDay">Daily Breakdown</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small" for="pref-start-day">First Day of the Week</label>
+                                <select class="form-select" id="pref-start-day" onchange="saveLocalPref('calendar_start_day', this.value)">
+                                    <option value="1">Monday (ISO Standard)</option>
+                                    <option value="0">Sunday</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="appearance-save-badge" class="alert alert-success py-2 px-3 small d-none" role="alert">
+                            <i class="bi bi-check-circle-fill me-1"></i> Appearance preferences updated immediately.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: STUDY PREFERENCES -->
+                <div class="tab-pane fade" id="tab-study" role="tabpanel">
+                    <div class="card settings-card p-4">
+                        <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-clock-history text-primary"></i> Study Engine &amp; Planner Defaults
+                        </h5>
+                        <p class="text-muted small mb-4">Configure algorithmic study scheduler parameters and daily productivity targets.</p>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small" for="pref-study-duration">Default Study Block Duration</label>
+                                <select class="form-select" id="pref-study-duration" onchange="saveLocalPref('default_block_duration', this.value)">
+                                    <option value="25">25 Minutes (Pomodoro)</option>
+                                    <option value="45">45 Minutes (Balanced Focus)</option>
+                                    <option value="60" selected>60 Minutes (Standard Deep Work)</option>
+                                    <option value="90">90 Minutes (Intensive Study Block)</option>
+                                </select>
+                                <small class="text-muted">Used by the Algorithmic Scheduler to split revision sessions.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small" for="pref-daily-target">Daily Target Study Hours</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="pref-daily-target" min="1" max="12" value="3" onchange="saveLocalPref('daily_target_hours', this.value)">
+                                    <span class="input-group-text">hours/day</span>
+                                </div>
+                                <small class="text-muted">Target threshold displayed on your dashboard progress widget.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small" for="pref-break-duration">Recommended Break Interval</label>
+                                <select class="form-select" id="pref-break-duration" onchange="saveLocalPref('break_duration', this.value)">
+                                    <option value="5">5 Minutes</option>
+                                    <option value="10">10 Minutes</option>
+                                    <option value="15" selected>15 Minutes</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small" for="pref-study-window">Preferred Study Window</label>
+                                <select class="form-select" id="pref-study-window" onchange="saveLocalPref('study_window', this.value)">
+                                    <option value="morning">Morning (08:00 – 12:00)</option>
+                                    <option value="afternoon">Afternoon (13:00 – 17:00)</option>
+                                    <option value="evening" selected>Evening (18:00 – 22:00)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="study-save-badge" class="alert alert-success py-2 px-3 small d-none" role="alert">
+                            <i class="bi bi-check-circle-fill me-1"></i> Study preferences saved to your browser!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: ACCOUNT & SECURITY -->
+                <div class="tab-pane fade" id="tab-security" role="tabpanel">
+                    <div class="card settings-card p-4 mb-4">
+                        <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-person-badge text-primary"></i> Account Credentials
+                        </h5>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Full Name</label>
+                                <input type="text" class="form-control bg-light text-muted" value="{{ user.fullname }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Username</label>
+                                <input type="text" class="form-control bg-light text-muted" value="@{{ user.username }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Registered Email</label>
+                                <input type="email" class="form-control bg-light text-muted" value="{{ user.email }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Authentication Provider</label>
+                                <div>
+                                    {% if user.google_id %}
+                                        <span class="badge bg-light text-dark border p-2 d-inline-flex align-items-center gap-1">
+                                            <i class="bi bi-google text-danger"></i> Google OAuth 2.0 (SSO)
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark border p-2">Standard Email &amp; Password</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Change Password Card -->
+                    <div class="card settings-card p-4">
+                        <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-key-fill text-primary"></i> Change Password
+                        </h5>
+                        <p class="text-muted small mb-3">Ensure your account is protected with a secure password containing at least 6 characters.</p>
+
+                        <form action="/settings/change-password" method="POST">
+                            <div class="row g-3 mb-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small" for="current_password">Current Password</label>
+                                    <input type="password" class="form-control" id="current_password" name="current_password" required placeholder="Enter your current password">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small" for="new_password">New Password</label>
+                                    <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6" placeholder="At least 6 characters">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small" for="confirm_password">Confirm New Password</label>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6" placeholder="Re-type new password">
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary fw-semibold px-4">
+                                    <i class="bi bi-shield-check me-1"></i> Update Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 4: DATA & PRIVACY -->
+                <div class="tab-pane fade" id="tab-data" role="tabpanel">
+                    <div class="card settings-card p-4 mb-4">
+                        <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-cloud-arrow-down text-primary"></i> Export Academic Data
+                        </h5>
+                        <p class="text-muted small mb-3">Download a portable, structured JSON backup of your academic profile, enrolled courses, syllabus tasks, and timetable schedules.</p>
+                        
+                        <div>
+                            <a href="/api/export-data" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 fw-semibold px-3 py-2">
+                                <i class="bi bi-download fs-5"></i>
+                                <span>Export Academic Data (.JSON)</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="danger-zone p-4">
+                        <div class="d-flex align-items-center gap-2 mb-2 text-danger">
+                            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                            <h5 class="fw-bold mb-0">Danger Zone</h5>
+                        </div>
+                        <p class="text-muted small mb-4">Actions here are irreversible. Please proceed with caution.</p>
+
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 py-3 border-top border-danger border-opacity-25">
+                            <div>
+                                <h6 class="fw-bold mb-1">Clear Completed Tasks</h6>
+                                <p class="text-muted small mb-0">Permanently delete all tasks and assignments marked as finished.</p>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#clearTasksModal">
+                                Clear Completed Tasks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirm Clear Completed Tasks -->
+<div class="modal fade" id="clearTasksModal" tabindex="-1" aria-labelledby="clearTasksModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-content-title fw-bold text-danger" id="clearTasksModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Clear Completed Tasks?
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-2">
+                <p class="mb-0">Are you sure you want to permanently delete all completed tasks? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger fw-semibold" onclick="executeClearTasks()">
+                    Yes, Delete Completed Tasks
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Theme Management
+    function switchTheme(theme) {
+        document.documentElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('study_planner_theme', theme);
+        updateThemeCardState();
+        showBadge('appearance-save-badge');
+    }
+
+    function updateThemeCardState() {
+        const currentTheme = localStorage.getItem('study_planner_theme') || 'light';
+        const lightCard = document.getElementById('theme-light-card');
+        const darkCard = document.getElementById('theme-dark-card');
+        if (lightCard && darkCard) {
+            lightCard.classList.toggle('active', currentTheme === 'light');
+            darkCard.classList.toggle('active', currentTheme === 'dark');
+        }
+    }
+
+    // Local Preferences Management
+    function saveLocalPref(key, value) {
+        localStorage.setItem('study_pref_' + key, value);
+        showBadge('study-save-badge');
+        showBadge('appearance-save-badge');
+    }
+
+    function loadLocalPrefs() {
+        const keys = [
+            'default_calendar_view',
+            'calendar_start_day',
+            'default_block_duration',
+            'daily_target_hours',
+            'break_duration',
+            'study_window'
+        ];
+        keys.forEach(k => {
+            const val = localStorage.getItem('study_pref_' + k);
+            if (val) {
+                const el = document.getElementById('pref-' + k.replace(/_/g, '-'));
+                if (el) el.value = val;
+            }
+        });
+    }
+
+    function showBadge(badgeId) {
+        const badge = document.getElementById(badgeId);
+        if (badge) {
+            badge.classList.remove('d-none');
+            setTimeout(() => {
+                badge.classList.add('d-none');
+            }, 3000);
+        }
+    }
+
+    // Danger Zone: Clear Completed Tasks
+    async function executeClearTasks() {
+        try {
+            const res = await fetch('/api/settings/clear-completed-tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('clearTasksModal'));
+                if (modal) modal.hide();
+                alert(data.message || 'Completed tasks cleared successfully!');
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Failed to clear completed tasks'));
+            }
+        } catch (e) {
+            alert('Network or server error clearing completed tasks.');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateThemeCardState();
+        loadLocalPrefs();
+    });
+</script>
+{% endblock %}

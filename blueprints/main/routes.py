@@ -149,6 +149,51 @@ def profile_page():
 
     return render_template('profile.html', user=user, active_page='profile')
 
+# ==========================================
+# Application Settings & Preferences
+# ==========================================
+
+@main_bp.route('/settings')
+@login_required
+def settings_page():
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return redirect(url_for('auth.login'))
+    return render_template('settings.html', user=user, active_page='settings')
+
+@main_bp.route('/settings/change-password', methods=['POST'])
+@login_required
+def change_password():
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    current_password = request.form.get('current_password', '')
+    new_password = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+
+    if not current_password or not new_password or not confirm_password:
+        flash("All password fields are required.", "danger")
+        return render_template('settings.html', user=user, active_page='settings', password_error="All password fields are required."), 400
+
+    if not user.check_password(current_password):
+        flash("Current password does not match our records.", "danger")
+        return render_template('settings.html', user=user, active_page='settings', password_error="Current password does not match our records."), 400
+
+    if new_password != confirm_password:
+        flash("New passwords do not match.", "danger")
+        return render_template('settings.html', user=user, active_page='settings', password_error="New passwords do not match."), 400
+
+    if len(new_password) < 6:
+        flash("Password must be at least 6 characters long.", "danger")
+        return render_template('settings.html', user=user, active_page='settings', password_error="Password must be at least 6 characters long."), 400
+
+    user.set_password(new_password)
+    db.session.commit()
+
+    flash("Your password has been updated successfully!", "success")
+    return redirect(url_for('main.settings_page'))
+
 # Backward-compatible aliases pointing to student module views
 @main_bp.route('/calendar')
 @login_required

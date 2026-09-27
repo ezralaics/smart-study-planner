@@ -522,5 +522,147 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
             self.assertEqual(student.major_programme, 'Software Engineering')
             self.assertEqual(student.target_cgpa, 3.92)
 
+    def test_settings_requires_auth(self):
+        """Verify /settings redirects unauthenticated visitors to login."""
+        res = self.client.get('/settings', follow_redirects=False)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/login', res.headers['Location'])
+
+    def test_settings_page_authenticated(self):
+        """Verify /settings loads cleanly for authenticated users."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.get('/settings')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn(b'Settings &amp; Preferences', res.data)
+
+    def test_change_password_success(self):
+        """Verify changing password updates hash in DB and allows subsequent authentication."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.post('/settings/change-password', data={
+            'current_password': 'pass123',
+            'new_password': 'newpassword456',
+            'confirm_password': 'newpassword456'
+        }, follow_redirects=False)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/settings', res.headers['Location'])
+
+        # Verify new password works in User model
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            self.assertTrue(student.check_password('newpassword456'))
+            self.assertFalse(student.check_password('pass123'))
+
+    def test_change_password_wrong_current(self):
+        """Verify wrong current password is rejected with HTTP 400."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.post('/settings/change-password', data={
+            'current_password': 'wrong_password_here',
+            'new_password': 'newpassword456',
+            'confirm_password': 'newpassword456'
+        })
+        self.assertEqual(res.status_code, 400)
+        self.assertIn(b'Current password does not match', res.data)
+
+    def test_change_password_mismatch(self):
+        """Verify mismatched new password and confirm password is rejected with HTTP 400."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.post('/settings/change-password', data={
+            'current_password': 'pass123',
+            'new_password': 'newpassword456',
+            'confirm_password': 'differentsomething'
+        })
+        self.assertEqual(res.status_code, 400)
+        self.assertIn(b'New passwords do not match', res.data)
+
+    def test_export_data_endpoint(self):
+        """Verify /api/export-data returns structured JSON with courses, tasks, and schedules."""
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            c = Course(course_name="Data Structures", credits=4, user_id=student.id)
+            db.session.add(c)
+            db.session.flush()
+            t = Task(course_id=c.id, user_id=student.id, task_name="Assignment 1", weightage=20.0)
+            s = Schedule(user_id=student.id, title="Lecture A", day_of_week="Tuesday", start_time="10:00", end_time="12:00")
+            db.session.add_all([t, s])
+            db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.get('/api/export-data')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.content_type, 'application/json')
+        self.assertIn('attachment', res.headers.get('Content-Disposition', ''))
+        
+        data = res.get_json()
+        self.assertIn('export_metadata', data)
+        self.assertIn('user_profile', data)
+        self.assertIn('courses', data)
+        self.assertIn('tasks', data)
+        self.assertIn('schedules', data)
+        self.assertGreaterEqual(len(data['courses']), 1)
+        self.assertGreaterEqual(len(data['tasks']), 1)
+        self.assertGreaterEqual(len(data['schedules']), 1)
+
+    def test_clear_completed_tasks_api(self):
+        """Verify /api/settings/clear-completed-tasks deletes finished tasks and keeps pending ones."""
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            c = Course(course_name="Algorithms", credits=3, user_id=student.id)
+            db.session.add(c)
+            db.session.flush()
+            t_done = Task(course_id=c.id, user_id=student.id, task_name="Completed Quiz", weightage=10.0, is_completed=True)
+            t_pending = Task(course_id=c.id, user_id=student.id, task_name="Pending Project", weightage=30.0, is_completed=False)
+            db.session.add_all([t_done, t_pending])
+            db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.post('/api/settings/clear-completed-tasks')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data['status'], 'success')
+        self.assertGreaterEqual(data['deleted_count'], 1)
+
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            remaining_tasks = Task.query.filter_by(user_id=student.id).all()
+            task_names = [t.task_name for t in remaining_tasks]
+            self.assertNotIn("Completed Quiz", task_names)
+            self.assertIn("Pending Project", task_names)
+
 if __name__ == '__main__':
     unittest.main()
