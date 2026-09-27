@@ -1,7 +1,20 @@
-Flask>=3.0.0
+# Web Framework & Core
+Flask>=3.1.0
 Flask-SQLAlchemy>=3.1.1
 psycopg2-binary>=2.9.9
+Werkzeug>=3.1.0
 gunicorn>=21.2.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 google-auth>=2.25.0
+
+# Security & BYOK Encryption
+cryptography>=43.0.0
+
+# AI Services & Document Processing
+google-genai>=0.1.1
+pypdf>=4.3.0
+Pillow>=10.4.0
+
+# Testing & Code Quality
+pytest>=8.0.0
