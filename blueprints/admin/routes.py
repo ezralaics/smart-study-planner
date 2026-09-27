@@ -79,7 +79,7 @@ def system():
 @admin_bp.route('/api/users')
 @role_required('admin')
 def get_users_api():
-    users_list = User.query.order_by(User.id.desc()).all()
+    users_list = User.query.order_by(User.created_at.desc()).all()
     return jsonify([u.to_dict() for u in users_list])
 
 @admin_bp.route('/api/update-role', methods=['POST'])
@@ -92,12 +92,12 @@ def update_role():
     if new_role not in ['student', 'educator', 'admin']:
         return jsonify({"status": "error", "message": "Invalid role specified"}), 400
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"status": "error", "message": "User not found"}), 404
 
     # Prevent admin from accidentally demoting themselves
-    if user.id == session['user_id'] and new_role != 'admin':
+    if str(user.id) == str(session.get('user_id')) and new_role != 'admin':
         return jsonify({"status": "error", "message": "You cannot demote your own admin account"}), 400
 
     user.role = new_role
@@ -107,13 +107,13 @@ def update_role():
         "message": f"Updated role for {user.username} to {new_role.capitalize()}."
     })
 
-@admin_bp.route('/api/delete-user/<int:user_id>', methods=['POST'])
+@admin_bp.route('/api/delete-user/<string:user_id>', methods=['POST'])
 @role_required('admin')
 def delete_user(user_id):
-    if user_id == session['user_id']:
+    if str(user_id) == str(session.get('user_id')):
         return jsonify({"status": "error", "message": "You cannot delete your own account"}), 400
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"status": "error", "message": "User not found"}), 404
 

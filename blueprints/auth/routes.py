@@ -87,7 +87,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             session.clear()
-            session['user_id'] = user.id
+            session['user_id'] = str(user.id)
             session['username'] = user.fullname
             session['role'] = getattr(user, 'role', 'student')
             
@@ -110,7 +110,7 @@ def demo_login(role):
 
     user = seed_demo_user(role)
     session.clear()
-    session['user_id'] = user.id
+    session['user_id'] = str(user.id)
     session['username'] = user.fullname
     session['role'] = user.role
 
@@ -129,7 +129,7 @@ def logout():
 def current_user():
     if 'user_id' not in session:
         return jsonify({}), 401
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     if user:
         return jsonify({
             "name": user.fullname,
@@ -284,7 +284,7 @@ def process_google_user(userinfo):
 
     # Establish session
     session.clear()
-    session['user_id'] = user.id
+    session['user_id'] = str(user.id)
     session['username'] = user.fullname
     session['role'] = getattr(user, 'role', 'student')
     session['avatar_url'] = user.avatar_url
@@ -314,7 +314,7 @@ def google_sandbox():
         }
         res = process_google_user(simulated_userinfo)
         if 'user_id' in session:
-            user = User.query.get(session['user_id'])
+            user = db.session.get(User, session['user_id'])
             if user:
                 user.role = role
                 session['role'] = role

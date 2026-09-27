@@ -37,11 +37,13 @@ def create_app(config_class=Config):
                 columns = [c['name'] for c in inspector.get_columns('users')]
                 with db.engine.connect() as conn:
                     if 'role' not in columns:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'student';"))
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'student';"))
                     if 'google_id' not in columns:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN google_id VARCHAR(100) UNIQUE;"))
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(100) UNIQUE;"))
                     if 'avatar_url' not in columns:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255);"))
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);"))
+                    if 'updated_at' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();"))
                     conn.commit()
         except Exception as e:
             app.logger.warning(f"Database connection or migration notice: {e}")

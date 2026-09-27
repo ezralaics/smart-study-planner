@@ -82,22 +82,22 @@ def delete_subject():
         return jsonify({"message": "Deleted successfully"})
     return jsonify({"message": "Course not found"}), 404
 
-@api_bp.route('/api/update-course-grade/<int:course_id>', methods=['POST'])
+@api_bp.route('/api/update-course-grade/<string:course_id>', methods=['POST'])
 @login_required
 def update_course_grade(course_id):
-    course = Course.query.get(course_id)
-    if course and course.user_id == session['user_id']:
+    course = db.session.get(Course, course_id)
+    if course and str(course.user_id) == str(session['user_id']):
         data = request.get_json() or {}
         course.actual_grade = data.get('actual_grade')
         db.session.commit()
         return jsonify({"status": "success"})
     return jsonify({"error": "Not found"}), 404
 
-@api_bp.route('/api/toggle-course-completion/<int:course_id>', methods=['POST'])
+@api_bp.route('/api/toggle-course-completion/<string:course_id>', methods=['POST'])
 @login_required
 def toggle_course_completion(course_id):
-    course = Course.query.get(course_id)
-    if course and course.user_id == session['user_id']:
+    course = db.session.get(Course, course_id)
+    if course and str(course.user_id) == str(session['user_id']):
         course.is_completed = not course.is_completed
         
         # Auto-complete or un-complete all tasks linked to this course
@@ -123,11 +123,11 @@ def get_all_tasks():
     tasks_list.sort(key=lambda x: x['due_date'] if x['due_date'] else "9999-99-99")
     return jsonify(tasks_list)
 
-@api_bp.route('/api/update-grade/<int:task_id>', methods=['POST'])
+@api_bp.route('/api/update-grade/<string:task_id>', methods=['POST'])
 @login_required
 def update_grade(task_id):
-    task = Task.query.get(task_id)
-    if task and (task.user_id == session['user_id'] or (task.course and task.course.user_id == session['user_id'])):
+    task = db.session.get(Task, task_id)
+    if task and (str(task.user_id) == str(session['user_id']) or (task.course and str(task.course.user_id) == str(session['user_id']))):
         data = request.get_json() or {}
         try:
             val = data.get('marks_obtained')
@@ -163,11 +163,11 @@ def add_task():
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@api_bp.route('/api/update-task/<int:task_id>', methods=['POST'])
+@api_bp.route('/api/update-task/<string:task_id>', methods=['POST'])
 @login_required
 def update_task(task_id):
-    task = Task.query.get(task_id)
-    if task and (task.user_id == session['user_id'] or (task.course and task.course.user_id == session['user_id'])):
+    task = db.session.get(Task, task_id)
+    if task and (str(task.user_id) == str(session['user_id']) or (task.course and str(task.course.user_id) == str(session['user_id']))):
         data = request.get_json() or {}
         task.task_name = data.get('task_name', task.task_name)
         task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data.get('due_date') else None
@@ -181,21 +181,21 @@ def update_task(task_id):
         return jsonify({"status": "success"})
     return jsonify({"error": "Not found"}), 404
 
-@api_bp.route('/api/delete-task/<int:task_id>', methods=['POST'])
+@api_bp.route('/api/delete-task/<string:task_id>', methods=['POST'])
 @login_required
 def delete_task_route(task_id):
-    task = Task.query.get(task_id)
-    if task and (task.user_id == session['user_id'] or (task.course and task.course.user_id == session['user_id'])):
+    task = db.session.get(Task, task_id)
+    if task and (str(task.user_id) == str(session['user_id']) or (task.course and str(task.course.user_id) == str(session['user_id']))):
         db.session.delete(task)
         db.session.commit()
         return jsonify({"status": "success"})
     return jsonify({"error": "Not found"}), 404
 
-@api_bp.route('/api/toggle-task/<int:task_id>', methods=['POST'])
+@api_bp.route('/api/toggle-task/<string:task_id>', methods=['POST'])
 @login_required
 def toggle_task(task_id):
-    task = Task.query.get(task_id)
-    if task and (task.user_id == session['user_id'] or (task.course and task.course.user_id == session['user_id'])):
+    task = db.session.get(Task, task_id)
+    if task and (str(task.user_id) == str(session['user_id']) or (task.course and str(task.course.user_id) == str(session['user_id']))):
         task.is_completed = not task.is_completed  
         db.session.commit()
         return jsonify({"status": "success", "is_completed": task.is_completed})
@@ -214,8 +214,8 @@ def save_schedule():
         end_d = datetime.strptime(data['end_date'], '%Y-%m-%d').date() if data.get('end_date') else None
 
         if data.get('id'): # Update existing
-            sched = Schedule.query.get(data['id'])
-            if sched and sched.user_id == session['user_id']:
+            sched = db.session.get(Schedule, data['id'])
+            if sched and str(sched.user_id) == str(session['user_id']):
                 sched.title = data['title']
                 sched.activity_type = data['activity_type']
                 sched.day_of_week = data['day']
@@ -252,11 +252,11 @@ def get_schedules():
     schedules = Schedule.query.filter_by(user_id=session['user_id']).all()
     return jsonify([s.to_dict() for s in schedules])
 
-@api_bp.route('/api/delete-schedule/<int:id>', methods=['POST'])
+@api_bp.route('/api/delete-schedule/<string:id>', methods=['POST'])
 @login_required
 def delete_schedule(id):
-    sched = Schedule.query.get(id)
-    if sched and sched.user_id == session['user_id']:
+    sched = db.session.get(Schedule, id)
+    if sched and str(sched.user_id) == str(session['user_id']):
         db.session.delete(sched)
         db.session.commit()
         return jsonify({"status": "success"})
