@@ -237,7 +237,10 @@
                 {% endif %}
                 
                 <hr class="border-secondary mx-3 my-2 opacity-25">
-                <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Account &amp; Settings</div>
+                <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">AI Tools &amp; Settings</div>
+                <a class="nav-link {% if active_page == 'study_assistant' %}active{% endif %}" href="/study-assistant">
+                    <i class="bi bi-robot"></i> AI Study Assistant
+                </a>
                 <a class="nav-link {% if active_page == 'profile' %}active{% endif %}" href="/profile">
                     <i class="bi bi-person-circle"></i> My Profile
                 </a>

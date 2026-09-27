@@ -664,5 +664,142 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
             self.assertNotIn("Completed Quiz", task_names)
             self.assertIn("Pending Project", task_names)
 
+    def test_ai_key_encryption_roundtrip(self):
+        """Verify Fernet symmetric encryption and decryption reproduces exact API keys."""
+        from models.user_ai_config import encrypt_value, decrypt_value
+        secret = "super_test_secret_key_12345"
+        raw_key = "AIzaSyD-sample-google-gemini-key-998877"
+        encrypted = encrypt_value(raw_key, secret)
+        self.assertNotEqual(encrypted, raw_key)
+        self.assertTrue(len(encrypted) > 20)
+        decrypted = decrypt_value(encrypted, secret)
+        self.assertEqual(decrypted, raw_key)
+
+    def test_ai_masked_keys(self):
+        """Verify mask_value redacts the middle portion of secrets."""
+        from models.user_ai_config import mask_value
+        self.assertEqual(mask_value(""), "")
+        self.assertEqual(mask_value("short"), "••••••••")
+        masked = mask_value("sk-or-v1-abcdef1234567890xyz")
+        self.assertTrue(masked.startswith("sk-o"))
+        self.assertTrue(masked.endswith("0xyz"))
+        self.assertIn("••••••••", masked)
+
+    def test_document_parser_txt(self):
+        """Verify document_parser extracts text and generates snippet from text files."""
+        import tempfile
+        from services.document_parser import extract_text_from_file, generate_snippet
+        with tempfile.NamedTemporaryFile('w', delete=False, suffix='.txt', encoding='utf-8') as f:
+            f.write("Artificial Intelligence in Computer Science involves search algorithms and heuristics.")
+            tmp_path = f.name
+        try:
+            extracted = extract_text_from_file(tmp_path, 'txt')
+            self.assertIn("Artificial Intelligence", extracted)
+            snippet = generate_snippet(extracted, max_chars=30)
+            self.assertTrue(len(snippet) <= 35)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_document_parser_pdf(self):
+        """Verify pypdf extracts text from a PDF document buffer."""
+        import pypdf
+        import tempfile
+        from services.document_parser import extract_text_from_file
+        writer = pypdf.PdfWriter()
+        writer.add_blank_page(width=100, height=100)
+        with tempfile.NamedTemporaryFile('wb', delete=False, suffix='.pdf') as f:
+            writer.write(f)
+            tmp_path = f.name
+        try:
+            extracted = extract_text_from_file(tmp_path, 'pdf')
+            self.assertIsInstance(extracted, str)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_document_upload_and_delete_api(self):
+        """Verify /api/ai/upload-document stores note and /api/ai/documents/<id> deletes it."""
+        import io
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        # Upload a sample lecture note
+        sample_file = (io.BytesIO(b"Data Structures: Binary Search Trees have O(log n) average lookup time."), "lecture1.txt")
+        res = self.client.post('/api/ai/upload-document', data={'file': sample_file}, content_type='multipart/form-data')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data['status'], 'success')
+        doc_id = data['document']['id']
+        self.assertIn("lecture1.txt", data['document']['filename'])
+
+        # Preview document
+        preview_res = self.client.get(f'/api/ai/documents/{doc_id}/preview')
+        self.assertEqual(preview_res.status_code, 200)
+        preview_data = preview_res.get_json()
+        self.assertIn("Binary Search Trees", preview_data['document']['extracted_text'])
+
+        # Delete document
+        del_res = self.client.delete(f'/api/ai/documents/{doc_id}')
+        self.assertEqual(del_res.status_code, 200)
+        self.assertEqual(del_res.get_json()['status'], 'success')
+
+    def test_ai_config_api(self):
+        """Verify /api/ai/config persists and returns masked keys."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        res = self.client.post('/api/ai/config', json={
+            'google_api_key': 'AIzaSyFakeGoogleKeyForTesting12345',
+            'openrouter_api_key': 'sk-or-v1-fakeOpenRouterKey67890',
+            'default_provider': 'google',
+            'default_model': 'gemini-2.0-flash'
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data['status'], 'success')
+        self.assertTrue(data['config']['has_google_key'])
+        self.assertIn('••••', data['config']['google_key_masked'])
+
+        # GET config returns masked keys
+        get_res = self.client.get('/api/ai/config')
+        self.assertEqual(get_res.status_code, 200)
+        get_data = get_res.get_json()
+        self.assertTrue(get_data['has_google_key'])
+        self.assertTrue(get_data['has_openrouter_key'])
+
+    def test_ai_chat_missing_keys_handled(self):
+        """Verify /api/ai/chat returns friendly error when keys are missing."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                # Test with educator who has no keys configured
+                educator = User.query.filter_by(username="educator_user").first()
+                sess['user_id'] = str(educator.id)
+                sess['username'] = educator.fullname
+                sess['role'] = 'educator'
+
+        # Ensure no system env keys interfere with test
+        old_g = os.environ.pop('GOOGLE_API_KEY', None)
+        old_gem = os.environ.pop('GEMINI_API_KEY', None)
+        try:
+            res = self.client.post('/api/ai/chat', json={
+                'prompt': 'Can you explain dynamic programming?',
+                'provider': 'google'
+            })
+            self.assertEqual(res.status_code, 400)
+            data = res.get_json()
+            self.assertIn("key is missing", data['message'])
+        finally:
+            if old_g: os.environ['GOOGLE_API_KEY'] = old_g
+            if old_gem: os.environ['GEMINI_API_KEY'] = old_gem
+
 if __name__ == '__main__':
     unittest.main()

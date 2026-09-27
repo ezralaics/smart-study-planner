@@ -1,0 +1,794 @@
+{% extends "base.html" %}
+
+{% block title %}AI Study Assistant &amp; Knowledge Base | Smart Study Planner{% endblock %}
+
+{% block extra_css %}
+<!-- Markdown and Code Highlight styling -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+<style>
+    .study-assistant-wrapper {
+        min-height: calc(100vh - 120px);
+    }
+    .assistant-card {
+        border-radius: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        background: #ffffff;
+    }
+    [data-bs-theme="dark"] .assistant-card {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    .upload-dropzone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 14px;
+        background: #f8fafc;
+        padding: 22px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    [data-bs-theme="dark"] .upload-dropzone {
+        background: #0f172a;
+        border-color: #334155;
+    }
+    .upload-dropzone:hover, .upload-dropzone.dragover {
+        border-color: #2563eb;
+        background: #eff6ff;
+    }
+    [data-bs-theme="dark"] .upload-dropzone:hover, [data-bs-theme="dark"] .upload-dropzone.dragover {
+        background: #1e293b;
+    }
+    .doc-item-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: #ffffff;
+        transition: all 0.2s ease;
+    }
+    [data-bs-theme="dark"] .doc-item-card {
+        background: #0f172a;
+        border-color: #334155;
+    }
+    .doc-item-card:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    .doc-list-container {
+        max-height: 480px;
+        overflow-y: auto;
+    }
+    .chat-messages-container {
+        height: 520px;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: #f8fafc;
+        border-radius: 12px;
+    }
+    [data-bs-theme="dark"] .chat-messages-container {
+        background: #0f172a;
+    }
+    .chat-bubble-user {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: #ffffff;
+        padding: 12px 18px;
+        border-radius: 18px 18px 4px 18px;
+        max-width: 82%;
+        align-self: flex-end;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        word-break: break-word;
+    }
+    .chat-bubble-assistant {
+        background: #ffffff;
+        color: #1e293b;
+        border: 1px solid #e2e8f0;
+        padding: 14px 20px;
+        border-radius: 18px 18px 18px 4px;
+        max-width: 88%;
+        align-self: flex-start;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+        word-break: break-word;
+        line-height: 1.6;
+    }
+    [data-bs-theme="dark"] .chat-bubble-assistant {
+        background: #1e293b;
+        color: #f1f5f9;
+        border-color: #334155;
+    }
+    .chat-bubble-assistant pre {
+        background: #f1f5f9;
+        border-radius: 8px;
+        padding: 12px;
+        overflow-x: auto;
+    }
+    [data-bs-theme="dark"] .chat-bubble-assistant pre {
+        background: #0f172a;
+    }
+    .shortcut-pill {
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        color: #334155;
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 6px 12px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    [data-bs-theme="dark"] .shortcut-pill {
+        background: #1e293b;
+        color: #cbd5e1;
+        border-color: #334155;
+    }
+    .shortcut-pill:hover {
+        background: #eff6ff;
+        border-color: #2563eb;
+        color: #2563eb;
+        transform: translateY(-1px);
+    }
+    .citation-badge {
+        font-size: 0.72rem;
+        background: rgba(37, 99, 235, 0.1);
+        color: #2563eb;
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        border-radius: 6px;
+        padding: 2px 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    [data-bs-theme="dark"] .citation-badge {
+        background: rgba(37, 99, 235, 0.25);
+        color: #93c5fd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4 study-assistant-wrapper">
+    <!-- Header Row -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-robot text-primary fs-3"></i>
+                <span>AI Study Assistant &amp; Knowledge Base</span>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle" style="font-size: 0.72rem;">BYOK Multi-Model</span>
+            </h4>
+            <p class="text-muted small mb-0">Upload syllabus slides, textbooks, and notes. Ask questions grounded in your course materials.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#aiConfigModal">
+                <span class="status-indicator-dot rounded-circle {% if ai_config.has_google_key or ai_config.has_openrouter_key or ai_config.is_fallback_google %}bg-success{% else %}bg-warning{% endif %}" style="width: 9px; height: 9px; display: inline-block;"></span>
+                <i class="bi bi-key-fill"></i>
+                <span>API Keys &amp; Models</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="row g-3">
+        <!-- LEFT COLUMN: Knowledge Base Manager -->
+        <div class="col-lg-5 col-xl-4">
+            <div class="card assistant-card p-3 h-100 d-flex flex-column">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-folder2-open text-primary"></i> Knowledge Base
+                    </h6>
+                    <span class="badge bg-light text-dark border small" id="docCountBadge">{{ documents|length }} file(s)</span>
+                </div>
+
+                <!-- Subject Filter -->
+                <div class="mb-3">
+                    <select class="form-select form-select-sm" id="courseFilterSelect" onchange="filterDocumentsByCourse()">
+                        <option value="all">All Subjects / Courses</option>
+                        {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.course_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Drag & Drop Uploader -->
+                <div class="upload-dropzone mb-3" id="dropzoneBox" onclick="document.getElementById('fileUploadInput').click()">
+                    <i class="bi bi-cloud-arrow-up fs-2 text-primary d-block mb-1"></i>
+                    <div class="fw-semibold small">Click or drag &amp; drop study notes here</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">Supports PDF, TXT, MD, CSV, Images (Max 15MB)</div>
+                    <input type="file" id="fileUploadInput" class="d-none" accept=".pdf,.txt,.md,.csv,.png,.jpg,.jpeg" onchange="handleFileUpload(this.files[0])">
+                    <div id="uploadProgress" class="progress mt-2 d-none" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <!-- Document Selection Actions -->
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <small class="text-muted fw-semibold">Active in Context:</small>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 me-2" onclick="toggleSelectAllDocs(true)">Select All</button>
+                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-secondary" onclick="toggleSelectAllDocs(false)">Deselect</button>
+                    </div>
+                </div>
+
+                <!-- Documents List -->
+                <div class="doc-list-container flex-grow-1" id="documentListContainer">
+                    {% if documents %}
+                        {% for doc in documents %}
+                        <div class="doc-item-card mb-2 doc-item-row" data-course-id="{{ doc.course_id or 'all' }}" id="doc-card-{{ doc.id }}">
+                            <div class="d-flex align-items-start gap-2">
+                                <input class="form-check-input mt-1 doc-checkbox" type="checkbox" value="{{ doc.id }}" id="chk-{{ doc.id }}" checked onchange="updateActiveDocCount()">
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="fw-semibold small text-truncate" title="{{ doc.filename }}" style="max-width: 170px;">
+                                            {% if doc.file_type == 'pdf' %}
+                                                <i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i>
+                                            {% elif doc.file_type == 'image' %}
+                                                <i class="bi bi-file-earmark-image-fill text-warning me-1"></i>
+                                            {% else %}
+                                                <i class="bi bi-file-earmark-text-fill text-primary me-1"></i>
+                                            {% endif %}
+                                            {{ doc.filename }}
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <button class="btn btn-sm btn-link text-muted p-0" title="Preview Extracted Content" onclick="previewDoc('{{ doc.id }}')">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-link text-danger p-0" title="Delete File" onclick="deleteDoc('{{ doc.id }}')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 mt-1" style="font-size: 0.72rem;">
+                                        <span class="badge bg-light text-secondary border">{{ doc.course.course_name if doc.course else 'General' }}</span>
+                                        <span class="text-muted">{{ (doc.file_size / 1024)|round(1) }} KB</span>
+                                        <span class="text-muted">&bull; {{ doc.to_dict().word_count }} words</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4 text-muted" id="emptyDocNotice">
+                            <i class="bi bi-folder-x fs-1 d-block mb-2 opacity-50"></i>
+                            <div class="small">No study documents uploaded yet.</div>
+                            <div style="font-size: 0.75rem;">Upload lecture slides, chapters, or notes above to begin.</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Interactive Chatbot -->
+        <div class="col-lg-7 col-xl-8">
+            <div class="card assistant-card p-3 h-100 d-flex flex-column">
+                
+                <!-- Chat Top Control Bar -->
+                <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Provider Selector -->
+                        <div class="input-group input-group-sm" style="max-width: 170px;">
+                            <span class="input-group-text bg-light"><i class="bi bi-cpu"></i></span>
+                            <select class="form-select form-select-sm" id="providerSelect" onchange="handleProviderChange()">
+                                <option value="google" {% if ai_config.default_provider == 'google' %}selected{% endif %}>Google Gemini</option>
+                                <option value="openrouter" {% if ai_config.default_provider == 'openrouter' %}selected{% endif %}>OpenRouter</option>
+                            </select>
+                        </div>
+                        <!-- Model Selector -->
+                        <div class="input-group input-group-sm" style="max-width: 230px;">
+                            <select class="form-select form-select-sm" id="modelSelect">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-muted border small d-none d-sm-inline" id="activeDocCountBadge">
+                            📚 0 notes selected
+                        </span>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="clearChatStream()" title="Clear Chat History">
+                            <i class="bi bi-arrow-counterclockwise"></i> Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chat Stream -->
+                <div class="chat-messages-container flex-grow-1" id="chatMessages">
+                    <!-- Default Greeting Bubble -->
+                    <div class="chat-bubble-assistant">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-1 text-primary d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                <i class="bi bi-robot" style="font-size: 0.85rem;"></i>
+                            </div>
+                            <strong class="small text-primary">Academic Tutor</strong>
+                        </div>
+                        <p class="mb-2">Hello! I'm your Smart Study Assistant. Check any uploaded lecture notes on the left, and I'll ground my explanations and practice questions in your specific material.</p>
+                        
+                        <!-- Quick Prompt Action Shortcuts -->
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <button class="shortcut-pill" onclick="sendQuickPrompt('Summarize the core themes and key takeaways from the selected notes in clean bullet points.')">
+                                💡 Summarize Key Concepts
+                            </button>
+                            <button class="shortcut-pill" onclick="sendQuickPrompt('Generate 5 exam-style multiple-choice and short-answer questions with detailed answer explanations based on these documents.')">
+                                📝 5 Practice Exam Questions
+                            </button>
+                            <button class="shortcut-pill" onclick="sendQuickPrompt('Identify and explain all mathematical formulas, theorems, and definitions found in these notes.')">
+                                📐 Explain Formulas &amp; Definitions
+                            </button>
+                            <button class="shortcut-pill" onclick="sendQuickPrompt('Create a 3-day revision schedule outline prioritizing the hardest topics in this material.')">
+                                🎯 3-Day Revision Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input Controls -->
+                <div class="pt-3 border-top mt-2">
+                    <form id="chatForm" onsubmit="handleChatSubmit(event)">
+                        <div class="input-group">
+                            <textarea class="form-control" id="chatInputText" rows="2" placeholder="Ask a question about your notes or study topic... (Press Enter to send, Shift+Enter for newline)" style="resize: none;" onkeydown="handleInputKeyDown(event)"></textarea>
+                            <button class="btn btn-primary px-4 d-flex align-items-center justify-content-center" type="submit" id="sendBtn">
+                                <i class="bi bi-send-fill fs-5"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: AI Configuration & BYOK Keys -->
+<div class="modal fade" id="aiConfigModal" tabindex="-1" aria-labelledby="aiConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="aiConfigModalLabel">
+                    <i class="bi bi-key text-primary me-1"></i> AI Providers &amp; API Keys (BYOK)
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3">
+                    Bring Your Own Key (BYOK) allows you to use your preferred model without rate limits. All keys are encrypted at rest with AES-128 (Fernet) and never logged.
+                </p>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small d-flex justify-content-between align-items-center">
+                        <span>Google Gemini API Key</span>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="small text-decoration-none">
+                            Get Free Key ↗
+                        </a>
+                    </label>
+                    <div class="input-group input-group-sm">
+                        <input type="password" class="form-control" id="cfgGoogleKey" placeholder="Enter key (e.g. AIzaSy...)">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('cfgGoogleKey')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    {% if ai_config.has_google_key %}
+                        <div class="text-success small mt-1"><i class="bi bi-check-circle-fill me-1"></i> Configured: <code>{{ ai_config.google_key_masked }}</code></div>
+                    {% elif ai_config.is_fallback_google %}
+                        <div class="text-info small mt-1"><i class="bi bi-info-circle-fill me-1"></i> Demo account active via server environment key.</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small d-flex justify-content-between align-items-center">
+                        <span>OpenRouter API Key</span>
+                        <a href="https://openrouter.ai/keys" target="_blank" class="small text-decoration-none">
+                            Get OpenRouter Key ↗
+                        </a>
+                    </label>
+                    <div class="input-group input-group-sm">
+                        <input type="password" class="form-control" id="cfgOpenRouterKey" placeholder="Enter key (e.g. sk-or-...)">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('cfgOpenRouterKey')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    {% if ai_config.has_openrouter_key %}
+                        <div class="text-success small mt-1"><i class="bi bi-check-circle-fill me-1"></i> Configured: <code>{{ ai_config.openrouter_key_masked }}</code></div>
+                    {% elif ai_config.is_fallback_openrouter %}
+                        <div class="text-info small mt-1"><i class="bi bi-info-circle-fill me-1"></i> System environment OpenRouter key detected.</div>
+                    {% endif %}
+                </div>
+
+                <div class="alert alert-light border small text-muted mb-0">
+                    <i class="bi bi-shield-lock-fill text-primary me-1"></i>
+                    <strong>Privacy Guarantee:</strong> Keys remain encrypted on your personal instance and communicate strictly with the chosen provider's official API.
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary fw-semibold" onclick="saveAIConfig()">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Document Content Preview -->
+<div class="modal fade" id="docPreviewModal" tabindex="-1" aria-labelledby="docPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="docPreviewTitle">Document Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <pre class="bg-light p-3 rounded" id="docPreviewBody" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 480px;"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Marked.js for markdown parsing -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script>
+    // Supported models mapping
+    const SUPPORTED_MODELS = {{ supported_models|tojson }};
+    let currentProvider = "{{ ai_config.default_provider or 'google' }}";
+    let currentModel = "{{ ai_config.default_model or 'gemini-2.0-flash' }}";
+
+    function populateModelOptions() {
+        const select = document.getElementById('modelSelect');
+        if (!select) return;
+        select.innerHTML = '';
+        const models = SUPPORTED_MODELS[currentProvider] || [];
+        models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.name} (${m.badge})`;
+            if (m.id === currentModel) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
+    function handleProviderChange() {
+        const provSelect = document.getElementById('providerSelect');
+        currentProvider = provSelect.value;
+        const models = SUPPORTED_MODELS[currentProvider] || [];
+        if (models.length > 0) {
+            currentModel = models[0].id;
+        }
+        populateModelOptions();
+    }
+
+    function updateActiveDocCount() {
+        const checkedBoxes = document.querySelectorAll('.doc-checkbox:checked');
+        const badge = document.getElementById('activeDocCountBadge');
+        if (badge) {
+            badge.textContent = `📚 ${checkedBoxes.length} note(s) active`;
+        }
+    }
+
+    function toggleSelectAllDocs(selectAll) {
+        document.querySelectorAll('.doc-checkbox').forEach(cb => {
+            cb.checked = selectAll;
+        });
+        updateActiveDocCount();
+    }
+
+    function filterDocumentsByCourse() {
+        const filterVal = document.getElementById('courseFilterSelect').value;
+        document.querySelectorAll('.doc-item-row').forEach(row => {
+            const courseId = row.getAttribute('data-course-id');
+            if (filterVal === 'all' || courseId === filterVal) {
+                row.style.display = 'block';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Document Upload Handling
+    async function handleFileUpload(file) {
+        if (!file) return;
+        const progressBar = document.getElementById('uploadProgress');
+        const courseId = document.getElementById('courseFilterSelect').value;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        if (courseId !== 'all') {
+            formData.append('course_id', courseId);
+        }
+
+        progressBar.classList.remove('d-none');
+        try {
+            const res = await fetch('/api/ai/upload-document', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            progressBar.classList.add('d-none');
+
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                alert('Upload error: ' + (data.message || 'Failed to upload document.'));
+            }
+        } catch (e) {
+            progressBar.classList.add('d-none');
+            alert('Network error uploading document: ' + e);
+        }
+    }
+
+    // Document Deletion
+    async function deleteDoc(docId) {
+        if (!confirm('Are you sure you want to delete this document from your Knowledge Base?')) return;
+        try {
+            const res = await fetch(`/api/ai/documents/${docId}`, { method: 'DELETE' });
+            if (res.ok) {
+                const el = document.getElementById(`doc-card-${docId}`);
+                if (el) el.remove();
+                updateActiveDocCount();
+            } else {
+                alert('Failed to delete document.');
+            }
+        } catch (e) {
+            alert('Network error deleting document.');
+        }
+    }
+
+    // Document Preview
+    async function previewDoc(docId) {
+        try {
+            const res = await fetch(`/api/ai/documents/${docId}/preview`);
+            const data = await res.json();
+            if (res.ok && data.document) {
+                document.getElementById('docPreviewTitle').textContent = data.document.filename;
+                document.getElementById('docPreviewBody').textContent = data.document.extracted_text || 'No text extracted.';
+                new bootstrap.Modal(document.getElementById('docPreviewModal')).show();
+            }
+        } catch (e) {
+            alert('Failed to load preview.');
+        }
+    }
+
+    // Chatbot Submit & Message Handling
+    function handleInputKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleChatSubmit(e);
+        }
+    }
+
+    function sendQuickPrompt(promptText) {
+        document.getElementById('chatInputText').value = promptText;
+        handleChatSubmit(new Event('submit'));
+    }
+
+    async function handleChatSubmit(e) {
+        if (e) e.preventDefault();
+        const input = document.getElementById('chatInputText');
+        const prompt = input.value.trim();
+        if (!prompt) return;
+
+        // Collect selected doc IDs
+        const selectedDocIds = [];
+        document.querySelectorAll('.doc-checkbox:checked').forEach(cb => {
+            selectedDocIds.push(cb.value);
+        });
+
+        // Append User Bubble
+        appendUserMessage(prompt);
+        input.value = '';
+
+        // Append Assistant Loading Indicator
+        const loadingId = appendAssistantLoading();
+
+        const provider = document.getElementById('providerSelect').value;
+        const model = document.getElementById('modelSelect').value;
+
+        try {
+            const res = await fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    selected_doc_ids: selectedDocIds,
+                    provider: provider,
+                    model: model
+                })
+            });
+            const data = await res.json();
+            removeLoadingMessage(loadingId);
+
+            if (res.ok && data.status === 'success') {
+                appendAssistantMessage(data.data.answer, data.data.cited_documents, data.data.model);
+            } else {
+                appendAssistantError(data.message || 'Error processing your request.');
+            }
+        } catch (err) {
+            removeLoadingMessage(loadingId);
+            appendAssistantError('Network or server error communicating with AI service.');
+        }
+    }
+
+    function appendUserMessage(text) {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'chat-bubble-user';
+        div.textContent = text;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function appendAssistantLoading() {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        const id = 'loading-' + Date.now();
+        div.id = id;
+        div.className = 'chat-bubble-assistant text-muted d-flex align-items-center gap-2';
+        div.innerHTML = `
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span>Analyzing study materials &amp; synthesizing response...</span>
+        `;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        return id;
+    }
+
+    function removeLoadingMessage(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+    }
+
+    function appendAssistantMessage(rawText, citedDocs, modelName) {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'chat-bubble-assistant';
+
+        // Render Markdown safely
+        const renderedHtml = marked.parse(rawText || '');
+
+        let citationsHtml = '';
+        if (citedDocs && citedDocs.length > 0) {
+            citationsHtml = `
+                <div class="d-flex align-items-center gap-1 flex-wrap mt-3 pt-2 border-top">
+                    <small class="text-muted fw-bold me-1" style="font-size: 0.72rem;">Sources Consulted:</small>
+                    ${citedDocs.map(d => `<span class="citation-badge"><i class="bi bi-file-earmark-check"></i> ${d}</span>`).join('')}
+                </div>
+            `;
+        }
+
+        div.innerHTML = `
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-1 text-primary d-flex align-items-center justify-content-center" style="width: 22px; height: 22px;">
+                        <i class="bi bi-robot" style="font-size: 0.8rem;"></i>
+                    </div>
+                    <strong class="small text-primary">Academic Tutor</strong>
+                    <span class="badge bg-light text-muted border" style="font-size: 0.65rem;">${modelName || ''}</span>
+                </div>
+                <button class="btn btn-sm btn-link text-muted p-0" title="Copy Answer" onclick="copyAnswerText(this)">
+                    <i class="bi bi-clipboard"></i>
+                </button>
+            </div>
+            <div class="chat-markdown-body">${renderedHtml}</div>
+            ${citationsHtml}
+        `;
+
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+
+        // Apply syntax highlighting
+        div.querySelectorAll('pre code').forEach((el) => {
+            hljs.highlightElement(el);
+        });
+    }
+
+    function appendAssistantError(errorMsg) {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'chat-bubble-assistant border-danger bg-danger-subtle text-danger';
+        div.innerHTML = `
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>Notice</strong>
+            </div>
+            <div>${errorMsg}</div>
+        `;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function clearChatStream() {
+        const container = document.getElementById('chatMessages');
+        container.innerHTML = `
+            <div class="chat-bubble-assistant">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-1 text-primary d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                        <i class="bi bi-robot" style="font-size: 0.85rem;"></i>
+                    </div>
+                    <strong class="small text-primary">Academic Tutor</strong>
+                </div>
+                <p class="mb-2">Chat cleared! Select your notes on the left and ask any question to begin.</p>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <button class="shortcut-pill" onclick="sendQuickPrompt('Summarize key concepts from the selected notes in clean bullet points.')">
+                        💡 Summarize Key Concepts
+                    </button>
+                    <button class="shortcut-pill" onclick="sendQuickPrompt('Generate 5 exam questions based on these documents.')">
+                        📝 5 Practice Exam Questions
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function copyAnswerText(btn) {
+        const card = btn.closest('.chat-bubble-assistant');
+        const body = card.querySelector('.chat-markdown-body');
+        if (body) {
+            navigator.clipboard.writeText(body.innerText);
+            btn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+            setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+        }
+    }
+
+    function togglePasswordVisibility(inputId) {
+        const el = document.getElementById(inputId);
+        if (el) el.type = el.type === 'password' ? 'text' : 'password';
+    }
+
+    async function saveAIConfig() {
+        const googleKey = document.getElementById('cfgGoogleKey').value.trim();
+        const orKey = document.getElementById('cfgOpenRouterKey').value.trim();
+        const provider = document.getElementById('providerSelect').value;
+        const model = document.getElementById('modelSelect').value;
+
+        try {
+            const res = await fetch('/api/ai/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    google_api_key: googleKey,
+                    openrouter_api_key: orKey,
+                    default_provider: provider,
+                    default_model: model
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert('API Configuration saved successfully!');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('aiConfigModal'));
+                if (modal) modal.hide();
+                window.location.reload();
+            } else {
+                alert('Error saving configuration: ' + (data.message || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Network error saving configuration: ' + e);
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        populateModelOptions();
+        updateActiveDocCount();
+
+        // Drag & Drop event bindings
+        const dropzone = document.getElementById('dropzoneBox');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+            });
+        });
+        dropzone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFileUpload(files[0]);
+        });
+    });
+</script>
+{% endblock %}

@@ -8,6 +8,7 @@ from blueprints.api import api_bp
 from blueprints.student import student_bp
 from blueprints.educator import educator_bp
 from blueprints.admin import admin_bp
+from blueprints.ai import ai_bp
 
 # Import models so SQLAlchemy binds all tables during db.create_all()
 import models  # noqa: F401
@@ -26,6 +27,7 @@ def create_app(config_class=Config):
     app.register_blueprint(student_bp)
     app.register_blueprint(educator_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(ai_bp)
 
     with app.app_context():
         try:
