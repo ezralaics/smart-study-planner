@@ -64,7 +64,7 @@
 
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-muted">ACCOUNT ROLE</label>
-                                    <select name="role" id="user_role" class="form-select" required>
+                                    <select name="role" id="user_role" class="form-select" onchange="toggleEducationLevelVisibility()" required>
                                         <option value="student" selected>Student</option>
                                         <option value="educator">Educator / Lecturer</option>
                                     </select>
@@ -77,8 +77,47 @@
                                         <option value="Other">Other Discipline</option>
                                     </select>
                                 </div>
+
+                                <div class="col-md-12" id="education_level_container">
+                                    <label class="form-label small fw-bold text-muted d-block">LEARNING TIER / EDUCATION LEVEL</label>
+                                    <div class="row g-2">
+                                        <div class="col-6 col-sm-3">
+                                            <input type="radio" class="btn-check" name="education_level" id="edu_primary" value="primary" autocomplete="off">
+                                            <label class="btn btn-outline-primary w-100 p-2 text-center h-100 d-flex flex-column align-items-center justify-content-center border rounded-3 edu-tier-card" for="edu_primary">
+                                                <i class="bi bi-backpack-fill fs-3 text-warning mb-1"></i>
+                                                <span class="fw-bold small d-block">Primary</span>
+                                                <span class="text-muted" style="font-size: 0.68rem;">Ages 7–12</span>
+                                            </label>
+                                        </div>
+                                        <div class="col-6 col-sm-3">
+                                            <input type="radio" class="btn-check" name="education_level" id="edu_secondary" value="secondary" autocomplete="off">
+                                            <label class="btn btn-outline-primary w-100 p-2 text-center h-100 d-flex flex-column align-items-center justify-content-center border rounded-3 edu-tier-card" for="edu_secondary">
+                                                <i class="bi bi-building fs-3 text-info mb-1"></i>
+                                                <span class="fw-bold small d-block">Secondary</span>
+                                                <span class="text-muted" style="font-size: 0.68rem;">High School</span>
+                                            </label>
+                                        </div>
+                                        <div class="col-6 col-sm-3">
+                                            <input type="radio" class="btn-check" name="education_level" id="edu_university" value="university" autocomplete="off" checked>
+                                            <label class="btn btn-outline-primary w-100 p-2 text-center h-100 d-flex flex-column align-items-center justify-content-center border rounded-3 edu-tier-card" for="edu_university">
+                                                <i class="bi bi-mortarboard-fill fs-3 text-primary mb-1"></i>
+                                                <span class="fw-bold small d-block">University</span>
+                                                <span class="text-muted" style="font-size: 0.68rem;">Higher Ed</span>
+                                            </label>
+                                        </div>
+                                        <div class="col-6 col-sm-3">
+                                            <input type="radio" class="btn-check" name="education_level" id="edu_general" value="general" autocomplete="off">
+                                            <label class="btn btn-outline-primary w-100 p-2 text-center h-100 d-flex flex-column align-items-center justify-content-center border rounded-3 edu-tier-card" for="edu_general">
+                                                <i class="bi bi-briefcase-fill fs-3 text-success mb-1"></i>
+                                                <span class="fw-bold small d-block">General</span>
+                                                <span class="text-muted" style="font-size: 0.68rem;">Lifelong/Cert</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="col-md-12">
-                                    <label class="form-label small fw-bold text-muted">COURSE / PROGRAMME</label>
+                                    <label class="form-label small fw-bold text-muted" id="programme_label">COURSE / PROGRAMME</label>
                                     <input type="text" name="course" id="course_name" class="form-control" placeholder="e.g. Bachelor of Computer Science" required>
                                 </div>
                                 <div class="col-md-6">
@@ -104,17 +143,56 @@
     </div>
 </div>
 <script>
-    // Simple UI feedback based on segmentation
     const typeSelect = document.getElementById('student_type');
     const courseInput = document.getElementById('course_name');
+    const roleSelect = document.getElementById('user_role');
+    const eduContainer = document.getElementById('education_level_container');
+    const programmeLabel = document.getElementById('programme_label');
+
+    function toggleEducationLevelVisibility() {
+        if (roleSelect && eduContainer) {
+            if (roleSelect.value === 'educator') {
+                eduContainer.style.display = 'none';
+                if (programmeLabel) programmeLabel.textContent = 'DEPARTMENT / FACULTY';
+                if (courseInput) courseInput.placeholder = 'e.g. Faculty of Computing & Informatics';
+            } else {
+                eduContainer.style.display = 'block';
+                updateTierLabels();
+            }
+        }
+    }
+
+    function updateTierLabels() {
+        const checkedRadio = document.querySelector('input[name="education_level"]:checked');
+        const val = checkedRadio ? checkedRadio.value : 'university';
+        if (val === 'primary') {
+            if (programmeLabel) programmeLabel.textContent = 'SCHOOL / CLASS GRADE';
+            if (courseInput) courseInput.placeholder = 'e.g. Standard 5 / Grade 5';
+        } else if (val === 'secondary') {
+            if (programmeLabel) programmeLabel.textContent = 'HIGH SCHOOL PROGRAMME';
+            if (courseInput) courseInput.placeholder = 'e.g. SPM Science Stream / O-Levels';
+        } else if (val === 'general') {
+            if (programmeLabel) programmeLabel.textContent = 'LEARNING TRACK / CERTIFICATION';
+            if (courseInput) courseInput.placeholder = 'e.g. AWS Cloud Architect / Self-Taught Developer';
+        } else {
+            if (programmeLabel) programmeLabel.textContent = 'DEGREE / PROGRAMME';
+            if (courseInput) courseInput.placeholder = 'e.g. Bachelor of Computer Science';
+        }
+    }
+
+    document.querySelectorAll('input[name="education_level"]').forEach(radio => {
+        radio.addEventListener('change', updateTierLabels);
+    });
 
     typeSelect.addEventListener('change', function() {
         if (this.value === 'IT') {
             courseInput.placeholder = "Enter your IT Major (e.g. Cyber Security)";
         } else {
-            courseInput.placeholder = "Enter your specific programme name";
+            updateTierLabels();
         }
     });
+
+    toggleEducationLevelVisibility();
 </script>
 {% if google_client_id %}
 <script src="https://accounts.google.com/gsi/client" async defer></script>

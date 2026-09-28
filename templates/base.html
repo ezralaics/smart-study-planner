@@ -248,6 +248,11 @@
                     <span class="badge text-white ms-2" style="background-color: #6f42c1; font-size: 0.72rem;">Educator</span>
                 {% else %}
                     <span class="badge bg-primary bg-opacity-10 text-primary ms-2 border border-primary-subtle" style="font-size: 0.72rem;">Student</span>
+                    {% if current_tier %}
+                    <span class="badge rounded-pill ms-1 text-white d-none d-sm-inline-flex align-items-center" style="background-color: {{ current_tier.color }}; font-size: 0.70rem;" title="{{ current_tier.name }}: {{ current_tier.badge }}">
+                        <i class="bi {{ current_tier.icon }} me-1"></i>{{ current_tier.name }}
+                    </span>
+                    {% endif %}
                 {% endif %}
             </a>
             
@@ -275,8 +280,13 @@
                             <div class="px-3 py-2 border-bottom">
                                 <small class="text-muted d-block">Signed in as</small>
                                 <span class="fw-bold text-dark small" id="navUsernameDisplay">{{ session.get('username', 'Student') }}</span>
-                                <div class="mt-1">
+                                <div class="mt-1 d-flex align-items-center gap-1 flex-wrap">
                                     <span class="badge bg-secondary text-capitalize" style="font-size: 0.65rem;">{{ session.get('role', 'student') }}</span>
+                                    {% if current_tier and session.get('role') != 'educator' and session.get('role') != 'admin' %}
+                                    <span class="badge rounded-pill text-white" style="background-color: {{ current_tier.color }}; font-size: 0.65rem;">
+                                        <i class="bi {{ current_tier.icon }} me-1"></i>{{ current_tier.badge }}
+                                    </span>
+                                    {% endif %}
                                 </div>
                             </div>
                         </li>
@@ -518,6 +528,9 @@
         }
         setInterval(updateLiveClock, 1000);
         updateLiveClock();
+
+        // Global Tier Context for Client-Side Adapters
+        window.CURRENT_TIER = {{ (current_tier or {}) | tojson }};
 
         // Initialize Bootstrap tooltips
         document.addEventListener('DOMContentLoaded', function () {

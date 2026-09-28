@@ -801,5 +801,119 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
             if old_g: os.environ['GOOGLE_API_KEY'] = old_g
             if old_gem: os.environ['GEMINI_API_KEY'] = old_gem
 
+    def test_registration_with_all_education_levels(self):
+        """Verify new users can register with each of the 4 education levels."""
+        levels = ['primary', 'secondary', 'university', 'general']
+        for lvl in levels:
+            username = f"user_{lvl}_{uuid.uuid4().hex[:6]}"
+            email = f"{username}@test.edu"
+            res = self.client.post('/register', data={
+                'fullname': f'Student {lvl.capitalize()}',
+                'username': username,
+                'email': email,
+                'password': 'Password123!',
+                'role': 'student',
+                'student_type': 'IT',
+                'education_level': lvl
+            }, follow_redirects=False)
+            self.assertEqual(res.status_code, 302, f"Failed registration for tier {lvl}")
+
+            with self.app.app_context():
+                user = User.query.filter_by(username=username).first()
+                self.assertIsNotNone(user, f"User was not persisted for {lvl}")
+                self.assertEqual(user.education_level, lvl, f"Education level mismatch for {lvl}")
+                self.assertEqual(user.to_dict()['education_level'], lvl)
+
+    def test_adaptive_scheduler_chunk_durations(self):
+        """Verify scheduler returns 15-minute chunks for primary and 45-minute chunks for university."""
+        from services.scheduler import generate_study_schedule
+
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            # Ensure student has a course and an upcoming task
+            course = Course(user_id=student.id, course_name="Mathematics", semester="Term 1", target_grade=85.0)
+            db.session.add(course)
+            db.session.commit()
+
+            task = Task(
+                user_id=student.id,
+                course_id=course.id,
+                task_name="Algebra Revision Sheet",
+                weightage=30.0,
+                due_date=date.today() + timedelta(days=5),
+                is_completed=False
+            )
+            db.session.add(task)
+            db.session.commit()
+
+            # 1. Test Primary: 15-minute chunks
+            primary_sched = generate_study_schedule(student.id, daily_hours=2, education_level='primary')
+            self.assertEqual(primary_sched['status'], 'success')
+            self.assertEqual(primary_sched['chunk_minutes'], 15)
+            self.assertTrue(len(primary_sched['sessions']) > 0)
+            for s in primary_sched['sessions']:
+                self.assertEqual(s['duration_minutes'], 15, "Primary sessions must be 15-minute chunks")
+                self.assertEqual(s['break_minutes'], 5)
+
+            # 2. Test University: 45-minute chunks
+            uni_sched = generate_study_schedule(student.id, daily_hours=2, education_level='university')
+            self.assertEqual(uni_sched['status'], 'success')
+            self.assertEqual(uni_sched['chunk_minutes'], 45)
+            self.assertTrue(len(uni_sched['sessions']) > 0)
+            for s in uni_sched['sessions']:
+                self.assertEqual(s['duration_minutes'], 45, "University sessions must be 45-minute chunks")
+                self.assertEqual(s['break_minutes'], 15)
+
+            # 3. Test Secondary: 30-minute chunks
+            sec_sched = generate_study_schedule(student.id, daily_hours=2, education_level='secondary')
+            self.assertEqual(sec_sched['status'], 'success')
+            self.assertEqual(sec_sched['chunk_minutes'], 30)
+            for s in sec_sched['sessions']:
+                self.assertEqual(s['duration_minutes'], 30, "Secondary sessions must be 30-minute chunks")
+
+    def test_update_education_level_api(self):
+        """Verify /api/settings/education-level updates user tier and handles invalid inputs."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.fullname
+                sess['role'] = 'student'
+
+        # Test valid update
+        res = self.client.post('/api/settings/education-level', json={'education_level': 'secondary'})
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data['status'], 'success')
+        self.assertEqual(data['data']['education_level'], 'secondary')
+
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            self.assertEqual(student.education_level, 'secondary')
+
+        # Test invalid update
+        bad_res = self.client.post('/api/settings/education-level', json={'education_level': 'kindergarten_phd'})
+        self.assertEqual(bad_res.status_code, 400)
+        bad_data = bad_res.get_json()
+        self.assertEqual(bad_data['status'], 'error')
+
+    def test_backward_compatibility_university_defaults(self):
+        """Verify legacy accounts default to university and courses remain functional."""
+        with self.app.app_context():
+            # Create a user with default education_level
+            legacy_user = User(
+                fullname="Legacy Learner",
+                username=f"legacy_{uuid.uuid4().hex[:6]}",
+                email=f"legacy_{uuid.uuid4().hex[:6]}@test.edu",
+                password="pass",
+                role="student"
+            )
+            db.session.add(legacy_user)
+            db.session.commit()
+
+            self.assertEqual(legacy_user.education_level, 'university')
+            self.assertEqual(legacy_user.to_dict()['education_level'], 'university')
+
 if __name__ == '__main__':
     unittest.main()
+

@@ -148,7 +148,19 @@
             {% if user.role == 'student' %}
             <!-- Student Specific Fields -->
             <div class="section-badge">
-                <i class="bi bi-mortarboard-fill"></i> Academic Credentials
+                <i class="bi bi-mortarboard-fill"></i> Learning Tier &amp; Academic Credentials
+            </div>
+            <div class="row g-2 mb-4">
+                {% for tier in education_tiers %}
+                <div class="col-6 col-md-3">
+                    <input type="radio" class="btn-check" name="education_level" id="onb_{{ tier.key }}" value="{{ tier.key }}" autocomplete="off" {% if (user.education_level or 'university') == tier.key %}checked{% endif %}>
+                    <label class="btn btn-outline-primary w-100 p-2 text-center h-100 d-flex flex-column align-items-center justify-content-center border rounded-3" for="onb_{{ tier.key }}">
+                        <i class="bi {{ tier.icon }} fs-3 mb-1" style="color: {{ tier.color }};"></i>
+                        <span class="fw-bold small d-block">{{ tier.name }}</span>
+                        <span class="text-muted" style="font-size: 0.68rem;">{{ tier.badge }}</span>
+                    </label>
+                </div>
+                {% endfor %}
             </div>
             <div class="row g-3 mb-4">
                 <div class="col-md-6">

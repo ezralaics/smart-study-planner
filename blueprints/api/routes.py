@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask import request, jsonify, session
 from extensions import db
+from models.user import User
 from models.course import Course
 from models.task import Task
 from models.schedule import Schedule
@@ -274,14 +275,50 @@ def auto_schedule_preview():
     daily_hours = int(data.get('daily_hours', 2))
     preferred_window = data.get('preferred_window', 'evening')
     horizon_days = int(data.get('horizon_days', 14))
+    education_level = data.get('education_level')
 
     result = generate_study_schedule(
         user_id=session['user_id'],
         daily_hours=daily_hours,
         preferred_window=preferred_window,
-        horizon_days=horizon_days
+        horizon_days=horizon_days,
+        education_level=education_level
     )
     return jsonify(result)
+
+@api_bp.route('/api/settings/education-level', methods=['POST'])
+@login_required
+def update_education_level():
+    data = request.get_json() or {}
+    level = data.get('education_level', '').strip().lower()
+    from services.tier_service import VALID_TIERS, get_tier_config
+    if level not in VALID_TIERS:
+        return jsonify({
+            "status": "error",
+            "message": f"Invalid education level. Must be one of: {', '.join(VALID_TIERS)}"
+        }), 400
+
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({"status": "error", "message": "User not found"}), 404
+
+    user.education_level = level
+    session['education_level'] = level
+    try:
+        db.session.commit()
+        tier_info = get_tier_config(level)
+        return jsonify({
+            "status": "success",
+            "message": f"Education tier updated to {tier_info['name']}",
+            "data": {
+                "education_level": level,
+                "tier": tier_info
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @api_bp.route('/api/auto-schedule/apply', methods=['POST'])
 @login_required

@@ -70,9 +70,21 @@ def create_app(config_class=Config):
                         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_department VARCHAR(100);"))
                     if 'staff_id' not in columns:
                         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_id VARCHAR(50);"))
+                    if 'education_level' not in columns:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS education_level VARCHAR(20) DEFAULT 'university';"))
                     conn.commit()
         except Exception as e:
             app.logger.warning(f"Database connection or migration notice: {e}")
+
+    @app.context_processor
+    def inject_tier_context():
+        from flask import session
+        from services.tier_service import get_tier_config, get_all_tiers
+        level = session.get('education_level', 'university')
+        return {
+            'current_tier': get_tier_config(level),
+            'education_tiers': get_all_tiers()
+        }
 
     @app.teardown_appcontext
     def shutdown_session(exception=None):

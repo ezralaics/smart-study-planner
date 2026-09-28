@@ -15,22 +15,37 @@
 <div class="container py-4">
     <div class="row align-items-center mb-4">
         <div class="col-md-5">
-            <h3 class="fw-bold mb-0" id="pageHeaderTitle">Study Planner</h3>
-            <p class="text-muted">Manage your courses, credits, and target grades.</p>
+            <h3 class="fw-bold mb-0" id="pageHeaderTitle">
+                <span class="badge rounded-pill me-2 text-white" style="background-color: {{ current_tier.color }}; font-size: 0.85rem;">
+                    <i class="bi {{ current_tier.icon }} me-1"></i>{{ current_tier.name }}
+                </span>
+                {{ current_tier.course_label }} Planner
+            </h3>
+            <p class="text-muted mb-0">
+                {% if current_tier.key == 'primary' %}
+                Organize your subjects, complete fun homework activities, and earn stars! ⭐
+                {% elif current_tier.key == 'secondary' %}
+                Manage your academic subjects, term assignments, and target grades.
+                {% elif current_tier.key == 'general' %}
+                Track your skills, certification milestones, and target completion dates.
+                {% else %}
+                Manage your courses, credits, and target grades.
+                {% endif %}
+            </p>
         </div>
         <div class="col-md-7 text-md-end d-flex justify-content-md-end align-items-center gap-2 flex-wrap">
             <button id="autoSchedulerBtn" class="btn text-white shadow-sm px-3" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);" onclick="openAutoSchedulerModal()">
-                <i class="bi bi-magic me-1"></i>⚡ Auto-Scheduler
+                <i class="bi bi-magic me-1"></i>⚡ Auto-Scheduler ({{ current_tier.chunk_minutes }}m)
             </button>
-            <div class="input-group shadow-sm" style="max-width: 240px;">
+            <div class="input-group shadow-sm" style="max-width: 250px;">
                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-calendar3"></i></span>
                 <select id="globalSemesterSelect" class="form-select border-start-0 fw-bold text-primary" onchange="handleGlobalSemesterChange()">
-                    <option value="" disabled selected>Select Semester...</option>
-                    <option value="ADD_NEW">+ Add New Semester</option>
+                    <option value="" disabled selected>Select {{ current_tier.term_label }}...</option>
+                    <option value="ADD_NEW">+ Add New {{ current_tier.term_label }}</option>
                 </select>
             </div>
             <button id="registerCourseBtn" class="btn btn-primary shadow-sm px-3" onclick="toggleView('form')" disabled>
-                <i class="bi bi-plus-lg me-1"></i>Register Course
+                <i class="bi bi-plus-lg me-1"></i>Add {{ current_tier.course_label }}
             </button>
         </div>
     </div>
@@ -39,7 +54,7 @@
         <div class="row g-4" id="courseInventoryContainer">
             <div class="col-12 text-center py-5 text-muted">
                 <i class="bi bi-calendar-plus fs-1"></i>
-                <p class="mt-2">Welcome! Please select or add a semester from the top right to begin.</p>
+                <p class="mt-2">Welcome! Please select or add a {{ current_tier.term_label | lower }} from the top right to begin.</p>
             </div>
         </div>
     </section>
@@ -49,57 +64,39 @@
             <div class="col-lg-10">
                 <div class="card p-4 shadow-sm">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="fw-bold text-primary mb-0" id="formTitle">Register New Course</h4>
+                        <h4 class="fw-bold text-primary mb-0" id="formTitle">Register New {{ current_tier.course_label }}</h4>
                         <button class="btn btn-light btn-sm" onclick="toggleView('list')"><i class="bi bi-arrow-left me-1"></i> Back to List</button>
                     </div>
                     
                     <div class="mb-4">
-                        <label class="form-label fw-bold small text-muted">COURSE NAME</label>
+                        <label class="form-label fw-bold small text-muted">{{ current_tier.course_label | upper }}</label>
                         <div id="predefinedContainer">
                             <select id="courseSelect" class="form-select shadow-sm" onchange="autoFillCourseDetails()">
-                                <option value="" selected disabled>-- Select a Course --</option>
-                                <optgroup label="IT Core Courses">
-                                    <option value="CD102 — Computer Ethics" data-credits="3">CD102 — Computer Ethics (Diploma)</option>
-                                    <option value="CD103 — Fundamental of Database Systems" data-credits="4">CD103 — Fundamental of Database Systems</option>
-                                    <option value="CD105 — System Analysis & Design" data-credits="4">CD105 — System Analysis & Design</option>
-                                    <option value="CD106 — Java Programming 1" data-credits="4">CD106 — Java Programming 1 (Diploma)</option>
-                                    <option value="CD107 — Java Programming 2" data-credits="4">CD107 — Java Programming 2 (Diploma)</option>
-                                    <option value="CD108 — Discrete Mathematics 1" data-credits="3">CD108 — Discrete Mathematics 1 (Diploma)</option>
-                                    <option value="CD109 — Introduction to Information Technology" data-credits="4">CD109 — Introduction to Information Technology (Diploma)</option>
-                                    <option value="CD110 — Introduction to Internet Technologies" data-credits="4">CD110 — Introduction to Internet Technologies (Diploma)</option>
-                                    <option value="CD204 — User Interface Design" data-credits="3">CD204 — User Interface Design</option>
-                                    <option value="CD206 — Business Programming" data-credits="4">CD206 — Business Programming</option>
-                                    <option value="CD209 — Managing and Implementing Business Project" data-credits="4">CD209 — Managing and Implementing Business Project</option>
-                                    <option value="CD210 — Creative Problem Solving" data-credits="3">CD210 — Creative Problem Solving (Diploma)</option>
-                                    <option value="CD211 — Wireless and Mobile Technologies" data-credits="3">CD211 — Wireless and Mobile Technologies (Diploma)</option>
-                                    <option value="CD212 — Object-Oriented Modeling" data-credits="4">CD212 — Object-Oriented Modeling (Diploma)</option>
-                                    <option value="CD214 — Operating Systems & Networks" data-credits="4">CD214 — Operating Systems & Networks (Diploma)</option>
-                                    <option value="CD215 — Multimedia Programming" data-credits="4">CD215 — Multimedia Programming (Diploma)</option>
+                                <option value="" selected disabled>-- Select a {{ current_tier.course_label }} --</option>
+                                <optgroup label="{{ current_tier.name }} Catalog">
+                                    {% for c in current_tier.predefined_courses %}
+                                    <option value="{{ c.code }} — {{ c.name }}" data-credits="{{ c.credits }}">{{ c.code }} — {{ c.name }}</option>
+                                    {% endfor %}
                                 </optgroup>
-                                <optgroup label="MPU & General Courses">
-                                    <option value="BD100 — Business Communication" data-credits="3">BD100 — Business Communication</option>
-                                    <option value="MPU21103 — Penghayatan Etika and Peradaban" data-credits="3">MPU21103 — Penghayatan Etika and Peradaban</option>
-                                    <option value="MPU2221 — University Life" data-credits="1">MPU2221 — University Life</option>
-                                    <option value="MPU2232 — Integriti dan Antirasuah" data-credits="2">MPU2232 — Integriti dan Antirasuah</option>
-                                </optgroup>
-                                <option value="MANUAL">-- Add Manually / Other Course --</option>
+                                <option value="MANUAL">-- Add Custom / Manual {{ current_tier.course_label }} --</option>
                             </select>
                         </div>
                         <div id="manualNameContainer" class="mt-3 d-none">
                             <div class="input-group">
-                                <input type="text" id="manualCourseName" class="form-control shadow-sm" placeholder="Enter Manual Course Name">
+                                <input type="text" id="manualCourseName" class="form-control shadow-sm" placeholder="{{ current_tier.course_placeholder }}">
                                 <button class="btn btn-outline-secondary" type="button" onclick="resetToDropdown()">Reset</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted">SEMESTER</label>
+                        <div class="{% if current_tier.show_credits %}col-md-4{% else %}col-md-6{% endif %}">
+                            <label class="form-label fw-bold small text-muted">{{ current_tier.term_label | upper }}</label>
                             <input type="text" id="subSemester" class="form-control shadow-sm bg-light" readonly>
                         </div>
+                        {% if current_tier.show_credits %}
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted">CREDIT HOURS</label>
+                            <label class="form-label fw-bold small text-muted">{{ current_tier.credits_label | upper }}</label>
                             <select id="subCredits" class="form-select shadow-sm">
                                 <option value="1">1 Credit</option>
                                 <option value="2">2 Credits</option>
@@ -107,14 +104,27 @@
                                 <option value="4">4 Credits</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted">TARGET GRADE (%)</label>
-                            <input type="number" id="subTarget" class="form-control shadow-sm" value="80">
+                        {% else %}
+                        <input type="hidden" id="subCredits" value="1">
+                        {% endif %}
+                        <div class="{% if current_tier.show_credits %}col-md-4{% else %}col-md-6{% endif %}">
+                            <label class="form-label fw-bold small text-muted">{{ current_tier.target_metric_label | upper }}</label>
+                            <input type="number" id="subTarget" class="form-control shadow-sm" value="80" min="0" max="100">
                         </div>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="fw-bold text-muted mb-0">Grade Components (Tasks/Exams)</h6>
+                        <h6 class="fw-bold text-muted mb-0">
+                            {% if current_tier.key == 'primary' %}
+                            <i class="bi bi-star-fill text-warning me-1"></i>Homework &amp; Activities ⭐
+                            {% elif current_tier.key == 'secondary' %}
+                            <i class="bi bi-journal-text text-primary me-1"></i>Assignments &amp; Homework
+                            {% elif current_tier.key == 'general' %}
+                            <i class="bi bi-check2-circle text-success me-1"></i>Milestones &amp; Project Tasks
+                            {% else %}
+                            Grade Components (Tasks/Exams)
+                            {% endif %}
+                        </h6>
                         <button class="btn btn-sm btn-outline-primary" onclick="addTaskRow()">
                             <i class="bi bi-plus-lg me-1"></i>Add Row
                         </button>
@@ -122,6 +132,7 @@
 
                     <div id="tasksWrapper"></div>
 
+                    {% if current_tier.show_weightage %}
                     <div class="card bg-light border-0 mt-3 mb-4">
                         <div class="card-body d-flex justify-content-between align-items-center py-2">
                             <span class="fw-bold small text-muted text-uppercase">Total Weightage:</span>
@@ -131,6 +142,11 @@
                             </div>
                         </div>
                     </div>
+                    {% else %}
+                    <div id="weightageBadgeContainer" class="d-none">
+                        <span id="totalWeightDisplay">100%</span>
+                    </div>
+                    {% endif %}
 
                     <div class="d-grid gap-2">
                         <button type="button" id="saveBtn" class="btn btn-primary btn-lg shadow-sm">Save Course & Information</button>

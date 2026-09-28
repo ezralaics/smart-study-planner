@@ -46,6 +46,10 @@ def complete_profile():
         user.bio = request.form.get('bio', '').strip() or None
 
         if user.role == 'student':
+            edu_lvl = request.form.get('education_level', '').strip().lower()
+            if edu_lvl in ['primary', 'secondary', 'university', 'general']:
+                user.education_level = edu_lvl
+                session['education_level'] = edu_lvl
             user.major_programme = request.form.get('major_programme', '').strip() or None
             user.academic_year = request.form.get('academic_year', '').strip() or None
             user.current_semester = request.form.get('current_semester', '').strip() or None
@@ -116,6 +120,10 @@ def profile_page():
         user.bio = request.form.get('bio', '').strip() or None
 
         if user.role == 'student':
+            edu_lvl = request.form.get('education_level', '').strip().lower()
+            if edu_lvl in ['primary', 'secondary', 'university', 'general']:
+                user.education_level = edu_lvl
+                session['education_level'] = edu_lvl
             user.major_programme = request.form.get('major_programme', '').strip() or None
             user.academic_year = request.form.get('academic_year', '').strip() or None
             user.current_semester = request.form.get('current_semester', '').strip() or None

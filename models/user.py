@@ -13,6 +13,7 @@ class User(db.Model):
     password = db.Column(db.String(255), nullable=False)
     student_type = db.Column(db.String(20), default='Other')
     role = db.Column(db.String(20), default='student', index=True, nullable=False)
+    education_level = db.Column(db.String(20), default='university', nullable=False, index=True)
     google_id = db.Column(db.String(100), unique=True, nullable=True, index=True)
     avatar_url = db.Column(db.String(255), nullable=True)
 
@@ -71,6 +72,7 @@ class User(db.Model):
             "email": self.email,
             "student_type": self.student_type,
             "role": self.role,
+            "education_level": self.education_level or 'university',
             "avatar_url": self.avatar_url,
             "is_profile_completed": self.is_profile_completed,
             "phone_number": self.phone_number,

@@ -57,13 +57,18 @@ def register():
         if existing_user:
             return "User already exists", 400
 
+        education_level = request.form.get('education_level', 'university').strip().lower()
+        if education_level not in ['primary', 'secondary', 'university', 'general']:
+            education_level = 'university'
+
         try:
             new_user = User(
                 fullname=fullname,
                 email=email,
                 username=username,
                 student_type=student_type,
-                role=role
+                role=role,
+                education_level=education_level
             )
             new_user.set_password(password)
             db.session.add(new_user)
@@ -90,6 +95,7 @@ def login():
             session['user_id'] = str(user.id)
             session['username'] = user.fullname
             session['role'] = getattr(user, 'role', 'student')
+            session['education_level'] = getattr(user, 'education_level', 'university') or 'university'
             session['avatar_url'] = getattr(user, 'avatar_url', None)
             session['is_profile_completed'] = getattr(user, 'is_profile_completed', False)
             
@@ -119,6 +125,7 @@ def demo_login(role):
     session['user_id'] = str(user.id)
     session['username'] = user.fullname
     session['role'] = user.role
+    session['education_level'] = getattr(user, 'education_level', 'university') or 'university'
     session['avatar_url'] = getattr(user, 'avatar_url', None)
     session['is_profile_completed'] = True
 
@@ -143,7 +150,8 @@ def current_user():
             "name": user.fullname,
             "username": user.username,
             "student_type": user.student_type,
-            "role": getattr(user, 'role', 'student')
+            "role": getattr(user, 'role', 'student'),
+            "education_level": getattr(user, 'education_level', 'university') or 'university'
         })
     return jsonify({}), 404
 
@@ -295,6 +303,7 @@ def process_google_user(userinfo):
     session['user_id'] = str(user.id)
     session['username'] = user.fullname
     session['role'] = getattr(user, 'role', 'student')
+    session['education_level'] = getattr(user, 'education_level', 'university') or 'university'
     session['avatar_url'] = user.avatar_url
     session['is_profile_completed'] = getattr(user, 'is_profile_completed', False)
 
