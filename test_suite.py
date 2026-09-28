@@ -15,6 +15,7 @@ from models.user import User
 from models.course import Course
 from models.task import Task
 from models.schedule import Schedule
+from models.message import DirectMessage
 
 # Enable foreign keys for SQLite test runs
 @event.listens_for(Engine, "connect")
@@ -913,6 +914,128 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
 
             self.assertEqual(legacy_user.education_level, 'university')
             self.assertEqual(legacy_user.to_dict()['education_level'], 'university')
+
+    def test_dm_send_and_unread_count(self):
+        """Verify sending a direct message creates record and updates unread badge count."""
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            educator = User.query.filter_by(username="educator_user").first()
+            student_id = str(student.id)
+            educator_id = str(educator.id)
+            educator_email = educator.email
+
+        # 1. Login as student and send message to educator
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = student_id
+            sess['username'] = "Ezra Student"
+            sess['role'] = 'student'
+
+        send_res = self.client.post('/api/dm/send', json={
+            'recipient_email': educator_email,
+            'content': 'Hello Professor, do we have consultation hours tomorrow?'
+        })
+        self.assertEqual(send_res.status_code, 201)
+        send_data = send_res.get_json()
+        self.assertEqual(send_data['status'], 'success')
+        self.assertEqual(send_data['data']['content'], 'Hello Professor, do we have consultation hours tomorrow?')
+        self.assertFalse(send_data['data']['is_read'])
+
+        # 2. Login as educator and check unread count
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = educator_id
+            sess['username'] = "Prof. Smart"
+            sess['role'] = 'educator'
+
+        count_res = self.client.get('/api/dm/unread-count')
+        self.assertEqual(count_res.status_code, 200)
+        self.assertEqual(count_res.get_json()['unread_count'], 1)
+
+        # Check conversations list
+        conv_res = self.client.get('/api/dm/conversations')
+        self.assertEqual(conv_res.status_code, 200)
+        convs = conv_res.get_json()['data']
+        self.assertEqual(len(convs), 1)
+        self.assertEqual(convs[0]['peer']['email'], 'student@test.com')
+        self.assertEqual(convs[0]['unread_count'], 1)
+
+    def test_dm_thread_and_read_receipt(self):
+        """Verify opening a thread retrieves messages and marks unread messages as read."""
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            educator = User.query.filter_by(username="educator_user").first()
+            student_id = str(student.id)
+            educator_id = str(educator.id)
+            student_email = student.email
+
+        # Send a direct message from student to educator
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = student_id
+            sess['username'] = "Ezra Student"
+            sess['role'] = 'student'
+        self.client.post('/api/dm/send', json={
+            'recipient_email': educator.email,
+            'content': 'Thread test message'
+        })
+
+        # Switch to educator session and fetch thread
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = educator_id
+            sess['username'] = "Prof. Smart"
+            sess['role'] = 'educator'
+
+        thread_res = self.client.get(f'/api/dm/thread?email={student_email}')
+        self.assertEqual(thread_res.status_code, 200)
+        thread_data = thread_res.get_json()['data']
+        self.assertEqual(thread_data['peer']['email'], student_email)
+        self.assertEqual(len(thread_data['messages']), 1)
+        self.assertEqual(thread_data['messages'][0]['is_mine'], False)
+        self.assertEqual(thread_data['messages'][0]['content'], 'Thread test message')
+
+        # Check unread count is now 0 because viewing thread marks them read
+        count_res = self.client.get('/api/dm/unread-count')
+        self.assertEqual(count_res.status_code, 200)
+        self.assertEqual(count_res.get_json()['unread_count'], 0)
+
+    def test_dm_authorization_and_validation(self):
+        """Verify strict authorization, validation constraints, and classmate search."""
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            educator = User.query.filter_by(username="educator_user").first()
+            student_id = str(student.id)
+            student_email = student.email
+            educator_id = str(educator.id)
+
+        # 1. Self-messaging rejected
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = student_id
+            sess['username'] = "Ezra Student"
+            sess['role'] = 'student'
+
+        self_res = self.client.post('/api/dm/send', json={
+            'recipient_email': student_email,
+            'content': 'Messaging myself is disallowed'
+        })
+        self.assertEqual(self_res.status_code, 400)
+        self.assertIn("cannot send messages to yourself", self_res.get_json()['message'].lower())
+
+        # 2. Empty content or recipient rejected
+        empty_res = self.client.post('/api/dm/send', json={
+            'recipient_email': '',
+            'content': ''
+        })
+        self.assertEqual(empty_res.status_code, 400)
+
+        # 3. Classmate search finds peer by name/email but excludes self
+        search_res = self.client.get('/api/dm/search-classmates?q=prof')
+        self.assertEqual(search_res.status_code, 200)
+        peers = search_res.get_json()['data']
+        self.assertEqual(len(peers), 1)
+        self.assertEqual(peers[0]['email'], 'educator@test.com')
+
+        # Search for self should return empty
+        self_search = self.client.get('/api/dm/search-classmates?q=Ezra')
+        self.assertEqual(self_search.status_code, 200)
+        self.assertEqual(len(self_search.get_json()['data']), 0)
 
 if __name__ == '__main__':
     unittest.main()

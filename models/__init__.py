@@ -5,5 +5,6 @@ from models.task import Task
 from models.schedule import Schedule
 from models.document import Document
 from models.user_ai_config import UserAIConfig
+from models.message import DirectMessage
 
-__all__ = ['db', 'User', 'Course', 'Task', 'Schedule', 'Document', 'UserAIConfig']
+__all__ = ['db', 'User', 'Course', 'Task', 'Schedule', 'Document', 'UserAIConfig', 'DirectMessage']

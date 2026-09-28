@@ -230,6 +230,45 @@
             align-items: center; 
             justify-content: center; 
         }
+
+        /* Direct Messages Drawer Styles */
+        .dm-conv-item {
+            border-radius: 12px;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+            cursor: pointer;
+        }
+        .dm-conv-item:hover {
+            background-color: #e2e8f0;
+            transform: translateX(2px);
+        }
+        .dm-msg-bubble-mine {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #0d6efd 0%, #0a4da2 100%);
+            color: #ffffff;
+            border-radius: 14px 14px 3px 14px;
+            padding: 8px 12px;
+            max-width: 82%;
+            word-break: break-word;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            font-size: 0.88rem;
+        }
+        .dm-msg-bubble-peer {
+            align-self: flex-start;
+            background: #ffffff;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px 14px 14px 3px;
+            padding: 8px 12px;
+            max-width: 82%;
+            word-break: break-word;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            font-size: 0.88rem;
+        }
+        .dm-timestamp {
+            font-size: 0.65rem;
+            opacity: 0.75;
+            margin-top: 2px;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -261,6 +300,25 @@
                     <div id="liveClock" class="fw-bold text-primary mb-0">--:--:--</div>
                     <div id="liveDate" class="text-muted small">Loading...</div>
                 </div>
+
+                <!-- Direct Messages Icon Button -->
+                {% if session.get('user_id') %}
+                <button class="btn btn-light rounded-circle shadow-sm me-2 d-flex align-items-center justify-content-center border position-relative" 
+                        style="width: 38px; height: 38px;" 
+                        type="button" 
+                        data-bs-toggle="offcanvas" 
+                        data-bs-target="#directMessagesDrawer" 
+                        aria-controls="directMessagesDrawer" 
+                        title="Direct Messages" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="bottom"
+                        id="dmNavTriggerBtn">
+                    <i class="bi bi-chat-dots fs-5 text-secondary"></i>
+                    <span id="dmUnreadBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.65rem; padding: 3px 6px;">
+                        0
+                    </span>
+                </button>
+                {% endif %}
 
                 <!-- Settings Icon Button -->
                 <a href="/settings" class="btn btn-light rounded-circle shadow-sm me-2 d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;" title="Account &amp; Application Settings" data-bs-toggle="tooltip" data-bs-placement="bottom">
@@ -379,6 +437,12 @@
                 
                 <hr class="border-secondary mx-3 my-2 opacity-25">
                 <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">AI Tools &amp; Settings</div>
+                {% if session.get('user_id') %}
+                <button class="nav-link border-0 bg-transparent text-start w-100 d-flex align-items-center justify-content-between py-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#directMessagesDrawer" aria-controls="directMessagesDrawer">
+                    <span><i class="bi bi-chat-dots"></i> Direct Messages</span>
+                    <span id="dmSidebarUnreadBadge" class="badge rounded-pill bg-danger d-none" style="font-size: 0.65rem;">0</span>
+                </button>
+                {% endif %}
                 <a class="nav-link {% if active_page == 'study_assistant' %}active{% endif %}" href="/study-assistant">
                     <i class="bi bi-robot"></i> AI Study Assistant
                 </a>
@@ -500,6 +564,88 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if session.get('user_id') %}
+    <!-- Direct Messages Offcanvas Drawer -->
+    <div class="offcanvas offcanvas-end shadow-lg" tabindex="-1" id="directMessagesDrawer" aria-labelledby="directMessagesDrawerLabel" style="width: 430px; max-width: 100vw; z-index: 1060;">
+        <div class="offcanvas-header border-bottom py-3 px-3 bg-white">
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                    <i class="bi bi-chat-dots-fill fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="offcanvas-title fw-bold mb-0 fs-6" id="directMessagesDrawerLabel">Direct Messages</h5>
+                    <small class="text-muted" style="font-size: 0.75rem;">Chat with classmates &amp; peers</small>
+                </div>
+            </div>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+
+        <div class="offcanvas-body p-0 d-flex flex-column h-100 bg-light" style="overflow: hidden;">
+            <!-- Top Search / New Message Bar -->
+            <div class="p-3 bg-white border-bottom">
+                <div class="position-relative">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-start-0" id="dmClassmateInput" placeholder="Enter classmate's email to chat..." autocomplete="off">
+                        <button class="btn btn-primary" type="button" id="dmStartChatBtn" onclick="handleStartChatFromInput()">
+                            <i class="bi bi-chat-fill me-1"></i>Chat
+                        </button>
+                    </div>
+                    <!-- Live Search Suggestions Dropdown -->
+                    <div id="dmSearchDropdown" class="list-group position-absolute w-100 shadow mt-1 d-none" style="z-index: 1070; max-height: 220px; overflow-y: auto;"></div>
+                </div>
+            </div>
+
+            <!-- VIEW 1: CONVERSATIONS LIST -->
+            <div id="dmConversationsView" class="flex-grow-1 overflow-y-auto p-2" style="min-height: 0;">
+                <div id="dmConversationsList">
+                    <div class="text-center py-5 text-muted small">
+                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                        <p class="mb-0">Loading conversations...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 2: ACTIVE CHAT THREAD -->
+            <div id="dmThreadView" class="flex-grow-1 flex-column d-none h-100" style="min-height: 0;">
+                <!-- Active Thread Top Banner -->
+                <div class="px-3 py-2 bg-white border-bottom d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2" style="min-width: 0;">
+                        <button class="btn btn-sm btn-light border-0 py-1 px-2 text-secondary" onclick="showConversationsView()" title="Back to conversations">
+                            <i class="bi bi-chevron-left fs-6"></i>
+                        </button>
+                        <div id="dmActivePeerAvatar" class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0" style="width: 32px; height: 32px; background: #2563eb; font-size: 0.85rem;">
+                            U
+                        </div>
+                        <div style="min-width: 0;">
+                            <div class="fw-bold small text-truncate" id="dmActivePeerName" style="max-width: 170px;">Classmate</div>
+                            <small class="text-muted d-block text-truncate" id="dmActivePeerEmail" style="font-size: 0.70rem; max-width: 170px;">email</small>
+                        </div>
+                    </div>
+                    <span id="dmActivePeerBadge" class="badge rounded-pill bg-light text-secondary border text-capitalize" style="font-size: 0.68rem;">Student</span>
+                </div>
+
+                <!-- Messages Scroll Area -->
+                <div class="flex-grow-1 p-3 overflow-y-auto d-flex flex-column gap-2" id="dmThreadMessages" style="min-height: 0;">
+                    <!-- Message items dynamically populated -->
+                </div>
+
+                <!-- Instant Reply Input Footer -->
+                <div class="p-2 bg-white border-top">
+                    <form onsubmit="handleSendDmMessage(event)">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="dmMessageInput" placeholder="Type a message... (Press Enter)" autocomplete="off" required>
+                            <button class="btn btn-primary d-flex align-items-center px-3" type="submit" id="dmSendBtn">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -694,6 +840,341 @@
             container.appendChild(row);
             container.scrollTop = container.scrollHeight;
         }
+
+        // ==========================================
+        // Direct Messages Controller & Polling
+        // ==========================================
+        let dmActiveEmail = null;
+        let dmThreadPollTimer = null;
+        let dmSearchDebounceTimer = null;
+
+        async function loadDmUnreadCount() {
+            try {
+                const res = await fetch('/api/dm/unread-count');
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    const count = data.unread_count || 0;
+                    const navBadge = document.getElementById('dmUnreadBadge');
+                    const sideBadge = document.getElementById('dmSidebarUnreadBadge');
+                    
+                    if (navBadge) {
+                        if (count > 0) {
+                            navBadge.textContent = count > 99 ? '99+' : count;
+                            navBadge.classList.remove('d-none');
+                        } else {
+                            navBadge.classList.add('d-none');
+                        }
+                    }
+                    if (sideBadge) {
+                        if (count > 0) {
+                            sideBadge.textContent = count > 99 ? '99+' : count;
+                            sideBadge.classList.remove('d-none');
+                        } else {
+                            sideBadge.classList.add('d-none');
+                        }
+                    }
+                }
+            } catch (err) {
+                // Background polling errors silent
+            }
+        }
+
+        async function loadDmConversations() {
+            const listEl = document.getElementById('dmConversationsList');
+            if (!listEl) return;
+
+            try {
+                const res = await fetch('/api/dm/conversations');
+                const data = await res.json();
+                if (!res.ok || data.status !== 'success') {
+                    listEl.innerHTML = '<div class="text-center py-4 text-danger small">Error loading conversations.</div>';
+                    return;
+                }
+
+                const convs = data.data || [];
+                if (convs.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="text-center py-5 px-3 text-muted">
+                            <i class="bi bi-chat-square-dots fs-1 text-secondary opacity-50 mb-2 d-block"></i>
+                            <h6 class="fw-bold text-dark mb-1">No direct messages yet</h6>
+                            <p class="small mb-0">Enter a classmate's email address above to start a conversation.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                convs.forEach(c => {
+                    const peer = c.peer;
+                    const lastMsg = c.last_message;
+                    const initials = peer.fullname ? peer.fullname.charAt(0).toUpperCase() : 'U';
+                    const unreadBadge = c.unread_count > 0 
+                        ? `<span class="badge bg-danger rounded-pill">${c.unread_count}</span>` 
+                        : '';
+
+                    html += `
+                        <div class="dm-conv-item p-2 mb-2 d-flex align-items-center gap-2 border bg-white" onclick="openDmChatThread('${peer.email}')">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 38px; height: 38px; background: #2563eb; font-size: 0.9rem;">
+                                ${peer.avatar_url ? `<img src="${peer.avatar_url}" class="rounded-circle" style="width:100%;height:100%;object-fit:cover;">` : initials}
+                            </div>
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="fw-bold small text-dark text-truncate" style="max-width: 170px;">${peer.fullname}</span>
+                                    <span class="text-muted dm-timestamp">${lastMsg.timestamp_formatted || ''}</span>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <small class="text-muted text-truncate d-block" style="max-width: 220px; font-size: 0.78rem;">
+                                        ${lastMsg.is_mine ? '<span class="text-primary me-1">You:</span>' : ''}${lastMsg.content}
+                                    </small>
+                                    ${unreadBadge}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                listEl.innerHTML = html;
+            } catch (err) {
+                listEl.innerHTML = '<div class="text-center py-4 text-danger small">Network error loading conversations.</div>';
+            }
+        }
+
+        async function openDmChatThread(email) {
+            if (!email) return;
+            dmActiveEmail = email;
+
+            // Switch to Thread view
+            const convsView = document.getElementById('dmConversationsView');
+            const threadView = document.getElementById('dmThreadView');
+            if (convsView) convsView.classList.add('d-none');
+            if (threadView) {
+                threadView.classList.remove('d-none');
+                threadView.classList.add('d-flex');
+            }
+
+            // Hide search suggestions
+            const dropdown = document.getElementById('dmSearchDropdown');
+            if (dropdown) dropdown.classList.add('d-none');
+
+            // Reset input
+            const searchInput = document.getElementById('dmClassmateInput');
+            if (searchInput) searchInput.value = '';
+
+            // Initial fetch
+            await fetchDmThreadMessages();
+
+            // Focus message input
+            setTimeout(() => {
+                const msgInput = document.getElementById('dmMessageInput');
+                if (msgInput) msgInput.focus();
+            }, 150);
+
+            // Start 5-second polling interval
+            clearInterval(dmThreadPollTimer);
+            dmThreadPollTimer = setInterval(fetchDmThreadMessages, 5000);
+        }
+
+        function showConversationsView() {
+            clearInterval(dmThreadPollTimer);
+            dmActiveEmail = null;
+
+            const convsView = document.getElementById('dmConversationsView');
+            const threadView = document.getElementById('dmThreadView');
+            if (threadView) {
+                threadView.classList.add('d-none');
+                threadView.classList.remove('d-flex');
+            }
+            if (convsView) convsView.classList.remove('d-none');
+
+            loadDmConversations();
+            loadDmUnreadCount();
+        }
+
+        async function fetchDmThreadMessages() {
+            if (!dmActiveEmail) return;
+            const container = document.getElementById('dmThreadMessages');
+            if (!container) return;
+
+            try {
+                const res = await fetch(`/api/dm/thread?email=${encodeURIComponent(dmActiveEmail)}`);
+                const data = await res.json();
+                if (!res.ok || data.status !== 'success') {
+                    container.innerHTML = `<div class="alert alert-danger py-2 small my-auto">${data.message || 'Error loading thread.'}</div>`;
+                    return;
+                }
+
+                const classmate = data.data.classmate;
+                const messages = data.data.messages || [];
+
+                // Update Header
+                const nameEl = document.getElementById('dmActivePeerName');
+                const emailEl = document.getElementById('dmActivePeerEmail');
+                const badgeEl = document.getElementById('dmActivePeerBadge');
+                const avatarEl = document.getElementById('dmActivePeerAvatar');
+
+                if (nameEl) nameEl.textContent = classmate.fullname;
+                if (emailEl) emailEl.textContent = classmate.email;
+                if (badgeEl) badgeEl.textContent = classmate.role || 'Student';
+                if (avatarEl) {
+                    const initial = classmate.fullname ? classmate.fullname.charAt(0).toUpperCase() : 'U';
+                    avatarEl.innerHTML = classmate.avatar_url ? `<img src="${classmate.avatar_url}" class="rounded-circle" style="width:100%;height:100%;object-fit:cover;">` : initial;
+                }
+
+                // Render Messages
+                if (messages.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-5 my-auto text-muted">
+                            <i class="bi bi-hand-thumbs-up fs-2 text-primary opacity-50 mb-1 d-block"></i>
+                            <div class="fw-bold text-dark small">Start the conversation!</div>
+                            <small>Say hi to ${classmate.fullname}.</small>
+                        </div>
+                    `;
+                } else {
+                    const wasScrolledToBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 60;
+                    let html = '';
+                    messages.forEach(m => {
+                        if (m.is_mine) {
+                            html += `
+                                <div class="dm-msg-bubble-mine">
+                                    <div>${m.content}</div>
+                                    <div class="dm-timestamp text-end text-white-50">${m.timestamp_formatted || ''}</div>
+                                </div>
+                            `;
+                        } else {
+                            html += `
+                                <div class="dm-msg-bubble-peer">
+                                    <div>${m.content}</div>
+                                    <div class="dm-timestamp text-muted">${m.timestamp_formatted || ''}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                    container.innerHTML = html;
+                    if (wasScrolledToBottom) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }
+
+                loadDmUnreadCount();
+            } catch (err) {
+                // Silent on periodic fetch
+            }
+        }
+
+        async function handleSendDmMessage(e) {
+            if (e) e.preventDefault();
+            const input = document.getElementById('dmMessageInput');
+            if (!input || !dmActiveEmail) return;
+
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            const sendBtn = document.getElementById('dmSendBtn');
+            if (sendBtn) sendBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/dm/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient_email: dmActiveEmail,
+                        content: text
+                    })
+                });
+                const data = await res.json();
+                if (sendBtn) sendBtn.disabled = false;
+
+                if (res.ok && data.status === 'success') {
+                    await fetchDmThreadMessages();
+                    const container = document.getElementById('dmThreadMessages');
+                    if (container) container.scrollTop = container.scrollHeight;
+                } else {
+                    alert(data.message || 'Error sending message.');
+                }
+            } catch (err) {
+                if (sendBtn) sendBtn.disabled = false;
+                alert('Network error sending message.');
+            }
+        }
+
+        function handleStartChatFromInput() {
+            const input = document.getElementById('dmClassmateInput');
+            if (!input) return;
+            const val = input.value.trim();
+            if (!val) {
+                input.focus();
+                return;
+            }
+            openDmChatThread(val);
+        }
+
+        // Live classmate search in drawer input
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDmUnreadCount();
+            setInterval(loadDmUnreadCount, 12000);
+
+            const drawerEl = document.getElementById('directMessagesDrawer');
+            if (drawerEl) {
+                drawerEl.addEventListener('show.bs.offcanvas', () => {
+                    if (!dmActiveEmail) {
+                        loadDmConversations();
+                    }
+                });
+                drawerEl.addEventListener('hidden.bs.offcanvas', () => {
+                    clearInterval(dmThreadPollTimer);
+                });
+            }
+
+            const searchInput = document.getElementById('dmClassmateInput');
+            const searchDropdown = document.getElementById('dmSearchDropdown');
+            if (searchInput && searchDropdown) {
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(dmSearchDebounceTimer);
+                    const q = searchInput.value.trim();
+                    if (q.length < 2) {
+                        searchDropdown.classList.add('d-none');
+                        searchDropdown.innerHTML = '';
+                        return;
+                    }
+
+                    dmSearchDebounceTimer = setTimeout(async () => {
+                        try {
+                            const res = await fetch(`/api/dm/search-classmates?q=${encodeURIComponent(q)}`);
+                            const data = await res.json();
+                            if (res.ok && data.status === 'success') {
+                                const users = data.data || [];
+                                if (users.length === 0) {
+                                    searchDropdown.innerHTML = '<div class="list-group-item text-muted small py-2">No matching classmates found.</div>';
+                                    searchDropdown.classList.remove('d-none');
+                                    return;
+                                }
+
+                                let html = '';
+                                users.forEach(u => {
+                                    html += `
+                                        <button type="button" class="list-group-item list-group-item-action py-2 px-3 d-flex align-items-center justify-content-between" onclick="openDmChatThread('${u.email}')">
+                                            <div>
+                                                <div class="fw-bold small text-dark">${u.fullname}</div>
+                                                <small class="text-muted" style="font-size: 0.72rem;">${u.email}</small>
+                                            </div>
+                                            <span class="badge bg-light text-secondary border text-capitalize" style="font-size: 0.65rem;">${u.role}</span>
+                                        </button>
+                                    `;
+                                });
+                                searchDropdown.innerHTML = html;
+                                searchDropdown.classList.remove('d-none');
+                            }
+                        } catch (e) {}
+                    }, 300);
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+                        searchDropdown.classList.add('d-none');
+                    }
+                });
+            }
+        });
     </script>
     {% block extra_js %}{% endblock %}
 </body>

@@ -404,3 +404,77 @@ def clear_completed_tasks():
         "message": f"Successfully cleared {count} completed task(s)."
     })
 
+# ==========================================
+# Direct Messages Endpoints
+# ==========================================
+
+@api_bp.route('/api/dm/unread-count')
+@login_required
+def dm_unread_count():
+    from services.message_service import get_unread_message_count
+    count = get_unread_message_count(session['user_id'])
+    return jsonify({
+        "status": "success",
+        "unread_count": count
+    })
+
+@api_bp.route('/api/dm/conversations')
+@login_required
+def dm_conversations():
+    from services.message_service import get_user_conversations
+    conversations = get_user_conversations(session['user_id'])
+    return jsonify({
+        "status": "success",
+        "data": conversations
+    })
+
+@api_bp.route('/api/dm/thread')
+@login_required
+def dm_thread():
+    from services.message_service import get_conversation_thread
+    target = request.args.get('email') or request.args.get('user_id')
+    if not target:
+        return jsonify({"status": "error", "message": "Email or user ID is required."}), 400
+
+    data, err = get_conversation_thread(session['user_id'], target)
+    if err:
+        return jsonify({"status": "error", "message": err}), 404
+
+    return jsonify({
+        "status": "success",
+        "data": data
+    })
+
+@api_bp.route('/api/dm/send', methods=['POST'])
+@login_required
+def dm_send():
+    from services.message_service import send_direct_message
+    payload = request.get_json() or {}
+    recipient = payload.get('recipient_email') or payload.get('recipient_id')
+    content = payload.get('content')
+
+    if not recipient or not content:
+        return jsonify({"status": "error", "message": "Recipient and message content are required."}), 400
+
+    message, err = send_direct_message(session['user_id'], recipient, content)
+    if err:
+        return jsonify({"status": "error", "message": err}), 400
+
+    return jsonify({
+        "status": "success",
+        "message": "Message sent successfully.",
+        "data": message
+    }), 201
+
+@api_bp.route('/api/dm/search-classmates')
+@login_required
+def dm_search_classmates():
+    from services.message_service import search_classmates
+    q = request.args.get('q', '')
+    users = search_classmates(session['user_id'], q)
+    return jsonify({
+        "status": "success",
+        "data": users
+    })
+
+
