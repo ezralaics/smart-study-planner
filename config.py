@@ -10,7 +10,9 @@ class Config:
     
     db_url = os.environ.get('DATABASE_URL', 'postgresql://postgres:admin123@localhost:5432/study_planner_db')
     if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
+        db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
         
     SQLALCHEMY_DATABASE_URI = db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -24,5 +26,3 @@ class Config:
     GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
     GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
     GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', '')
-
-
