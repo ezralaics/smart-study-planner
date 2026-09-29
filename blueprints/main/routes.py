@@ -1,4 +1,4 @@
-from flask import render_template, session, redirect, url_for, request, flash
+from flask import render_template, session, redirect, url_for, request, flash, send_from_directory, current_app
 from extensions import db
 from models.user import User
 from utils.auth import login_required
@@ -246,3 +246,18 @@ def tasks_page():
 def grades_page():
     return render_template('grades.html', active_page='student_grades')
 
+
+
+@main_bp.route('/manifest.json')
+def manifest():
+    return send_from_directory(current_app.static_folder, 'manifest.json', mimetype='application/json')
+
+@main_bp.route('/sw.js')
+def service_worker():
+    response = send_from_directory(current_app.static_folder, 'sw.js', mimetype='application/javascript')
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
+
+@main_bp.route('/offline')
+def offline():
+    return render_template('offline.html')
