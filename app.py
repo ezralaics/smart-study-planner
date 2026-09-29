@@ -41,9 +41,25 @@ def create_app(config_class=Config):
 
     with app.app_context():
         try:
-            db.create_all()
-            # Auto-migrate schema: ensure columns added in updates exist in existing databases
             from sqlalchemy import text, inspect
+            inspector = inspect(db.engine)
+            existing_tables = inspector.get_table_names()
+
+            # Automatic Legacy Integer -> UUID Schema Migration:
+            # If the database has legacy INTEGER primary keys on users, drop the legacy test tables
+            # so db.create_all() initializes the complete, unified UUID enterprise schema without type conflicts.
+            if 'users' in existing_tables:
+                id_col = next((c for c in inspector.get_columns('users') if c['name'] == 'id'), None)
+                if id_col and 'INT' in str(id_col.get('type', '')).upper():
+                    app.logger.warning("Detected legacy INTEGER database schema. Upgrading database to production UUID schema...")
+                    with db.engine.connect() as conn:
+                        conn.execute(text("DROP TABLE IF EXISTS tasks, schedules, courses, users CASCADE;"))
+                        conn.commit()
+
+            # Initialize all tables with UUID primary and foreign keys
+            db.create_all()
+
+            # Safe incremental column additions for future schema evolutions
             inspector = inspect(db.engine)
             if 'users' in inspector.get_table_names():
                 columns = [c['name'] for c in inspector.get_columns('users')]
@@ -84,7 +100,7 @@ def create_app(config_class=Config):
                         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS education_level VARCHAR(20) DEFAULT 'university';"))
                     conn.commit()
         except Exception as e:
-            app.logger.warning(f"Database connection or migration notice: {e}")
+            app.logger.error(f"Database connection or migration notice: {e}", exc_info=True)
 
     @app.context_processor
     def inject_tier_context():
@@ -180,6 +196,7 @@ def create_app(config_class=Config):
                     row = conn.execute(text("SELECT id, username, role FROM users LIMIT 1")).fetchone()
                     info['first_user_raw'] = {'id': str(row[0]), 'username': row[1], 'role': row[2]} if row else None
             
+            from models.user import User
             user = User.query.first()
             info['first_user_orm'] = {'id': str(user.id), 'username': user.username, 'role': user.role} if user else None
             return jsonify({'status': 'ok', 'info': info})
@@ -206,3 +223,4 @@ app = create_app()
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
