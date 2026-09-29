@@ -8,6 +8,7 @@ class GUID(TypeDecorator):
     """Platform-independent GUID type.
     Uses PostgreSQL's native UUID type on PostgreSQL, otherwise uses CHAR(36),
     storing and retrieving standard python uuid.UUID objects transparently.
+    Safe against legacy integer / non-UUID IDs.
     """
     impl = CHAR(36)
     cache_ok = True
@@ -22,16 +23,22 @@ class GUID(TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value is None:
             return value
-        if not isinstance(value, uuid.UUID):
+        if dialect.name == 'postgresql':
+            if isinstance(value, uuid.UUID):
+                return value
             try:
-                return str(uuid.UUID(str(value)))
-            except ValueError:
-                return str(value)
-        return str(value)
+                return uuid.UUID(str(value))
+            except (ValueError, TypeError, AttributeError):
+                return value
+        else:
+            return str(value)
 
     def process_result_value(self, value, dialect):
         if value is None:
             return value
-        if not isinstance(value, uuid.UUID):
+        if isinstance(value, uuid.UUID):
+            return value
+        try:
             return uuid.UUID(str(value))
-        return value
+        except (ValueError, TypeError, AttributeError):
+            return value

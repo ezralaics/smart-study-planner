@@ -164,6 +164,37 @@ def create_app(config_class=Config):
             'workspaces_list': workspaces_list
         }
 
+    @app.route('/api/debug-status')
+    def debug_status():
+        import traceback
+        from flask import jsonify, request
+        info = {}
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            info['tables'] = inspector.get_table_names()
+            if 'users' in info['tables']:
+                info['users_columns'] = [{'name': c['name'], 'type': str(c['type'])} for c in inspector.get_columns('users')]
+                with db.engine.connect() as conn:
+                    info['users_count'] = conn.execute(text("SELECT count(*) FROM users")).scalar()
+                    row = conn.execute(text("SELECT id, username, role FROM users LIMIT 1")).fetchone()
+                    info['first_user_raw'] = {'id': str(row[0]), 'username': row[1], 'role': row[2]} if row else None
+            
+            user = User.query.first()
+            info['first_user_orm'] = {'id': str(user.id), 'username': user.username, 'role': user.role} if user else None
+            return jsonify({'status': 'ok', 'info': info})
+        except Exception as e:
+            return jsonify({'status': 'error', 'error': str(e), 'traceback': traceback.format_exc(), 'info': info}), 500
+
+    @app.errorhandler(500)
+    def handle_500(e):
+        import traceback
+        from flask import request
+        app.logger.error(f"500 Server Error: {e}\n{traceback.format_exc()}")
+        if request.args.get('debug') == '1':
+            return f"<pre style='color:red; background:#fee; padding:20px; font-size:14px;'>{traceback.format_exc()}</pre>", 500, {'Content-Type': 'text/html'}
+        return render_template('login.html', error="An unexpected system error occurred. Please try again.")
+
     @app.teardown_appcontext
     def shutdown_session(exception=None):
         db.session.remove()
