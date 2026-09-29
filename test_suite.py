@@ -16,6 +16,10 @@ from models.course import Course
 from models.task import Task
 from models.schedule import Schedule
 from models.message import DirectMessage
+from models.habit import Habit, HabitLog
+from models.finance import BudgetGoal, Transaction
+from models.journal import JournalEntry
+from models.career import JobApplication
 
 # Enable foreign keys for SQLite test runs
 @event.listens_for(Engine, "connect")
@@ -1036,6 +1040,193 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
         self_search = self.client.get('/api/dm/search-classmates?q=Ezra')
         self.assertEqual(self_search.status_code, 200)
         self.assertEqual(len(self_search.get_json()['data']), 0)
+
+    def test_workspace_switcher_route_and_session(self):
+        """Verify workspace switcher updates active_workspace in session and redirects correctly."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = "Ezra Student"
+                sess['role'] = 'student'
+                sess['is_profile_completed'] = True
+
+        # 1. Switch to life workspace
+        res_life = self.client.get('/workspace/life')
+        self.assertEqual(res_life.status_code, 302)
+        self.assertIn('/life', res_life.headers['Location'])
+        with self.client.session_transaction() as sess:
+            self.assertEqual(sess.get('active_workspace'), 'life')
+
+        # 2. Switch to finance workspace
+        res_fin = self.client.get('/workspace/finance')
+        self.assertEqual(res_fin.status_code, 302)
+        self.assertIn('/finance', res_fin.headers['Location'])
+
+        # 3. Switch to journal workspace
+        res_jrn = self.client.get('/workspace/journal')
+        self.assertEqual(res_jrn.status_code, 302)
+        self.assertIn('/journal', res_jrn.headers['Location'])
+
+        # 4. Switch to career workspace
+        res_car = self.client.get('/workspace/career')
+        self.assertEqual(res_car.status_code, 302)
+        self.assertIn('/career', res_car.headers['Location'])
+
+        # 5. Switch back to academics workspace
+        res_acad = self.client.get('/workspace/academics')
+        self.assertEqual(res_acad.status_code, 302)
+        self.assertIn('/student/dashboard', res_acad.headers['Location'])
+
+        # 6. Today's Command Center renders 200
+        cmd_res = self.client.get('/dashboard')
+        self.assertEqual(cmd_res.status_code, 200)
+
+    def test_life_habits_create_and_toggle(self):
+        """Verify Habit creation, log persistence, streak calculation, and toggle behavior."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = "Ezra Student"
+                sess['role'] = 'student'
+
+        # 1. Create a habit
+        create_res = self.client.post('/api/life/habits', json={
+            'title': 'Read 20 Pages',
+            'category': 'learning',
+            'frequency': 'daily',
+            'target_days_per_week': 7
+        })
+        self.assertEqual(create_res.status_code, 201)
+        habit_data = create_res.get_json()['data']
+        habit_id = habit_data['id']
+        self.assertEqual(habit_data['title'], 'Read 20 Pages')
+        self.assertEqual(habit_data['streak_count'], 0)
+
+        # 2. Fetch habits
+        fetch_res = self.client.get('/api/life/habits')
+        self.assertEqual(fetch_res.status_code, 200)
+        habits = fetch_res.get_json()['data']
+        self.assertEqual(len(habits), 1)
+        self.assertFalse(habits[0]['today_completed'])
+
+        # 3. Toggle habit to complete
+        toggle_res = self.client.post(f'/api/life/habits/{habit_id}/toggle')
+        self.assertEqual(toggle_res.status_code, 200)
+        toggle_data = toggle_res.get_json()
+        self.assertTrue(toggle_data['is_completed'])
+        self.assertEqual(toggle_data['streak_count'], 1)
+
+        # 4. Verify fetch reflects completion
+        fetch2 = self.client.get('/api/life/habits')
+        self.assertEqual(fetch2.get_json()['completed_today_count'], 1)
+
+    def test_finance_transactions_and_summary(self):
+        """Verify Budget goal setting, expense/income transactions, and remaining budget calculation."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = "Ezra Student"
+                sess['role'] = 'student'
+
+        # 1. Set budget
+        budget_res = self.client.post('/api/finance/budget', json={
+            'monthly_budget_limit': 1500.0,
+            'savings_target': 300.0,
+            'currency_symbol': '$'
+        })
+        self.assertEqual(budget_res.status_code, 200)
+
+        # 2. Log expense
+        exp_res = self.client.post('/api/finance/transactions', json={
+            'type': 'expense',
+            'amount': 50.0,
+            'description': 'Algorithms Textbook',
+            'category': 'books',
+            'payment_method': 'card'
+        })
+        self.assertEqual(exp_res.status_code, 201)
+
+        # 3. Log income
+        inc_res = self.client.post('/api/finance/transactions', json={
+            'type': 'income',
+            'amount': 200.0,
+            'description': 'Peer Tutoring Stipend',
+            'category': 'income'
+        })
+        self.assertEqual(inc_res.status_code, 201)
+
+        # 4. Fetch summary
+        sum_res = self.client.get('/api/finance/summary')
+        self.assertEqual(sum_res.status_code, 200)
+        sum_data = sum_res.get_json()
+        self.assertEqual(sum_data['budget_limit'], 1500.0)
+        self.assertEqual(sum_data['total_expense'], 50.0)
+        self.assertEqual(sum_data['total_income'], 200.0)
+        self.assertEqual(sum_data['remaining_budget'], 1450.0)
+        self.assertIn('books', sum_data['category_breakdown'])
+
+    def test_journal_entry_create_and_fetch(self):
+        """Verify Journal diary reflection logging and mood stats."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = "Ezra Student"
+                sess['role'] = 'student'
+
+        # 1. Write journal entry
+        post_res = self.client.post('/api/journal/entries', json={
+            'title': 'Midterm Reflection',
+            'content': 'Focused heavily on dynamic programming today and solved 3 hard problems.',
+            'mood': 'great',
+            'tags': 'academics,goals'
+        })
+        self.assertEqual(post_res.status_code, 201)
+
+        # 2. Fetch journal entries
+        get_res = self.client.get('/api/journal/entries')
+        self.assertEqual(get_res.status_code, 200)
+        data = get_res.get_json()
+        self.assertEqual(data['total_entries'], 1)
+        self.assertEqual(data['data'][0]['mood'], 'great')
+        self.assertEqual(data['mood_stats']['great'], 1)
+
+    def test_career_application_status_update(self):
+        """Verify Career application tracking and Kanban stage transition."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = "Ezra Student"
+                sess['role'] = 'student'
+
+        # 1. Add application
+        add_res = self.client.post('/api/career/applications', json={
+            'company_name': 'DeepMind',
+            'job_title': 'AI Research Engineer Intern',
+            'status': 'wishlist',
+            'location': 'London / Hybrid',
+            'salary_range': '$5,000/mo'
+        })
+        self.assertEqual(add_res.status_code, 201)
+        app_id = add_res.get_json()['data']['id']
+
+        # 2. Move stage to applied
+        move_res = self.client.patch(f'/api/career/applications/{app_id}/status', json={
+            'status': 'applied'
+        })
+        self.assertEqual(move_res.status_code, 200)
+        self.assertEqual(move_res.get_json()['data']['status'], 'applied')
+
+        # 3. Fetch applications
+        apps_res = self.client.get('/api/career/applications')
+        self.assertEqual(apps_res.status_code, 200)
+        grouped = apps_res.get_json()['grouped']
+        self.assertEqual(len(grouped['applied']), 1)
+        self.assertEqual(grouped['applied'][0]['company_name'], 'DeepMind')
 
 if __name__ == '__main__':
     unittest.main()

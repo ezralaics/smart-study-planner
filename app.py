@@ -9,6 +9,10 @@ from blueprints.student import student_bp
 from blueprints.educator import educator_bp
 from blueprints.admin import admin_bp
 from blueprints.ai import ai_bp
+from blueprints.life import life_bp
+from blueprints.finance import finance_bp
+from blueprints.journal import journal_bp
+from blueprints.career import career_bp
 
 # Import models so SQLAlchemy binds all tables during db.create_all()
 import models  # noqa: F401
@@ -28,6 +32,10 @@ def create_app(config_class=Config):
     app.register_blueprint(educator_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(ai_bp)
+    app.register_blueprint(life_bp)
+    app.register_blueprint(finance_bp)
+    app.register_blueprint(journal_bp)
+    app.register_blueprint(career_bp)
 
     with app.app_context():
         try:
@@ -78,12 +86,80 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def inject_tier_context():
-        from flask import session
+        from flask import session, request
         from services.tier_service import get_tier_config, get_all_tiers
         level = session.get('education_level', 'university')
+
+        # Derive active workspace from request path or session
+        active_ws = session.get('active_workspace', 'academics')
+        path = request.path
+        if path.startswith('/life'):
+            active_ws = 'life'
+        elif path.startswith('/finance'):
+            active_ws = 'finance'
+        elif path.startswith('/journal'):
+            active_ws = 'journal'
+        elif path.startswith('/career'):
+            active_ws = 'career'
+        elif path in ['/student/dashboard', '/study-planner', '/calendar', '/courses', '/classes', '/tasks', '/grades', '/study-assistant']:
+            active_ws = 'academics'
+
+        workspaces_list = [
+            {
+                'key': 'academics',
+                'name': 'Study & Academics',
+                'short_name': 'Academics',
+                'icon': 'bi-mortarboard-fill',
+                'color': '#0d6efd',
+                'url': '/student/dashboard',
+                'badge': 'Academic Modules'
+            },
+            {
+                'key': 'life',
+                'name': 'Life & Daily Habits',
+                'short_name': 'Habits',
+                'icon': 'bi-flower1',
+                'color': '#198754',
+                'url': '/life',
+                'badge': 'Habits & Wellness'
+            },
+            {
+                'key': 'finance',
+                'name': 'Financial Planner',
+                'short_name': 'Finances',
+                'icon': 'bi-wallet2',
+                'color': '#0dcaf0',
+                'url': '/finance',
+                'badge': 'Budget & Expenses'
+            },
+            {
+                'key': 'journal',
+                'name': 'Journal & Reflection',
+                'short_name': 'Journal',
+                'icon': 'bi-journal-richtext',
+                'color': '#6f42c1',
+                'url': '/journal',
+                'badge': 'Diary & Moods'
+            },
+            {
+                'key': 'career',
+                'name': 'Career & Job Tracker',
+                'short_name': 'Career',
+                'icon': 'bi-briefcase-fill',
+                'color': '#fd7e14',
+                'url': '/career',
+                'badge': 'Applications Kanban'
+            }
+        ]
+
+        current_ws = next((w for w in workspaces_list if w['key'] == active_ws), workspaces_list[0])
+
         return {
             'current_tier': get_tier_config(level),
-            'education_tiers': get_all_tiers()
+            'education_tiers': get_all_tiers(),
+            'active_workspace': active_ws,
+            'current_workspace': current_ws,
+            'workspaces_list': workspaces_list
         }
 
     @app.teardown_appcontext

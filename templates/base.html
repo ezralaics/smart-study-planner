@@ -294,6 +294,48 @@
                     {% endif %}
                 {% endif %}
             </a>
+
+            <!-- OmniLife OS Workspace Switcher -->
+            {% if session.get('user_id') and workspaces_list %}
+            <div class="dropdown ms-2 d-none d-md-block">
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 d-flex align-items-center gap-2 border shadow-none" 
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false" 
+                        style="font-size: 0.82rem; background: var(--card-bg, #f8f9fa);"
+                        id="omnilifeWorkspaceSwitcherBtn">
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white" 
+                          style="width: 20px; height: 20px; background-color: {{ current_workspace.color }}; font-size: 0.70rem;">
+                        <i class="bi {{ current_workspace.icon }}"></i>
+                    </span>
+                    <span class="fw-semibold text-dark">{{ current_workspace.name }}</span>
+                    <i class="bi bi-chevron-down text-muted" style="font-size: 0.75rem;"></i>
+                </button>
+                <ul class="dropdown-menu shadow border-0 py-2" style="min-width: 260px;" aria-labelledby="omnilifeWorkspaceSwitcherBtn">
+                    <li class="dropdown-header text-uppercase fw-bold text-muted" style="font-size: 0.70rem; letter-spacing: 0.5px;">
+                        OmniLife Workspaces
+                    </li>
+                    {% for ws in workspaces_list %}
+                    <li>
+                        <a class="dropdown-item py-2 d-flex align-items-center justify-content-between {% if active_workspace == ws.key %}active text-white{% endif %}" 
+                           href="/workspace/{{ ws.key }}">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center {% if active_workspace == ws.key %}bg-white text-primary{% else %}text-white{% endif %}" 
+                                      style="width: 24px; height: 24px; {% if active_workspace != ws.key %}background-color: {{ ws.color }};{% endif %} font-size: 0.75rem;">
+                                    <i class="bi {{ ws.icon }}"></i>
+                                </span>
+                                <div>
+                                    <div class="fw-semibold" style="font-size: 0.85rem;">{{ ws.name }}</div>
+                                    <small class="{% if active_workspace == ws.key %}text-light opacity-75{% else %}text-muted{% endif %}" style="font-size: 0.70rem;">{{ ws.badge }}</small>
+                                </div>
+                            </div>
+                            {% if active_workspace == ws.key %}
+                            <i class="bi bi-check2 text-white fs-6"></i>
+                            {% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
             
             <div class="d-flex align-items-center ms-auto">
                 <div class="clock-container d-none d-md-block">
@@ -413,26 +455,92 @@
                     </a>
 
                 {% else %}
-                    <!-- Student Module Navigation -->
-                    <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Student Module</div>
-                    <a class="nav-link {% if active_page in ['dashboard', 'student_dashboard'] %}active{% endif %}" href="/student/dashboard">
-                        <i class="bi bi-grid-1x2"></i> Academic Dashboard
+                    <!-- Command Center Hub -->
+                    <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Central Command</div>
+                    <a class="nav-link {% if active_page == 'command_center' %}active{% endif %}" href="/dashboard">
+                        <i class="bi bi-speedometer2"></i> Today's Command Center
                     </a>
-                    <a class="nav-link {% if active_page in ['study_planner', 'student_planner'] %}active{% endif %}" href="/student/study-planner">
-                        <i class="bi bi-calendar2-check"></i> Study Planner & AI Scheduler
-                    </a>
-                    <a class="nav-link {% if active_page in ['classes', 'student_classes'] %}active{% endif %}" href="/student/courses">
-                        <i class="bi bi-building"></i> Enrolled Courses
-                    </a>
-                    <a class="nav-link {% if active_page in ['calendar', 'student_calendar'] %}active{% endif %}" href="/student/calendar">
-                        <i class="bi bi-calendar3"></i> Master Calendar
-                    </a>
-                    <a class="nav-link {% if active_page in ['tasks', 'student_tasks'] %}active{% endif %}" href="/student/tasks">
-                        <i class="bi bi-list-task"></i> Tasks & Deadlines
-                    </a>
-                    <a class="nav-link {% if active_page in ['grades', 'student_grades'] %}active{% endif %}" href="/student/grades">
-                        <i class="bi bi-bar-chart"></i> Target Grade Simulator
-                    </a>
+
+                    <!-- Workspace Switcher Selector -->
+                    <div class="px-3 pt-2 pb-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Workspaces</div>
+                    <div class="px-3 mb-2">
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for ws in workspaces_list %}
+                            <a href="/workspace/{{ ws.key }}" class="btn btn-sm rounded-pill px-2 py-1 d-flex align-items-center gap-1 {% if active_workspace == ws.key %}btn-primary text-white shadow-sm{% else %}btn-outline-secondary border-0 text-muted{% endif %}" style="font-size: 0.75rem;" title="{{ ws.name }}">
+                                <i class="bi {{ ws.icon }}"></i>
+                                <span>{{ ws.short_name }}</span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Contextual Workspace Views -->
+                    {% if active_workspace == 'life' %}
+                        <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem; color: #198754 !important;">
+                            <i class="bi bi-flower1 me-1"></i> Life &amp; Habits
+                        </div>
+                        <a class="nav-link {% if active_page == 'life_habits' %}active{% endif %}" href="/life">
+                            <i class="bi bi-check2-circle"></i> Daily Habit Tracker
+                        </a>
+                        <a class="nav-link" href="/life#routine">
+                            <i class="bi bi-sun"></i> Morning &amp; Evening Routine
+                        </a>
+
+                    {% elif active_workspace == 'finance' %}
+                        <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem; color: #0dcaf0 !important;">
+                            <i class="bi bi-wallet2 me-1"></i> Financial Planner
+                        </div>
+                        <a class="nav-link {% if active_page == 'finance_budget' %}active{% endif %}" href="/finance">
+                            <i class="bi bi-pie-chart-fill"></i> Budget &amp; Expenses
+                        </a>
+                        <a class="nav-link" href="/finance#transactions">
+                            <i class="bi bi-receipt"></i> Transaction History
+                        </a>
+
+                    {% elif active_workspace == 'journal' %}
+                        <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem; color: #6f42c1 !important;">
+                            <i class="bi bi-journal-richtext me-1"></i> Journal &amp; Reflection
+                        </div>
+                        <a class="nav-link {% if active_page == 'journal_diary' %}active{% endif %}" href="/journal">
+                            <i class="bi bi-book"></i> Daily Diary &amp; Moods
+                        </a>
+                        <a class="nav-link" href="/journal#prompts">
+                            <i class="bi bi-lightbulb"></i> Reflection Prompts
+                        </a>
+
+                    {% elif active_workspace == 'career' %}
+                        <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem; color: #fd7e14 !important;">
+                            <i class="bi bi-briefcase-fill me-1"></i> Career &amp; Job Tracker
+                        </div>
+                        <a class="nav-link {% if active_page == 'career_kanban' %}active{% endif %}" href="/career">
+                            <i class="bi bi-kanban"></i> Applications Kanban
+                        </a>
+                        <a class="nav-link" href="/career#analytics">
+                            <i class="bi bi-graph-up-arrow"></i> Pipeline Analytics
+                        </a>
+
+                    {% else %}
+                        <!-- Default: Academic Module Navigation -->
+                        <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem;">Academic Modules</div>
+                        <a class="nav-link {% if active_page in ['dashboard', 'student_dashboard'] %}active{% endif %}" href="/student/dashboard">
+                            <i class="bi bi-grid-1x2"></i> Academic Dashboard
+                        </a>
+                        <a class="nav-link {% if active_page in ['study_planner', 'student_planner'] %}active{% endif %}" href="/student/study-planner">
+                            <i class="bi bi-calendar2-check"></i> Study Planner &amp; AI Scheduler
+                        </a>
+                        <a class="nav-link {% if active_page in ['classes', 'student_classes'] %}active{% endif %}" href="/student/courses">
+                            <i class="bi bi-building"></i> Enrolled Courses
+                        </a>
+                        <a class="nav-link {% if active_page in ['calendar', 'student_calendar'] %}active{% endif %}" href="/student/calendar">
+                            <i class="bi bi-calendar3"></i> Master Calendar
+                        </a>
+                        <a class="nav-link {% if active_page in ['tasks', 'student_tasks'] %}active{% endif %}" href="/student/tasks">
+                            <i class="bi bi-list-task"></i> Tasks &amp; Deadlines
+                        </a>
+                        <a class="nav-link {% if active_page in ['grades', 'student_grades'] %}active{% endif %}" href="/student/grades">
+                            <i class="bi bi-bar-chart"></i> Target Grade Simulator
+                        </a>
+                    {% endif %}
                 {% endif %}
                 
                 <hr class="border-secondary mx-3 my-2 opacity-25">

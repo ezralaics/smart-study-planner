@@ -1,0 +1,502 @@
+{% extends "base.html" %}
+
+{% block title %}Today's Command Center | OmniLife OS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .command-header-card {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: #ffffff;
+        border-radius: 16px;
+        border: none;
+        padding: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+    .command-header-card::after {
+        content: '';
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .workspace-pill-card {
+        border-radius: 14px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: #ffffff;
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        padding: 16px;
+        height: 100%;
+    }
+    .workspace-pill-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        border-color: rgba(13, 110, 253, 0.4);
+        color: inherit;
+    }
+    [data-bs-theme="dark"] .workspace-pill-card {
+        background: #1e293b;
+        border-color: #334155;
+        color: #f1f5f9;
+    }
+    .quick-action-btn {
+        border-radius: 12px;
+        font-weight: 600;
+        padding: 10px 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    .habit-check-item {
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background 0.2s, transform 0.15s;
+    }
+    .habit-check-item:hover {
+        background: #f1f5f9;
+        transform: translateX(2px);
+    }
+    [data-bs-theme="dark"] .habit-check-item {
+        background: #0f172a;
+        border-color: #334155;
+    }
+    .habit-check-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 2px solid #cbd5e1;
+        background: transparent;
+        color: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .habit-check-btn.completed {
+        background: #198754;
+        border-color: #198754;
+        color: #ffffff;
+    }
+    .budget-gauge-container {
+        height: 12px;
+        border-radius: 6px;
+        background-color: #e2e8f0;
+        overflow: hidden;
+    }
+    .speed-dial-badge {
+        font-size: 0.72rem;
+        letter-spacing: 0.5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Command Banner -->
+    <div class="command-header-card shadow-sm mb-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="badge bg-primary bg-opacity-25 text-primary-subtle border border-primary border-opacity-25 mb-2 px-3 py-1 rounded-pill speed-dial-badge">
+                    <i class="bi bi-cpu me-1"></i> OMNILIFE OS • TODAY'S COMMAND CENTER
+                </span>
+                <h2 class="fw-bold mb-1">
+                    Good day, <span class="text-info">{{ session.get('username', 'Learner') }}</span>! ✨
+                </h2>
+                <p class="text-light opacity-75 mb-0" style="font-size: 0.95rem;">
+                    Unified telemetry across your Academics, Daily Habits, Finances, Reflections, and Career.
+                </p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <div class="d-flex align-items-center justify-content-lg-end gap-2 flex-wrap">
+                    <button class="btn btn-primary rounded-pill px-3 py-2 btn-sm fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#quickAddModal">
+                        <i class="bi bi-plus-circle me-1"></i> Quick Action
+                    </button>
+                    <a href="/student/dashboard" class="btn btn-outline-light rounded-pill px-3 py-2 btn-sm fw-semibold">
+                        <i class="bi bi-mortarboard me-1"></i> Academic Hub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5 Pluggable Workspaces Grid -->
+    <div class="row g-3 mb-4">
+        {% for ws in workspaces_list %}
+        <div class="col-6 col-md-4 col-lg">
+            <a href="/workspace/{{ ws.key }}" class="workspace-pill-card shadow-sm">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white" 
+                          style="width: 36px; height: 36px; background-color: {{ ws.color }}; font-size: 1rem;">
+                        <i class="bi {{ ws.icon }}"></i>
+                    </span>
+                    {% if active_workspace == ws.key %}
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill" style="font-size: 0.65rem;">Active</span>
+                    {% endif %}
+                </div>
+                <div class="fw-bold mb-0 text-truncate" style="font-size: 0.90rem;">{{ ws.name }}</div>
+                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">{{ ws.badge }}</small>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Unified Command Center Widgets -->
+    <div class="row g-4">
+        <!-- Column 1: Academics & Daily Habits -->
+        <div class="col-lg-6">
+            <!-- Academic Spotlight Widget -->
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                                <i class="bi bi-mortarboard-fill"></i>
+                            </span>
+                            <h5 class="fw-bold mb-0">Academic Spotlight</h5>
+                        </div>
+                        <a href="/student/study-planner" class="small text-decoration-none fw-semibold">View Planner &rarr;</a>
+                    </div>
+                    <div class="p-3 rounded-3 bg-light border" id="academicSpotlightContainer">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <small class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.70rem;">Active Curriculum Tier</small>
+                                <span class="fw-bold text-dark fs-6">{{ current_tier.name }} ({{ current_tier.badge }})</span>
+                            </div>
+                            <span class="badge rounded-pill text-white px-3 py-2" style="background-color: {{ current_tier.color }};">
+                                <i class="bi {{ current_tier.icon }} me-1"></i> {{ current_tier.chunk_duration }}m Focus
+                            </span>
+                        </div>
+                        <hr class="my-2 opacity-25">
+                        <div class="d-flex align-items-center justify-content-between text-muted small">
+                            <span><i class="bi bi-calendar2-week me-1"></i> AI Study Scheduler</span>
+                            <a href="/student/tasks" class="text-primary text-decoration-none">Manage Assignments &rarr;</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Habit Streak Checklist Widget -->
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                                <i class="bi bi-flower1"></i>
+                            </span>
+                            <div>
+                                <h5 class="fw-bold mb-0">Today's Habits</h5>
+                                <small class="text-muted" id="habitsProgressText">Loading habits...</small>
+                            </div>
+                        </div>
+                        <a href="/life" class="small text-decoration-none fw-semibold">Full Tracker &rarr;</a>
+                    </div>
+
+                    <div id="habitsListContainer" class="d-flex flex-column gap-2">
+                        <div class="text-center py-4 text-muted">
+                            <div class="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
+                            <p class="small mb-0">Loading your habit streaks...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 2: Financial Health & Reflections / Career -->
+        <div class="col-lg-6">
+            <!-- Financial Health Widget -->
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rounded-circle bg-info bg-opacity-10 text-info d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                                <i class="bi bi-wallet2"></i>
+                            </span>
+                            <div>
+                                <h5 class="fw-bold mb-0">Financial Health</h5>
+                                <small class="text-muted" id="financeMonthLabel">Monthly Budget</small>
+                            </div>
+                        </div>
+                        <a href="/finance" class="small text-decoration-none fw-semibold">Full Ledger &rarr;</a>
+                    </div>
+
+                    <div class="row align-items-center mb-3">
+                        <div class="col-6">
+                            <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.70rem;">Remaining Budget</small>
+                            <h3 class="fw-bold text-success mb-0" id="cmdRemainingBudget">$--</h3>
+                        </div>
+                        <div class="col-6 text-end">
+                            <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.70rem;">Spent This Month</small>
+                            <h5 class="fw-bold text-dark mb-0" id="cmdTotalExpense">$--</h5>
+                        </div>
+                    </div>
+
+                    <div class="budget-gauge-container mb-2">
+                        <div class="bg-primary h-100 transition-all" id="cmdBudgetGaugeBar" style="width: 0%;"></div>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem;">
+                        <span id="cmdUsagePercent">0% used</span>
+                        <span id="cmdBudgetLimitLabel">Budget: $1,000.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reflections & Career Split Widget -->
+            <div class="row g-3">
+                <!-- Journal Reflection Snippet -->
+                <div class="col-sm-6">
+                    <div class="card shadow-sm border-0 rounded-4 h-100">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge rounded-pill bg-purple text-white px-2 py-1" style="background-color: #6f42c1; font-size: 0.68rem;">
+                                        <i class="bi bi-journal-richtext me-1"></i> Journal
+                                    </span>
+                                    <a href="/journal" class="small text-decoration-none">Write &rarr;</a>
+                                </div>
+                                <h6 class="fw-bold mb-1" id="cmdJournalTitle">Reflection Diary</h6>
+                                <p class="text-muted small mb-0 text-truncate-2" id="cmdJournalSnippet" style="font-size: 0.80rem;">
+                                    Track your thoughts, moods, and weekly learning goals.
+                                </p>
+                            </div>
+                            <div class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between" style="font-size: 0.72rem;">
+                                <span class="text-muted">Mood Pulse</span>
+                                <span class="badge bg-light text-dark border" id="cmdMoodBadge">😊 Good</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Career Applications Snippet -->
+                <div class="col-sm-6">
+                    <div class="card shadow-sm border-0 rounded-4 h-100">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge rounded-pill text-white px-2 py-1" style="background-color: #fd7e14; font-size: 0.68rem;">
+                                        <i class="bi bi-briefcase-fill me-1"></i> Career
+                                    </span>
+                                    <a href="/career" class="small text-decoration-none">Kanban &rarr;</a>
+                                </div>
+                                <h6 class="fw-bold mb-1" id="cmdCareerTitle">Job Applications</h6>
+                                <p class="text-muted small mb-0" id="cmdCareerSnippet" style="font-size: 0.80rem;">
+                                    Track internships, job offers, and resume milestones.
+                                </p>
+                            </div>
+                            <div class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between" style="font-size: 0.72rem;">
+                                <span class="text-muted">Total In Pipeline</span>
+                                <span class="badge bg-warning bg-opacity-10 text-dark fw-bold border border-warning" id="cmdCareerCount">0 Apps</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Action Speed Dial Modal -->
+<div class="modal fade" id="quickAddModal" tabindex="-1" aria-labelledby="quickAddModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="quickAddModalLabel"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Quick Actions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="list-group list-group-flush gap-2">
+                    <a href="/student/tasks" class="list-group-item list-group-item-action rounded-3 border d-flex align-items-center justify-content-between p-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="rounded-circle bg-primary bg-opacity-10 text-primary p-2"><i class="bi bi-check2-square fs-5"></i></span>
+                            <div>
+                                <div class="fw-bold">Create Academic Task</div>
+                                <small class="text-muted">Add assignments, exams, or homework</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="/life" class="list-group-item list-group-item-action rounded-3 border d-flex align-items-center justify-content-between p-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="rounded-circle bg-success bg-opacity-10 text-success p-2"><i class="bi bi-flower1 fs-5"></i></span>
+                            <div>
+                                <div class="fw-bold">Add Habit or Routine</div>
+                                <small class="text-muted">Start tracking a new daily streak</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="/finance" class="list-group-item list-group-item-action rounded-3 border d-flex align-items-center justify-content-between p-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="rounded-circle bg-info bg-opacity-10 text-info p-2"><i class="bi bi-cash-stack fs-5"></i></span>
+                            <div>
+                                <div class="fw-bold">Log Income / Expense</div>
+                                <small class="text-muted">Keep your monthly budget on target</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="/journal" class="list-group-item list-group-item-action rounded-3 border d-flex align-items-center justify-content-between p-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="rounded-circle bg-purple text-white p-2" style="background-color: #6f42c1;"><i class="bi bi-journal-text fs-5"></i></span>
+                            <div>
+                                <div class="fw-bold">New Reflection Entry</div>
+                                <small class="text-muted">Record mood, thoughts, and lessons</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadHabitsSummary();
+    loadFinanceSummary();
+    loadJournalSummary();
+    loadCareerSummary();
+});
+
+// 1. Habits Aggregator
+async function loadHabitsSummary() {
+    const container = document.getElementById('habitsListContainer');
+    const textProg = document.getElementById('habitsProgressText');
+    try {
+        const res = await fetch('/api/life/habits');
+        const json = await res.getJson ? await res.getJson() : await res.json();
+        if (json.status === 'success') {
+            const habits = json.data || [];
+            if (habits.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-3 bg-light rounded-3">
+                        <i class="bi bi-flower1 text-muted fs-3 d-block mb-1"></i>
+                        <small class="text-muted">No habits added yet.</small><br>
+                        <a href="/life" class="btn btn-sm btn-outline-success rounded-pill mt-2">Create First Habit</a>
+                    </div>
+                `;
+                textProg.textContent = '0 habits configured';
+                return;
+            }
+
+            textProg.textContent = `${json.completed_today_count} of ${json.total_habits_count} completed today`;
+            container.innerHTML = habits.slice(0, 4).map(h => `
+                <div class="habit-check-item">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge rounded-pill text-white" style="background-color: ${h.color};">
+                            <i class="bi ${h.icon}"></i>
+                        </span>
+                        <div>
+                            <div class="fw-semibold text-dark" style="font-size: 0.88rem;">${escapeHtml(h.title)}</div>
+                            <small class="text-muted" style="font-size: 0.72rem;">🔥 ${h.streak_count} day streak</small>
+                        </div>
+                    </div>
+                    <button class="habit-check-btn ${h.today_completed ? 'completed' : ''}" 
+                            onclick="toggleCommandHabit('${h.id}', this)" title="Mark completed today">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+    } catch (e) {
+        container.innerHTML = '<div class="text-danger small">Failed to load habits.</div>';
+    }
+}
+
+async function toggleCommandHabit(habitId, btn) {
+    try {
+        const res = await fetch(`/api/life/habits/${habitId}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            btn.classList.toggle('completed', data.is_completed);
+            loadHabitsSummary();
+        }
+    } catch (e) {
+        console.error("Habit toggle error:", e);
+    }
+}
+
+// 2. Finance Aggregator
+async function loadFinanceSummary() {
+    try {
+        const res = await fetch('/api/finance/summary');
+        const json = await res.json();
+        if (json.status === 'success') {
+            const sym = json.currency || '$';
+            document.getElementById('cmdRemainingBudget').textContent = `${sym}${json.remaining_budget.toFixed(2)}`;
+            document.getElementById('cmdTotalExpense').textContent = `${sym}${json.total_expense.toFixed(2)}`;
+            document.getElementById('cmdBudgetLimitLabel').textContent = `Budget: ${sym}${json.budget_limit.toFixed(2)}`;
+            document.getElementById('cmdUsagePercent').textContent = `${json.budget_usage_pct}% used`;
+            
+            const bar = document.getElementById('cmdBudgetGaugeBar');
+            bar.style.width = `${Math.min(100, json.budget_usage_pct)}%`;
+            if (json.budget_usage_pct > 90) {
+                bar.className = 'bg-danger h-100';
+            } else if (json.budget_usage_pct > 70) {
+                bar.className = 'bg-warning h-100';
+            } else {
+                bar.className = 'bg-primary h-100';
+            }
+        }
+    } catch (e) {
+        console.error("Finance summary error:", e);
+    }
+}
+
+// 3. Journal Aggregator
+async function loadJournalSummary() {
+    try {
+        const res = await fetch('/api/journal/entries');
+        const json = await res.json();
+        if (json.status === 'success' && json.data.length > 0) {
+            const latest = json.data[0];
+            document.getElementById('cmdJournalTitle').textContent = latest.title;
+            document.getElementById('cmdJournalSnippet').textContent = latest.content.substring(0, 75) + '...';
+            const moodMap = { great: '😄 Great', good: '😊 Good', neutral: '😐 Neutral', bad: '😔 Low', stressed: '😫 Stressed' };
+            document.getElementById('cmdMoodBadge').textContent = moodMap[latest.mood] || '😊 Good';
+        }
+    } catch (e) {
+        console.error("Journal summary error:", e);
+    }
+}
+
+// 4. Career Aggregator
+async function loadCareerSummary() {
+    try {
+        const res = await fetch('/api/career/applications');
+        const json = await res.json();
+        if (json.status === 'success') {
+            document.getElementById('cmdCareerCount').textContent = `${json.total_count} Apps`;
+        }
+    } catch (e) {
+        console.error("Career summary error:", e);
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/[&<>"']/g, function(m) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m];
+    });
+}
+</script>
+{% endblock %}

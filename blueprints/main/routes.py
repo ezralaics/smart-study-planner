@@ -20,7 +20,7 @@ def home():
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """Smart router: routes educators & admins to dedicated portals, serves student dashboard directly."""
+    """OmniLife OS: Today's Command Center aggregating Academics, Life, Finance, Journal & Career."""
     if not session.get('is_profile_completed', False) and not session.get('skipped_onboarding'):
         return redirect(url_for('main.complete_profile'))
     role = session.get('role', 'student')
@@ -28,7 +28,25 @@ def dashboard():
         return redirect(url_for('educator.dashboard'))
     elif role == 'admin':
         return redirect(url_for('admin.dashboard'))
-    return render_template('index.html', active_page='student_dashboard')
+    return render_template('dashboard.html', active_page='command_center')
+
+@main_bp.route('/workspace/<string:workspace_name>')
+@login_required
+def switch_workspace(workspace_name):
+    """Workspace Switcher: updates active workspace in session and redirects to module overview."""
+    valid_workspaces = {
+        'academics': '/student/dashboard',
+        'life': '/life',
+        'finance': '/finance',
+        'journal': '/journal',
+        'career': '/career'
+    }
+    key = workspace_name.lower().strip()
+    target = valid_workspaces.get(key)
+    if target:
+        session['active_workspace'] = key
+        return redirect(target)
+    return redirect(url_for('main.dashboard'))
 
 # ==========================================
 # Onboarding & Profile Management
