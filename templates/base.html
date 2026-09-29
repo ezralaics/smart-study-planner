@@ -269,6 +269,42 @@
             opacity: 0.75;
             margin-top: 2px;
         }
+
+        /* OmniSuite 9-Dot App Switcher & Command Palette */
+        .omni-app-tile {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            text-decoration: none !important;
+            border: 1px solid rgba(0, 0, 0, 0.08) !important;
+            border-radius: 14px;
+        }
+        .omni-app-tile:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            border-color: rgba(13, 110, 253, 0.4) !important;
+        }
+        [data-bs-theme="dark"] .omni-app-tile {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        .cmd-palette-item {
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            text-decoration: none !important;
+            color: inherit;
+            transition: background 0.15s;
+        }
+        .cmd-palette-item:hover, .cmd-palette-item.active {
+            background-color: #f1f5f9;
+            color: #0d6efd;
+        }
+        [data-bs-theme="dark"] .cmd-palette-item:hover, [data-bs-theme="dark"] .cmd-palette-item.active {
+            background-color: #334155;
+            color: #60a5fa;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -295,46 +331,55 @@
                 {% endif %}
             </a>
 
-            <!-- OmniLife OS Workspace Switcher -->
+            <!-- OmniSuite 9-Dot App Switcher & Quick Search -->
             {% if session.get('user_id') and workspaces_list %}
-            <div class="dropdown ms-2 d-none d-md-block">
-                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 d-flex align-items-center gap-2 border shadow-none" 
-                        type="button" data-bs-toggle="dropdown" aria-expanded="false" 
-                        style="font-size: 0.82rem; background: var(--card-bg, #f8f9fa);"
-                        id="omnilifeWorkspaceSwitcherBtn">
-                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white" 
-                          style="width: 20px; height: 20px; background-color: {{ current_workspace.color }}; font-size: 0.70rem;">
-                        <i class="bi {{ current_workspace.icon }}"></i>
-                    </span>
-                    <span class="fw-semibold text-dark">{{ current_workspace.name }}</span>
-                    <i class="bi bi-chevron-down text-muted" style="font-size: 0.75rem;"></i>
+            <!-- 9-Dot App Launcher Dropdown -->
+            <div class="dropdown ms-2">
+                <button class="btn btn-light rounded-circle shadow-sm border d-flex align-items-center justify-content-center p-0" 
+                        style="width: 38px; height: 38px;" 
+                        type="button" 
+                        data-bs-toggle="dropdown" 
+                        aria-expanded="false" 
+                        id="omniAppLauncherBtn" 
+                        title="OmniSuite App Switcher">
+                    <i class="bi bi-grid-3x3-gap-fill fs-5 text-primary"></i>
                 </button>
-                <ul class="dropdown-menu shadow border-0 py-2" style="min-width: 260px;" aria-labelledby="omnilifeWorkspaceSwitcherBtn">
-                    <li class="dropdown-header text-uppercase fw-bold text-muted" style="font-size: 0.70rem; letter-spacing: 0.5px;">
-                        OmniLife Workspaces
-                    </li>
-                    {% for ws in workspaces_list %}
-                    <li>
-                        <a class="dropdown-item py-2 d-flex align-items-center justify-content-between {% if active_workspace == ws.key %}active text-white{% endif %}" 
-                           href="/workspace/{{ ws.key }}">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center {% if active_workspace == ws.key %}bg-white text-primary{% else %}text-white{% endif %}" 
-                                      style="width: 24px; height: 24px; {% if active_workspace != ws.key %}background-color: {{ ws.color }};{% endif %} font-size: 0.75rem;">
-                                    <i class="bi {{ ws.icon }}"></i>
-                                </span>
-                                <div>
-                                    <div class="fw-semibold" style="font-size: 0.85rem;">{{ ws.name }}</div>
-                                    <small class="{% if active_workspace == ws.key %}text-light opacity-75{% else %}text-muted{% endif %}" style="font-size: 0.70rem;">{{ ws.badge }}</small>
+                <div class="dropdown-menu dropdown-menu-start shadow-lg border-0 p-3" style="width: 340px; border-radius: 16px;" aria-labelledby="omniAppLauncherBtn">
+                    <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+                        <span class="fw-bold small text-uppercase text-muted" style="letter-spacing: 0.5px; font-size: 0.72rem;">OmniSuite Applications</span>
+                        <button class="btn btn-sm btn-link text-muted p-0 text-decoration-none small" onclick="openCommandPalette()"><i class="bi bi-search me-1"></i><kbd style="font-size: 0.65rem;">Ctrl K</kbd></button>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        {% for ws in workspaces_list %}
+                        <div class="col-6">
+                            <a href="/workspace/{{ ws.key }}" class="p-2 d-flex flex-column gap-1 omni-app-tile h-100 {% if active_workspace == ws.key %}border-primary bg-primary bg-opacity-10{% else %}bg-light{% endif %}">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white shadow-sm" style="width: 30px; height: 30px; background-color: {{ ws.color }};">
+                                        <i class="bi {{ ws.icon }}" style="font-size: 0.85rem;"></i>
+                                    </span>
+                                    {% if active_workspace == ws.key %}
+                                    <span class="badge bg-primary rounded-pill" style="font-size: 0.58rem;">ACTIVE</span>
+                                    {% endif %}
                                 </div>
-                            </div>
-                            {% if active_workspace == ws.key %}
-                            <i class="bi bi-check2 text-white fs-6"></i>
-                            {% endif %}
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
+                                <div class="fw-bold text-dark mt-1" style="font-size: 0.82rem;">{{ ws.name }}</div>
+                                <small class="text-muted text-truncate" style="font-size: 0.68rem;">{{ ws.badge }}</small>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="border-top pt-2 d-flex align-items-center justify-content-between" style="font-size: 0.78rem;">
+                        <a href="/dashboard" class="text-decoration-none text-primary fw-semibold"><i class="bi bi-speedometer2 me-1"></i>Command Center</a>
+                        <a href="/settings" class="text-decoration-none text-secondary"><i class="bi bi-gear me-1"></i>Settings</a>
+                    </div>
+                </div>
             </div>
+
+            <!-- Global Search Trigger (Ctrl+K) -->
+            <button class="btn btn-light rounded-pill px-3 py-1 border d-none d-lg-flex align-items-center gap-2 text-muted shadow-sm ms-2 me-2" onclick="openCommandPalette()" style="font-size: 0.82rem;" title="Search OmniSuite (Ctrl+K)">
+                <i class="bi bi-search"></i>
+                <span>Search OmniSuite...</span>
+                <kbd class="bg-white border text-secondary px-1 py-0 rounded" style="font-size: 0.68rem;">Ctrl K</kbd>
+            </button>
             {% endif %}
             
             <div class="d-flex align-items-center ms-auto">
@@ -1283,7 +1328,138 @@
                 });
             }
         });
+
+        // ==========================================
+        // OmniSuite Command Palette (Ctrl+K)
+        // ==========================================
+        const omniCommands = [
+            { title: "Today's Command Center", category: "Core", icon: "bi-speedometer2", url: "/dashboard", color: "#0d6efd" },
+            { title: "Study Planner & AI Scheduler", category: "Study", icon: "bi-calendar2-check", url: "/study-planner", color: "#0d6efd" },
+            { title: "Course Modules & Classes", category: "Study", icon: "bi-building", url: "/student/courses", color: "#0d6efd" },
+            { title: "Tasks & Deadlines", category: "Study", icon: "bi-list-task", url: "/student/tasks", color: "#0d6efd" },
+            { title: "Master Timetable", category: "Study", icon: "bi-calendar3", url: "/calendar", color: "#0d6efd" },
+            { title: "Target Grade Simulator & GPA", category: "Study", icon: "bi-bar-chart", url: "/grades", color: "#0d6efd" },
+            { title: "AI Study Assistant & Knowledge Base", category: "AI Tools", icon: "bi-robot", url: "/study-assistant", color: "#2563eb" },
+            { title: "Life & Daily Habits Tracker", category: "Life", icon: "bi-flower1", url: "/life", color: "#198754" },
+            { title: "Financial Planner & Ledger", category: "Finance", icon: "bi-wallet2", url: "/finance", color: "#0dcaf0" },
+            { title: "Journal Diary & Mood Tracker", category: "Journal", icon: "bi-journal-richtext", url: "/journal", color: "#6f42c1" },
+            { title: "Career & Job Application Kanban", category: "Career", icon: "bi-briefcase-fill", url: "/career", color: "#fd7e14" },
+            { title: "Account & Application Settings", category: "System", icon: "bi-gear", url: "/settings", color: "#6c757d" },
+            { title: "User Profile Management", category: "System", icon: "bi-person-circle", url: "/profile", color: "#6c757d" }
+        ];
+
+        let activeCmdIndex = 0;
+        let filteredCommands = [...omniCommands];
+
+        function openCommandPalette() {
+            const modalEl = document.getElementById('omniCommandPaletteModal');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+                setTimeout(() => {
+                    const input = document.getElementById('omniCommandSearchInput');
+                    if (input) {
+                        input.value = '';
+                        input.focus();
+                        renderCommandResults('');
+                    }
+                }, 150);
+            }
+        }
+
+        function renderCommandResults(query) {
+            const listEl = document.getElementById('omniCommandResultsList');
+            const q = query.toLowerCase().trim();
+            filteredCommands = omniCommands.filter(c => 
+                !q || c.title.toLowerCase().includes(q) || c.category.toLowerCase().includes(q)
+            );
+            activeCmdIndex = 0;
+
+            if (filteredCommands.length === 0) {
+                listEl.innerHTML = '<div class="text-center py-4 text-muted small"><i class="bi bi-search fs-4 d-block mb-1"></i>No matching pages or actions found.</div>';
+                return;
+            }
+
+            listEl.innerHTML = filteredCommands.map((c, idx) => `
+                <a href="${c.url}" class="cmd-palette-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white" style="width: 28px; height: 28px; background-color: ${c.color}; font-size: 0.80rem;">
+                            <i class="bi ${c.icon}"></i>
+                        </span>
+                        <div>
+                            <div class="fw-semibold text-dark" style="font-size: 0.88rem;">${c.title}</div>
+                            <small class="text-muted" style="font-size: 0.70rem;">${c.category} Application</small>
+                        </div>
+                    </div>
+                    <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">Jump &rarr;</span>
+                </a>
+            `).join('');
+        }
+
+        // Global Ctrl+K / Cmd+K Shortcut Listener
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                openCommandPalette();
+            }
+
+            const modalEl = document.getElementById('omniCommandPaletteModal');
+            if (modalEl && modalEl.classList.contains('show')) {
+                const items = document.querySelectorAll('.cmd-palette-item');
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        items[activeCmdIndex].classList.remove('active');
+                        activeCmdIndex = (activeCmdIndex + 1) % items.length;
+                        items[activeCmdIndex].classList.add('active');
+                        items[activeCmdIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        items[activeCmdIndex].classList.remove('active');
+                        activeCmdIndex = (activeCmdIndex - 1 + items.length) % items.length;
+                        items[activeCmdIndex].classList.add('active');
+                        items[activeCmdIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'Enter') {
+                    if (filteredCommands[activeCmdIndex]) {
+                        e.preventDefault();
+                        window.location.href = filteredCommands[activeCmdIndex].url;
+                    }
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('omniCommandSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    renderCommandResults(e.target.value);
+                });
+            }
+        });
     </script>
+    
+    <!-- OmniSuite Ctrl+K Command Palette Modal -->
+    <div class="modal fade" id="omniCommandPaletteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+                <div class="p-3 border-bottom d-flex align-items-center gap-2 bg-light">
+                    <i class="bi bi-search text-muted fs-5 ms-2"></i>
+                    <input type="text" class="form-control border-0 bg-transparent shadow-none fs-6" id="omniCommandSearchInput" placeholder="Type an app, page, or action (e.g. 'study', 'habits', 'expense', 'grades')..." autocomplete="off">
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary me-2">ESC</span>
+                </div>
+                <div class="p-2" style="max-height: 400px; overflow-y: auto;" id="omniCommandResultsList">
+                    <!-- Filtered items injected by JS -->
+                </div>
+                <div class="p-2 border-top bg-light d-flex align-items-center justify-content-between text-muted small px-3">
+                    <span>Navigation: <kbd class="bg-white border text-dark px-1">↑</kbd> <kbd class="bg-white border text-dark px-1">↓</kbd> to select, <kbd class="bg-white border text-dark px-1">Enter</kbd> to open</span>
+                    <span>OmniSuite Quick Switcher</span>
+                </div>
+            </div>
+        </div>
+    </div>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

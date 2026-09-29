@@ -1228,6 +1228,51 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
         self.assertEqual(len(grouped['applied']), 1)
         self.assertEqual(grouped['applied'][0]['company_name'], 'DeepMind')
 
+    def test_study_hub_modular_routes_and_aliases(self):
+        """Verify blueprints/study domain routes and backward-compatible aliases."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = "Ezra Student"
+                sess['role'] = 'student'
+                sess['is_profile_completed'] = True
+
+        # 1. Test /study root redirects to student dashboard
+        res_study = self.client.get('/study')
+        self.assertEqual(res_study.status_code, 302)
+        self.assertIn('/student/dashboard', res_study.headers['Location'])
+
+        # 2. Test /study/planner, /study/calendar, /study/courses, /study/tasks, /study/grades
+        res_planner = self.client.get('/study/planner')
+        self.assertEqual(res_planner.status_code, 200)
+
+        res_calendar = self.client.get('/study/calendar')
+        self.assertEqual(res_calendar.status_code, 200)
+
+        res_courses = self.client.get('/study/courses')
+        self.assertEqual(res_courses.status_code, 200)
+
+        res_tasks = self.client.get('/study/tasks')
+        self.assertEqual(res_tasks.status_code, 200)
+
+        res_grades = self.client.get('/study/grades')
+        self.assertEqual(res_grades.status_code, 200)
+
+        # 3. Test backward-compatible aliases
+        res_alias_planner = self.client.get('/study-planner')
+        self.assertEqual(res_alias_planner.status_code, 200)
+
+        res_alias_cal = self.client.get('/calendar')
+        self.assertEqual(res_alias_cal.status_code, 200)
+
+    def test_models_study_facade(self):
+        """Verify models/study.py exports Course, Task, and Schedule properly."""
+        from models.study import Course as StudyCourse, Task as StudyTask, Schedule as StudySchedule
+        self.assertIs(StudyCourse, Course)
+        self.assertIs(StudyTask, Task)
+        self.assertIs(StudySchedule, Schedule)
+
 if __name__ == '__main__':
     unittest.main()
 
