@@ -1273,6 +1273,149 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
         self.assertIs(StudyTask, Task)
         self.assertIs(StudySchedule, Schedule)
 
+    def test_whatif_grade_calculator_accuracy(self):
+        """Verify What-If grade forecasting engine: edge cases, zero weights, impossible and secured targets."""
+        from services.analytics_service import calculate_what_if_grade
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            course = Course(
+                user_id=student.id,
+                course_name="Algorithms & Complexity",
+                credits=4,
+                target_grade=85.0
+            )
+            db.session.add(course)
+            db.session.commit()
+
+            # Case 1: Course with zero tasks (100% pending weight)
+            calc_empty = calculate_what_if_grade(str(course.id), target_grade=85.0)
+            self.assertEqual(calc_empty["status"], "achievable")
+            self.assertEqual(calc_empty["required_pending_pct"], 85.0)
+
+            # Case 2: Add completed task: Midterm weight 40%, score 90% (earned = 36%)
+            midterm = Task(
+                course_id=course.id,
+                user_id=student.id,
+                task_name="Midterm Examination",
+                weightage=40.0,
+                marks_obtained=90.0,
+                is_completed=True
+            )
+            # Pending Final Exam weight 60%
+            final_exam = Task(
+                course_id=course.id,
+                user_id=student.id,
+                task_name="Final Examination",
+                weightage=60.0,
+                is_completed=False
+            )
+            db.session.add_all([midterm, final_exam])
+            db.session.commit()
+
+            # Target 85%: Current earned = 36%, needed = 49% across 60% pending -> 49/60 * 100 = 81.67 -> 81.7%
+            calc_normal = calculate_what_if_grade(str(course.id), target_grade=85.0)
+            self.assertEqual(calc_normal["status"], "achievable")
+            self.assertAlmostEqual(calc_normal["required_pending_pct"], 81.7, places=1)
+
+            # Case 3: Impossible target (e.g. 98% target -> needed 62% on 60% pending -> >100%)
+            calc_impossible = calculate_what_if_grade(str(course.id), target_grade=98.0)
+            self.assertEqual(calc_impossible["status"], "impossible")
+            self.assertGreater(calc_impossible["required_pending_pct"], 100.0)
+
+            # Case 4: Already secured target (e.g. target 30% -> needed <= 0%)
+            calc_secured = calculate_what_if_grade(str(course.id), target_grade=30.0)
+            self.assertEqual(calc_secured["status"], "secured")
+            self.assertEqual(calc_secured["required_pending_pct"], 0.0)
+
+    def test_deadline_clustering_and_burnout_risk(self):
+        """Verify rolling 72-hour deadline cluster detection and burnout severity calculation."""
+        from services.analytics_service import detect_burnout_and_deadline_clusters
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            today = date.today()
+
+            # Create 3 tasks coinciding within 48 hours (within 72-hour rolling window)
+            t1 = Task(user_id=student.id, task_name="Sprint 1 Milestone", due_date=today + timedelta(days=5), is_completed=False)
+            t2 = Task(user_id=student.id, task_name="Calculus Problem Set", due_date=today + timedelta(days=6), is_completed=False)
+            t3 = Task(user_id=student.id, task_name="Software Architecture Doc", due_date=today + timedelta(days=7), is_completed=False)
+            db.session.add_all([t1, t2, t3])
+            db.session.commit()
+
+            burnout_high = detect_burnout_and_deadline_clusters(str(student.id))
+            self.assertEqual(burnout_high["risk_level"], "high")
+            self.assertEqual(burnout_high["risk_title"], "High Workload Alert")
+            self.assertGreaterEqual(burnout_high["cluster_count"], 1)
+
+            # Complete the tasks and verify risk drops to low
+            t1.is_completed = True
+            t2.is_completed = True
+            t3.is_completed = True
+            db.session.commit()
+
+            burnout_low = detect_burnout_and_deadline_clusters(str(student.id))
+            self.assertEqual(burnout_low["risk_level"], "low")
+            self.assertEqual(burnout_low["risk_title"], "Healthy Study Rhythm")
+
+    def test_analytics_routes_and_apis(self):
+        """Verify /analytics requires auth and returns 200 with chart metrics payload and forecast APIs."""
+        # 1. Unauthenticated request redirects to /login
+        res_unauth = self.client.get('/analytics', follow_redirects=False)
+        self.assertEqual(res_unauth.status_code, 302)
+        self.assertIn('/login', res_unauth.headers['Location'])
+
+        # 2. Authenticated user access
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = "Ezra Student"
+                sess['role'] = 'student'
+                sess['is_profile_completed'] = True
+
+        res_auth = self.client.get('/analytics')
+        self.assertEqual(res_auth.status_code, 200)
+        self.assertIn(b'Academic Analytics &amp; AI Insights Hub', res_auth.data)
+
+        # 3. Test GET /api/analytics/metrics
+        res_metrics = self.client.get('/api/analytics/metrics')
+        self.assertEqual(res_metrics.status_code, 200)
+        m_json = res_metrics.get_json()
+        self.assertEqual(m_json["status"], "success")
+        self.assertIn("charts", m_json["data"])
+        self.assertIn("doughnut", m_json["data"]["charts"])
+        self.assertIn("line", m_json["data"]["charts"])
+        self.assertIn("heatmap", m_json["data"]["charts"])
+        self.assertIn("radar", m_json["data"]["charts"])
+
+        # 4. Test POST /api/analytics/forecast
+        with self.app.app_context():
+            course = Course.query.filter_by(course_name="Algorithms & Complexity").first()
+            if not course:
+                student = User.query.filter_by(username="student_user").first()
+                course = Course(user_id=student.id, course_name="Testing Analytics Course", target_grade=80.0)
+                db.session.add(course)
+                db.session.commit()
+            course_id = str(course.id)
+
+        res_forecast = self.client.post('/api/analytics/forecast', json={
+            "course_id": course_id,
+            "target_grade": 85.0
+        })
+        self.assertEqual(res_forecast.status_code, 200)
+        f_json = res_forecast.get_json()
+        self.assertEqual(f_json["status"], "success")
+        self.assertIn("required_pending_pct", f_json["data"])
+
+        # 5. Test POST /api/analytics/generate-study-material
+        res_ai = self.client.post('/api/analytics/generate-study-material', json={
+            "course_id": course_id,
+            "material_type": "flashcards"
+        })
+        self.assertEqual(res_ai.status_code, 200)
+        ai_json = res_ai.get_json()
+        self.assertEqual(ai_json["status"], "success")
+        self.assertEqual(len(ai_json["data"]["items"]), 5)
+
 if __name__ == '__main__':
     unittest.main()
 

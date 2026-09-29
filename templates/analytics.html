@@ -1,0 +1,1166 @@
+{% extends "base.html" %}
+
+{% block title %}Academic Analytics &amp; AI Insights Hub | Smart Study Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Analytics Hub Specific Styles */
+    .metric-card {
+        border-radius: 16px;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08) !important;
+    }
+    .chart-container-card {
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        transition: all 0.2s ease;
+    }
+    [data-bs-theme="dark"] .chart-container-card {
+        background: #1e293b;
+        border-color: #334155;
+    }
+
+    /* 365-Day Activity Heatmap Grid */
+    .heatmap-scroll-wrapper {
+        overflow-x: auto;
+        padding-bottom: 8px;
+        scrollbar-width: thin;
+    }
+    .heatmap-grid {
+        display: grid;
+        grid-template-rows: repeat(7, 13px);
+        grid-auto-flow: column;
+        grid-auto-columns: 13px;
+        gap: 4px;
+        width: max-content;
+    }
+    .heatmap-cell {
+        width: 13px;
+        height: 13px;
+        border-radius: 3px;
+        background-color: #f1f5f9;
+        transition: transform 0.15s, outline 0.15s;
+        cursor: pointer;
+    }
+    .heatmap-cell:hover {
+        transform: scale(1.35);
+        outline: 2px solid #0d6efd;
+        z-index: 10;
+        position: relative;
+    }
+    .heatmap-cell[data-level="0"] { background-color: #f1f5f9; }
+    .heatmap-cell[data-level="1"] { background-color: #bfdbfe; }
+    .heatmap-cell[data-level="2"] { background-color: #60a5fa; }
+    .heatmap-cell[data-level="3"] { background-color: #2563eb; }
+    .heatmap-cell[data-level="4"] { background-color: #1e3a8a; }
+
+    [data-bs-theme="dark"] .heatmap-cell[data-level="0"] { background-color: #334155; }
+    [data-bs-theme="dark"] .heatmap-cell[data-level="1"] { background-color: #1e3a8a; }
+    [data-bs-theme="dark"] .heatmap-cell[data-level="2"] { background-color: #2563eb; }
+    [data-bs-theme="dark"] .heatmap-cell[data-level="3"] { background-color: #60a5fa; }
+    [data-bs-theme="dark"] .heatmap-cell[data-level="4"] { background-color: #93c5fd; }
+
+    /* 3D Flip Card for Flashcards */
+    .flashcard-scene {
+        perspective: 1000px;
+        width: 100%;
+        min-height: 240px;
+    }
+    .flashcard-object {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d;
+        cursor: pointer;
+    }
+    .flashcard-object.is-flipped {
+        transform: rotateY(180deg);
+    }
+    .flashcard-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 16px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .flashcard-front {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 2px solid #e2e8f0;
+        color: #1e293b;
+    }
+    .flashcard-back {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a4da2 100%);
+        color: #ffffff;
+        transform: rotateY(180deg);
+        border: 2px solid #0d6efd;
+    }
+    [data-bs-theme="dark"] .flashcard-front {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-color: #334155;
+        color: #f8fafc;
+    }
+
+    /* What-If Custom Slider Styling */
+    .whatif-slider::-webkit-slider-thumb {
+        background: #0d6efd;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 6px rgba(13, 110, 253, 0.4);
+    }
+
+    /* Quiz Option Button */
+    .quiz-option-btn {
+        text-align: left;
+        border-radius: 12px;
+        padding: 12px 16px;
+        transition: all 0.2s;
+        border: 1.5px solid #e2e8f0;
+        background: #ffffff;
+    }
+    .quiz-option-btn:hover:not(:disabled) {
+        border-color: #0d6efd;
+        background-color: #f8fafc;
+        transform: translateX(4px);
+    }
+    [data-bs-theme="dark"] .quiz-option-btn {
+        background: #1e293b;
+        border-color: #334155;
+        color: #f1f5f9;
+    }
+    .quiz-option-btn.correct {
+        background-color: #d1e7dd !important;
+        border-color: #198754 !important;
+        color: #0f5132 !important;
+    }
+    .quiz-option-btn.incorrect {
+        background-color: #f8d7da !important;
+        border-color: #dc3545 !important;
+        color: #842029 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="container-fluid px-3 px-md-4 py-4" id="main-content">
+
+    <!-- Top Header & Breadcrumbs -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-2 border-bottom">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="/dashboard" class="text-decoration-none text-muted">Command Center</a></li>
+                    <li class="breadcrumb-item active text-primary fw-semibold" aria-current="page">Academic Analytics</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-graph-up-arrow text-primary"></i> Academic Analytics &amp; AI Insights Hub
+            </h1>
+            <p class="text-muted small mb-0">Interactive visual telemetry, predictive grade forecaster, burnout diagnostic &amp; AI exam preparation deck.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" onclick="refreshDashboardMetrics()" id="refreshMetricsBtn">
+                <i class="bi bi-arrow-repeat me-1" id="refreshIcon"></i> Refresh Telemetry
+            </button>
+            <a href="/student/study-planner" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm text-white">
+                <i class="bi bi-calendar2-check me-1"></i> Open Study Planner
+            </a>
+        </div>
+    </div>
+
+    <!-- 1. Top Executive KPI Ribbon -->
+    <div class="row g-3 mb-4">
+        <!-- KPI 1: Projected CGPA -->
+        <div class="col-6 col-lg-3">
+            <div class="card metric-card shadow-sm h-100 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Projected CGPA</span>
+                    <span class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                        <i class="bi bi-award-fill"></i>
+                    </span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="h2 fw-bold mb-0 text-dark" id="kpiProjectedCgpa">{{ "%.2f"|format(metrics.kpis.projected_cgpa) }}</span>
+                    <span class="text-muted small">/ 4.00</span>
+                </div>
+                <div class="mt-2 text-success small d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                    <i class="bi bi-arrow-up-right"></i> On track for Honors Distinction
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 2: Study Velocity -->
+        <div class="col-6 col-lg-3">
+            <div class="card metric-card shadow-sm h-100 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">On-Time Velocity</span>
+                    <span class="rounded-circle bg-success bg-opacity-10 text-success p-2 d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                    </span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="h2 fw-bold mb-0 text-dark" id="kpiVelocity">{{ metrics.kpis.on_time_rate }}%</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.70rem;">Punctual</span>
+                </div>
+                <div class="mt-2 text-muted small d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                    <i class="bi bi-check2-all text-success"></i> Avg. {{ metrics.kpis.avg_days_early }} days submitted before deadline
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 3: Burnout Risk Diagnostic -->
+        <div class="col-6 col-lg-3">
+            <div class="card metric-card shadow-sm h-100 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Burnout Diagnostic</span>
+                    <span class="rounded-circle bg-{{ metrics.kpis.burnout_badge_class }} bg-opacity-10 text-{{ metrics.kpis.burnout_badge_class }} p-2 d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                        <i class="bi bi-heart-pulse-fill"></i>
+                    </span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="h4 fw-bold mb-0 text-dark" id="kpiBurnoutTitle">{{ metrics.kpis.burnout_risk_title }}</span>
+                </div>
+                <div class="mt-2 small text-truncate" style="font-size: 0.75rem;" title="{{ metrics.kpis.burnout_suggestion }}">
+                    <span class="badge bg-{{ metrics.kpis.burnout_badge_class }} text-white text-capitalize me-1">{{ metrics.kpis.burnout_risk_level }}</span>
+                    <span class="text-muted">{{ metrics.kpis.burnout_clusters|length }} clusters (72h)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 4: Total Study Workload -->
+        <div class="col-6 col-lg-3">
+            <div class="card metric-card shadow-sm h-100 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Weekly Logged Hours</span>
+                    <span class="rounded-circle bg-info bg-opacity-10 text-info p-2 d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                        <i class="bi bi-clock-history"></i>
+                    </span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="h2 fw-bold mb-0 text-dark" id="kpiWeeklyHours">{{ metrics.kpis.total_weekly_hours }}</span>
+                    <span class="text-muted small">hrs/week</span>
+                </div>
+                <div class="mt-2 text-muted small d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                    <i class="bi bi-pie-chart text-info"></i> Across all scheduled modules
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Charts Row 1: Study Time Distribution & Grade Trajectory -->
+    <div class="row g-4 mb-4">
+        <!-- Chart 1: Study Time Distribution (Doughnut) -->
+        <div class="col-12 col-lg-5">
+            <div class="card chart-container-card shadow-sm h-100 p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-pie-chart-fill text-primary"></i> Study Time Distribution
+                        </h6>
+                        <small class="text-muted">Logged weekly hours vs. credit-hour workload</small>
+                    </div>
+                    <span class="badge bg-light text-secondary border small">Weekly</span>
+                </div>
+                <div class="position-relative d-flex align-items-center justify-content-center" style="min-height: 260px;">
+                    <canvas id="studyTimeDoughnutChart" aria-label="Study Time Distribution Chart" role="img"></canvas>
+                </div>
+                <div class="border-top pt-2 mt-2 d-flex align-items-center justify-content-around text-center small text-muted">
+                    <div>
+                        <span class="d-block fw-bold text-dark" id="doughnutTotalLogged">{{ metrics.kpis.total_weekly_hours }} hrs</span>
+                        <span style="font-size: 0.70rem;">Logged Effort</span>
+                    </div>
+                    <div class="border-start ps-3">
+                        <span class="d-block fw-bold text-primary">30.0 hrs</span>
+                        <span style="font-size: 0.70rem;">Recommended Workload</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Grade Trajectory & GPA Simulator (Line Chart) -->
+        <div class="col-12 col-lg-7">
+            <div class="card chart-container-card shadow-sm h-100 p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-graph-up text-success"></i> Grade Trajectory &amp; GPA Simulator
+                        </h6>
+                        <small class="text-muted">Historical semester GPA with active semester projection</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle small">
+                            Target: 3.85
+                        </span>
+                    </div>
+                </div>
+                <div class="position-relative" style="height: 280px;">
+                    <canvas id="gradeTrajectoryChart" aria-label="Grade Trajectory and GPA Line Chart" role="img"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Chart 3: 365-Day Study Activity Heatmap -->
+    <div class="card chart-container-card shadow-sm p-4 mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <div>
+                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar3 text-primary"></i> 365-Day Study Activity &amp; Commitment Heatmap
+                </h6>
+                <small class="text-muted">GitHub-style daily commitment squares tracking completed study sessions and submitted assignments</small>
+            </div>
+            <div class="d-flex align-items-center gap-2 small text-muted">
+                <span>Less</span>
+                <span class="heatmap-cell d-inline-block" data-level="0" style="width: 11px; height: 11px;"></span>
+                <span class="heatmap-cell d-inline-block" data-level="1" style="width: 11px; height: 11px;"></span>
+                <span class="heatmap-cell d-inline-block" data-level="2" style="width: 11px; height: 11px;"></span>
+                <span class="heatmap-cell d-inline-block" data-level="3" style="width: 11px; height: 11px;"></span>
+                <span class="heatmap-cell d-inline-block" data-level="4" style="width: 11px; height: 11px;"></span>
+                <span>More</span>
+            </div>
+        </div>
+
+        <!-- Scrollable Heatmap Canvas -->
+        <div class="heatmap-scroll-wrapper">
+            <div class="d-flex gap-2">
+                <div class="d-flex flex-column justify-content-between text-muted small pe-1" style="font-size: 0.65rem; height: 115px; margin-top: 2px;">
+                    <span>Mon</span>
+                    <span>Wed</span>
+                    <span>Fri</span>
+                    <span>Sun</span>
+                </div>
+                <div class="heatmap-grid" id="studyHeatmapGrid">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+        <div class="mt-2 text-end text-muted small" style="font-size: 0.72rem;">
+            Hover over any square to view recorded study activity count and date.
+        </div>
+    </div>
+
+    <!-- 4. Row 3: Assessment Weightage Radar & Predictive What-If Grade Forecaster -->
+    <div class="row g-4 mb-4">
+        <!-- Chart 4: Assessment Weightage Radar -->
+        <div class="col-12 col-lg-5">
+            <div class="card chart-container-card shadow-sm h-100 p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-diagram-3-fill text-info"></i> Assessment Weightage Radar
+                        </h6>
+                        <small class="text-muted">Multi-axis comparison of syllabus weights across subjects</small>
+                    </div>
+                </div>
+                <div class="position-relative d-flex align-items-center justify-content-center" style="min-height: 310px;">
+                    <canvas id="assessmentRadarChart" aria-label="Assessment Weightage Radar Chart" role="img"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predictive "What-If" Grade Forecaster Slider Tool -->
+        <div class="col-12 col-lg-7">
+            <div class="card chart-container-card shadow-sm h-100 p-4">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-sliders text-primary"></i> Predictive "What-If" Grade Forecaster
+                        </h6>
+                        <small class="text-muted">Simulate pending coursework scores to calculate exact required Final Exam mark</small>
+                    </div>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle small px-2 py-1">
+                        Real-Time Solver
+                    </span>
+                </div>
+
+                <!-- Course & Target Selector -->
+                <div class="row g-2 mb-3 align-items-end">
+                    <div class="col-sm-7">
+                        <label for="whatIfCourseSelect" class="form-label small fw-semibold text-secondary mb-1">Select Course Module</label>
+                        <select class="form-select form-select-sm" id="whatIfCourseSelect" onchange="loadCourseForecast()">
+                            {% for c in courses %}
+                            <option value="{{ c.id }}">{{ c.course_name }} (Target: {{ c.target_grade or 80.0 }}%)</option>
+                            {% endfor %}
+                            {% if not courses %}
+                            <option value="" disabled selected>No courses found — add a course to forecast</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="col-sm-5">
+                        <label for="whatIfTargetGrade" class="form-label small fw-semibold text-secondary mb-1">Target Grade (%)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control" id="whatIfTargetGrade" value="85" min="40" max="100" step="0.5" oninput="debounceRecalculateForecast()">
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forecast Result Banner -->
+                <div class="alert alert-primary d-flex align-items-start gap-3 p-3 mb-3 rounded-3 shadow-sm border-0" id="whatIfResultAlert">
+                    <div class="rounded-circle bg-white text-primary p-2 flex-shrink-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
+                        <i class="bi bi-calculator-fill fs-5" id="whatIfResultIcon"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold small text-uppercase" id="whatIfResultHeading" style="letter-spacing: 0.5px;">Final Exam Target Required</div>
+                        <div class="h5 fw-bold mb-1" id="whatIfResultScore">Calculating...</div>
+                        <p class="mb-0 small text-muted" id="whatIfResultMessage">Adjust the sliders below to simulate different marks.</p>
+                    </div>
+                </div>
+
+                <!-- Dynamic Task Sliders List -->
+                <div class="mb-2">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small fw-bold text-uppercase text-secondary" style="font-size: 0.72rem;">Pending Coursework Components</span>
+                        <small class="text-muted" id="whatIfWeightTally">Completed Weight: 0% | Pending: 100%</small>
+                    </div>
+                    <div id="whatIfTasksContainer" class="d-flex flex-column gap-3 overflow-y-auto pe-1" style="max-height: 220px;">
+                        <div class="text-center py-4 text-muted small">Loading course assessments...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Row 4: Burnout Diagnostic & AI Flashcards/Quiz Generator -->
+    <div class="row g-4 mb-4">
+        <!-- Burnout Risk Diagnostic Card -->
+        <div class="col-12 col-lg-5">
+            <div class="card chart-container-card shadow-sm h-100 p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-heart-pulse-fill text-danger"></i> Burnout &amp; Deadline Cluster Alert
+                        </h6>
+                        <small class="text-muted">Rolling 72-hour window congestion analysis</small>
+                    </div>
+                    <span class="badge bg-{{ metrics.kpis.burnout_badge_class }} text-white text-capitalize" id="burnoutRiskBadge">
+                        {{ metrics.kpis.burnout_risk_level }} Risk
+                    </span>
+                </div>
+
+                <div class="p-3 rounded-3 bg-light border mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-info-circle-fill text-{{ metrics.kpis.burnout_badge_class }}"></i>
+                        <span class="fw-bold small text-dark">AI Workload Recommendation:</span>
+                    </div>
+                    <p class="small text-muted mb-0" id="burnoutRecommendationText">
+                        {{ metrics.kpis.burnout_suggestion }}
+                    </p>
+                </div>
+
+                <h6 class="small fw-bold text-uppercase text-secondary mb-2" style="font-size: 0.72rem;">Upcoming Deadline Congestions (Next 30 Days)</h6>
+                <div class="overflow-y-auto" style="max-height: 180px;" id="burnoutClustersList">
+                    {% if metrics.kpis.burnout_clusters %}
+                        {% for cluster in metrics.kpis.burnout_clusters %}
+                        <div class="border rounded-3 p-2 mb-2 bg-white">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="fw-bold small text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ cluster.task_count }} Overlapping Deadlines</span>
+                                <small class="text-muted" style="font-size: 0.70rem;">{{ cluster.start_date }} &rarr; {{ cluster.end_date }}</small>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for t in cluster.tasks %}
+                                <span class="badge bg-light text-dark border small" style="font-size: 0.68rem;">
+                                    {{ t.name }} ({{ t.due_date }})
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-shield-check fs-3 text-success d-block mb-1"></i>
+                            No stressful deadline clusters detected. Deadlines are nicely spaced out!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Flashcards & Quiz Generator Deck -->
+        <div class="col-12 col-lg-7">
+            <div class="card chart-container-card shadow-sm h-100 p-4">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-robot text-primary"></i> AI Study Flashcards &amp; Practice Quiz Deck
+                        </h6>
+                        <small class="text-muted">Grounded in uploaded lecture slides and textbook notes</small>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary active" id="tabFlashcardsBtn" onclick="switchMaterialMode('flashcards')">
+                            <i class="bi bi-card-text me-1"></i> Flashcards
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="tabQuizBtn" onclick="switchMaterialMode('quiz')">
+                            <i class="bi bi-question-circle me-1"></i> Practice Quiz
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Course Picker & Generate Button -->
+                <div class="row g-2 mb-3 align-items-center">
+                    <div class="col-sm-8">
+                        <select class="form-select form-select-sm" id="aiMaterialCourseSelect">
+                            {% for c in courses %}
+                            <option value="{{ c.id }}">{{ c.course_name }}</option>
+                            {% endfor %}
+                            {% if not courses %}
+                            <option value="" disabled selected>No courses available</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="col-sm-4 text-end">
+                        <button class="btn btn-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1 text-white shadow-sm" id="generateMaterialBtn" onclick="generateAiStudyMaterial()">
+                            <i class="bi bi-stars"></i> <span id="generateBtnText">Generate 5 Cards</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Interactive Flashcard Viewer -->
+                <div id="flashcardsViewerSection">
+                    <div class="flashcard-scene mb-3">
+                        <div class="flashcard-object" id="activeFlashcard" onclick="flipFlashcard()">
+                            <!-- Front Side -->
+                            <div class="flashcard-face flashcard-front">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle" id="cardDifficultyBadge">Medium</span>
+                                    <small class="text-muted"><i class="bi bi-arrow-repeat me-1"></i>Click card to flip</small>
+                                </div>
+                                <div class="my-auto py-3">
+                                    <h5 class="fw-bold mb-2 text-dark" id="cardQuestionText">Click "Generate 5 Cards" to create interactive AI study flashcards.</h5>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between text-muted small">
+                                    <span id="cardCourseSubject">Study Hub</span>
+                                    <span class="badge bg-light text-secondary border" id="cardCounter">1 / 5</span>
+                                </div>
+                            </div>
+                            <!-- Back Side -->
+                            <div class="flashcard-face flashcard-back">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="badge bg-white text-primary">Answer Explanation</span>
+                                    <small class="text-white-50"><i class="bi bi-arrow-repeat me-1"></i>Click to flip back</small>
+                                </div>
+                                <div class="my-auto py-3">
+                                    <p class="mb-3 fs-6" id="cardAnswerText">Detailed synthesis and concept explanation will appear on this side.</p>
+                                    <div class="p-2 rounded bg-black bg-opacity-25 small" id="cardFormulaBox">
+                                        <strong>Formula / Takeaway:</strong> <span id="cardFormulaText">N/A</span>
+                                    </div>
+                                </div>
+                                <div class="text-end text-white-50 small">
+                                    <span>Mastery Checklist &bull; AI Grounded</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Flashcard Navigation Controls -->
+                    <div class="d-flex align-items-center justify-content-between">
+                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="prevFlashcard()" id="prevCardBtn" disabled>
+                            <i class="bi bi-chevron-left me-1"></i> Previous
+                        </button>
+                        <button class="btn btn-sm btn-link text-decoration-none text-muted" onclick="flipFlashcard()">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Flip Card (Spacebar)
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="nextFlashcard()" id="nextCardBtn">
+                            Next <i class="bi bi-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Interactive Quiz Viewer (Initially Hidden) -->
+                <div id="quizViewerSection" class="d-none">
+                    <div class="border rounded-3 p-3 bg-light mb-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-primary rounded-pill" id="quizQuestionCounter">Question 1 of 5</span>
+                            <span class="small fw-semibold text-muted" id="quizScoreDisplay">Score: 0 / 0</span>
+                        </div>
+                        <h6 class="fw-bold mb-3 text-dark" id="quizQuestionText">Click "Generate Practice Quiz" to begin an interactive 5-question test.</h6>
+                        <div class="d-flex flex-column gap-2" id="quizOptionsContainer">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <div class="alert alert-success d-none mt-3 p-2 small mb-0" id="quizExplanationBox">
+                            <strong>Explanation:</strong> <span id="quizExplanationText"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between">
+                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="prevQuizQuestion()" id="prevQuizBtn" disabled>
+                            <i class="bi bi-chevron-left me-1"></i> Previous
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="nextQuizQuestion()" id="nextQuizBtn">
+                            Next Question <i class="bi bi-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Global Datasets & Instances
+    let currentMetrics = {{ metrics | tojson | safe }};
+    let doughnutChart = null;
+    let lineTrajectoryChart = null;
+    let radarChart = null;
+
+    let whatIfDebounceTimer = null;
+    let generatedMaterial = { flashcards: [], quiz: [] };
+    let currentCardIndex = 0;
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+    let quizAnswered = {};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeCharts();
+        renderHeatmap(currentMetrics.charts.heatmap);
+        loadCourseForecast();
+        preloadStudyMaterials();
+
+        // Keyboard navigation for flashcards
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                flipFlashcard();
+            } else if (e.code === 'ArrowRight') {
+                nextFlashcard();
+            } else if (e.code === 'ArrowLeft') {
+                prevFlashcard();
+            }
+        });
+    });
+
+    // ==========================================
+    // 1. Chart.js Initialization
+    // ==========================================
+    function initializeCharts() {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
+
+        // 1. Doughnut Chart (Study Time Distribution)
+        const dCtx = document.getElementById('studyTimeDoughnutChart').getContext('2d');
+        const dData = currentMetrics.charts.doughnut;
+        doughnutChart = new Chart(dCtx, {
+            type: 'doughnut',
+            data: {
+                labels: dData.labels,
+                datasets: [{
+                    data: dData.logged,
+                    backgroundColor: ['#0d6efd', '#198754', '#6f42c1', '#fd7e14', '#0dcaf0', '#ffc107'],
+                    borderWidth: 2,
+                    borderColor: isDark ? '#1e293b' : '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, font: { size: 11 }, color: textColor }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return ` ${ctx.label}: ${ctx.raw} hrs/week logged`;
+                            }
+                        }
+                    }
+                },
+                cutout: '68%'
+            }
+        });
+
+        // 2. Line Chart (Grade Trajectory & GPA Simulator)
+        const lCtx = document.getElementById('gradeTrajectoryChart').getContext('2d');
+        const lData = currentMetrics.charts.line;
+        lineTrajectoryChart = new Chart(lCtx, {
+            type: 'line',
+            data: {
+                labels: lData.semesters,
+                datasets: [
+                    {
+                        label: 'Historical GPA',
+                        data: lData.historical,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.12)',
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#0d6efd',
+                        tension: 0.35,
+                        fill: true
+                    },
+                    {
+                        label: 'Projected Potential',
+                        data: lData.projected,
+                        borderColor: '#198754',
+                        borderDash: [6, 6],
+                        borderWidth: 2.5,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#198754',
+                        tension: 0.35,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        min: 2.0,
+                        max: 4.0,
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, stepSize: 0.5 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: textColor, font: { size: 11 } }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { boxWidth: 12, font: { size: 11 }, color: textColor }
+                    }
+                }
+            }
+        });
+
+        // 3. Radar Chart (Assessment Weightage Radar)
+        const rCtx = document.getElementById('assessmentRadarChart').getContext('2d');
+        const rData = currentMetrics.charts.radar;
+        radarChart = new Chart(rCtx, {
+            type: 'radar',
+            data: {
+                labels: rData.categories,
+                datasets: rData.datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: gridColor },
+                        grid: { color: gridColor },
+                        pointLabels: { color: textColor, font: { size: 11 } },
+                        ticks: { backdropColor: 'transparent', color: textColor, stepSize: 10 }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 10, font: { size: 10 }, color: textColor }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 2. 365-Day Study Activity Heatmap
+    // ==========================================
+    function renderHeatmap(heatmapList) {
+        const grid = document.getElementById('studyHeatmapGrid');
+        if (!grid || !heatmapList) return;
+        grid.innerHTML = '';
+
+        heatmapList.forEach(item => {
+            const cell = document.createElement('div');
+            cell.className = 'heatmap-cell';
+            cell.setAttribute('data-level', item.level);
+            cell.setAttribute('data-date', item.date);
+            cell.setAttribute('data-count', item.count);
+            cell.title = `${item.date}: ${item.count} study activities recorded`;
+            grid.appendChild(cell);
+        });
+    }
+
+    // ==========================================
+    // 3. Predictive "What-If" Grade Forecaster
+    // ==========================================
+    async function loadCourseForecast() {
+        const courseSelect = document.getElementById('whatIfCourseSelect');
+        const targetInput = document.getElementById('whatIfTargetGrade');
+        if (!courseSelect || !courseSelect.value) return;
+
+        const courseId = courseSelect.value;
+        const targetGrade = parseFloat(targetInput.value) || 85.0;
+
+        try {
+            const res = await fetch('/api/analytics/forecast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    course_id: courseId,
+                    target_grade: targetGrade,
+                    custom_marks: collectCustomSliderMarks()
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                renderForecastResult(data.data);
+            }
+        } catch (err) {
+            console.error('Error fetching course forecast:', err);
+        }
+    }
+
+    function collectCustomSliderMarks() {
+        const customMarks = {};
+        const sliders = document.querySelectorAll('.whatif-slider');
+        sliders.forEach(s => {
+            customMarks[s.dataset.taskId] = parseFloat(s.value);
+        });
+        return customMarks;
+    }
+
+    function debounceRecalculateForecast() {
+        clearTimeout(whatIfDebounceTimer);
+        whatIfDebounceTimer = setTimeout(() => {
+            recalculateForecastLive();
+        }, 200);
+    }
+
+    async function recalculateForecastLive() {
+        const courseSelect = document.getElementById('whatIfCourseSelect');
+        const targetInput = document.getElementById('whatIfTargetGrade');
+        if (!courseSelect || !courseSelect.value) return;
+
+        const res = await fetch('/api/analytics/forecast', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                course_id: courseSelect.value,
+                target_grade: parseFloat(targetInput.value) || 85.0,
+                custom_marks: collectCustomSliderMarks()
+            })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+            updateForecastBannerOnly(data.data);
+        }
+    }
+
+    function renderForecastResult(forecast) {
+        updateForecastBannerOnly(forecast);
+
+        const container = document.getElementById('whatIfTasksContainer');
+        const tallyEl = document.getElementById('whatIfWeightTally');
+        tallyEl.textContent = `Completed Weight: ${forecast.completed_weight}% | Pending: ${forecast.pending_weight}%`;
+
+        if (!forecast.tasks || forecast.tasks.length === 0) {
+            container.innerHTML = `
+                <div class="alert alert-light border small text-muted text-center py-3 mb-0">
+                    No individual task components found for this course. Pending weight is calculated as 100%.
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = forecast.tasks.map(t => {
+            const isCompleted = t.is_completed;
+            const currentScore = t.marks_obtained !== null ? t.marks_obtained : 75;
+            return `
+                <div class="p-2 border rounded-3 bg-white">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div>
+                            <span class="fw-semibold small text-dark">${t.name}</span>
+                            <span class="badge bg-light text-secondary border ms-1" style="font-size: 0.68rem;">${t.weight}% weight</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            ${isCompleted ? '<span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">Recorded</span>' : '<span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">Simulate</span>'}
+                            <span class="fw-bold small text-primary" id="sliderVal_${t.id}">${currentScore}%</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="range" class="form-range whatif-slider" 
+                               min="0" max="100" step="1" 
+                               value="${currentScore}" 
+                               data-task-id="${t.id}" 
+                               oninput="onSliderChange('${t.id}', this.value)">
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function onSliderChange(taskId, val) {
+        const valSpan = document.getElementById(`sliderVal_${taskId}`);
+        if (valSpan) valSpan.textContent = `${val}%`;
+        debounceRecalculateForecast();
+    }
+
+    function updateForecastBannerOnly(forecast) {
+        const alertEl = document.getElementById('whatIfResultAlert');
+        const iconEl = document.getElementById('whatIfResultIcon');
+        const headingEl = document.getElementById('whatIfResultHeading');
+        const scoreEl = document.getElementById('whatIfResultScore');
+        const msgEl = document.getElementById('whatIfResultMessage');
+
+        alertEl.className = 'alert d-flex align-items-start gap-3 p-3 mb-3 rounded-3 shadow-sm border-0';
+
+        if (forecast.status === 'impossible') {
+            alertEl.classList.add('alert-danger');
+            iconEl.className = 'bi bi-x-circle-fill text-danger fs-5';
+            headingEl.textContent = 'Mathematically Impossible Target';
+            scoreEl.textContent = `Required: > 100% (Needed ${forecast.required_pending_pct}%)`;
+        } else if (forecast.status === 'secured' || forecast.status === 'achieved') {
+            alertEl.classList.add('alert-success');
+            iconEl.className = 'bi bi-check-circle-fill text-success fs-5';
+            headingEl.textContent = 'Target Grade Locked In!';
+            scoreEl.textContent = `0.0% Required on Final Exam`;
+        } else {
+            alertEl.classList.add('alert-primary');
+            iconEl.className = 'bi bi-calculator-fill text-primary fs-5';
+            headingEl.textContent = 'Required Score on Remaining Coursework / Final Exam';
+            scoreEl.textContent = `${forecast.required_pending_pct}% Minimum Score`;
+        }
+
+        msgEl.textContent = forecast.message;
+    }
+
+    // ==========================================
+    // 4. AI Flashcard & Quiz Interactive Deck
+    // ==========================================
+    function switchMaterialMode(mode) {
+        const tabFlash = document.getElementById('tabFlashcardsBtn');
+        const tabQuiz = document.getElementById('tabQuizBtn');
+        const flashSection = document.getElementById('flashcardsViewerSection');
+        const quizSection = document.getElementById('quizViewerSection');
+        const btnText = document.getElementById('generateBtnText');
+
+        if (mode === 'flashcards') {
+            tabFlash.classList.add('active');
+            tabQuiz.classList.remove('active');
+            flashSection.classList.remove('d-none');
+            quizSection.classList.add('d-none');
+            btnText.textContent = 'Generate 5 Cards';
+        } else {
+            tabQuiz.classList.add('active');
+            tabFlash.classList.remove('active');
+            quizSection.classList.remove('d-none');
+            flashSection.classList.add('d-none');
+            btnText.textContent = 'Create 5-Question Quiz';
+        }
+    }
+
+    function flipFlashcard() {
+        const card = document.getElementById('activeFlashcard');
+        if (card) card.classList.toggle('is-flipped');
+    }
+
+    function nextFlashcard() {
+        const cards = generatedMaterial.flashcards;
+        if (!cards || cards.length === 0) return;
+        if (currentCardIndex < cards.length - 1) {
+            currentCardIndex++;
+            displayFlashcard(currentCardIndex);
+        }
+    }
+
+    function prevFlashcard() {
+        if (currentCardIndex > 0) {
+            currentCardIndex--;
+            displayFlashcard(currentCardIndex);
+        }
+    }
+
+    function displayFlashcard(index) {
+        const cardEl = document.getElementById('activeFlashcard');
+        if (cardEl) cardEl.classList.remove('is-flipped');
+
+        const cards = generatedMaterial.flashcards;
+        if (!cards || cards.length === 0) return;
+
+        const card = cards[index];
+        document.getElementById('cardQuestionText').textContent = card.question;
+        document.getElementById('cardAnswerText').textContent = card.answer;
+        document.getElementById('cardFormulaText').textContent = card.key_formula || 'N/A';
+        document.getElementById('cardDifficultyBadge').textContent = card.difficulty || 'Medium';
+        document.getElementById('cardCounter').textContent = `${index + 1} / ${cards.length}`;
+
+        document.getElementById('prevCardBtn').disabled = (index === 0);
+        document.getElementById('nextCardBtn').disabled = (index === cards.length - 1);
+    }
+
+    function preloadStudyMaterials() {
+        // Pre-generate standard set so deck is immediately interactive
+        generateAiStudyMaterial(false);
+    }
+
+    async function generateAiStudyMaterial(isUserClick = true) {
+        const courseSelect = document.getElementById('aiMaterialCourseSelect');
+        const isQuiz = document.getElementById('tabQuizBtn').classList.contains('active');
+        const materialType = isQuiz ? 'quiz' : 'flashcards';
+
+        const btn = document.getElementById('generateMaterialBtn');
+        const originalHtml = btn.innerHTML;
+
+        if (isUserClick) {
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Generating...`;
+        }
+
+        try {
+            const res = await fetch('/api/analytics/generate-study-material', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    course_id: courseSelect ? courseSelect.value : '',
+                    material_type: materialType
+                })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.status === 'success') {
+                if (materialType === 'flashcards') {
+                    generatedMaterial.flashcards = data.data.items || [];
+                    currentCardIndex = 0;
+                    displayFlashcard(0);
+                } else {
+                    generatedMaterial.quiz = data.data.items || [];
+                    currentQuizIndex = 0;
+                    quizScore = 0;
+                    quizAnswered = {};
+                    displayQuizQuestion(0);
+                }
+            }
+        } catch (err) {
+            console.error('Error generating study materials:', err);
+        } finally {
+            if (isUserClick) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+    }
+
+    function displayQuizQuestion(index) {
+        const quizList = generatedMaterial.quiz;
+        if (!quizList || quizList.length === 0) return;
+
+        const q = quizList[index];
+        document.getElementById('quizQuestionCounter').textContent = `Question ${index + 1} of ${quizList.length}`;
+        document.getElementById('quizQuestionText').textContent = q.question;
+
+        const container = document.getElementById('quizOptionsContainer');
+        container.innerHTML = '';
+
+        const explanationBox = document.getElementById('quizExplanationBox');
+        explanationBox.classList.add('d-none');
+
+        const alreadyAnswered = quizAnswered[index] !== undefined;
+
+        q.options.forEach((opt, optIdx) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn quiz-option-btn';
+            btn.innerHTML = `<strong class="me-2">${String.fromCharCode(65 + optIdx)}.</strong> ${opt}`;
+
+            if (alreadyAnswered) {
+                btn.disabled = true;
+                if (optIdx === q.correct_index) {
+                    btn.classList.add('correct');
+                } else if (optIdx === quizAnswered[index]) {
+                    btn.classList.add('incorrect');
+                }
+            } else {
+                btn.onclick = () => selectQuizAnswer(index, optIdx);
+            }
+            container.appendChild(btn);
+        });
+
+        if (alreadyAnswered) {
+            explanationBox.classList.remove('d-none');
+            document.getElementById('quizExplanationText').textContent = q.explanation || 'Option ' + String.fromCharCode(65 + q.correct_index) + ' is the correct answer.';
+        }
+
+        document.getElementById('prevQuizBtn').disabled = (index === 0);
+        document.getElementById('nextQuizBtn').disabled = (index === quizList.length - 1);
+    }
+
+    function selectQuizAnswer(qIndex, selectedOption) {
+        const q = generatedMaterial.quiz[qIndex];
+        quizAnswered[qIndex] = selectedOption;
+
+        if (selectedOption === q.correct_index) {
+            quizScore++;
+        }
+
+        document.getElementById('quizScoreDisplay').textContent = `Score: ${quizScore} / ${Object.keys(quizAnswered).length}`;
+        displayQuizQuestion(qIndex);
+    }
+
+    function nextQuizQuestion() {
+        const quizList = generatedMaterial.quiz;
+        if (currentQuizIndex < quizList.length - 1) {
+            currentQuizIndex++;
+            displayQuizQuestion(currentQuizIndex);
+        }
+    }
+
+    function prevQuizQuestion() {
+        if (currentQuizIndex > 0) {
+            currentQuizIndex--;
+            displayQuizQuestion(currentQuizIndex);
+        }
+    }
+
+    // ==========================================
+    // 5. Live Refresh Telemetry
+    // ==========================================
+    async function refreshDashboardMetrics() {
+        const icon = document.getElementById('refreshIcon');
+        if (icon) icon.classList.add('spin-animation');
+
+        try {
+            const res = await fetch('/api/analytics/metrics');
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                currentMetrics = data.data;
+
+                // Update charts
+                if (doughnutChart) {
+                    doughnutChart.data.labels = currentMetrics.charts.doughnut.labels;
+                    doughnutChart.data.datasets[0].data = currentMetrics.charts.doughnut.logged;
+                    doughnutChart.update();
+                }
+                if (lineTrajectoryChart) {
+                    lineTrajectoryChart.data.datasets[0].data = currentMetrics.charts.line.historical;
+                    lineTrajectoryChart.data.datasets[1].data = currentMetrics.charts.line.projected;
+                    lineTrajectoryChart.update();
+                }
+                if (radarChart) {
+                    radarChart.data.datasets = currentMetrics.charts.radar.datasets;
+                    radarChart.update();
+                }
+
+                renderHeatmap(currentMetrics.charts.heatmap);
+                loadCourseForecast();
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            if (icon) icon.classList.remove('spin-animation');
+        }
+    }
+</script>
+{% endblock %}

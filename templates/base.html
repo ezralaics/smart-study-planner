@@ -379,6 +379,7 @@
                     </div>
                     <div class="border-top pt-2 d-flex align-items-center justify-content-between" style="font-size: 0.78rem;">
                         <a href="/dashboard" class="text-decoration-none text-primary fw-semibold"><i class="bi bi-speedometer2 me-1"></i>Command Center</a>
+                        <a href="/analytics" class="text-decoration-none text-primary fw-semibold"><i class="bi bi-graph-up-arrow me-1"></i>Analytics</a>
                         <a href="/settings" class="text-decoration-none text-secondary"><i class="bi bi-gear me-1"></i>Settings</a>
                     </div>
                 </div>
@@ -415,6 +416,13 @@
                         0
                     </span>
                 </button>
+                {% endif %}
+
+                <!-- Analytics Icon Button -->
+                {% if session.get('user_id') %}
+                <a href="/analytics" class="btn btn-light rounded-circle shadow-sm me-2 d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;" title="Analytics &amp; AI Insights" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                    <i class="bi bi-graph-up-arrow fs-5 text-secondary"></i>
+                </a>
                 {% endif %}
 
                 <!-- Settings Icon Button -->
@@ -594,6 +602,9 @@
                         </a>
                         <a class="nav-link {% if active_page in ['grades', 'student_grades'] %}active{% endif %}" href="/student/grades">
                             <i class="bi bi-bar-chart"></i> Target Grade Simulator
+                        </a>
+                        <a class="nav-link {% if active_page == 'analytics' %}active{% endif %}" href="/analytics">
+                            <i class="bi bi-graph-up-arrow"></i> Analytics &amp; AI Insights
                         </a>
                     {% endif %}
                 {% endif %}
@@ -1349,6 +1360,7 @@
             { title: "Tasks & Deadlines", category: "Study", icon: "bi-list-task", url: "/student/tasks", color: "#0d6efd" },
             { title: "Master Timetable", category: "Study", icon: "bi-calendar3", url: "/calendar", color: "#0d6efd" },
             { title: "Target Grade Simulator & GPA", category: "Study", icon: "bi-bar-chart", url: "/grades", color: "#0d6efd" },
+            { title: "Academic Analytics & AI Insights", category: "Analytics", icon: "bi-graph-up-arrow", url: "/analytics", color: "#0d6efd" },
             { title: "AI Study Assistant & Knowledge Base", category: "AI Tools", icon: "bi-robot", url: "/study-assistant", color: "#2563eb" },
             { title: "Life & Daily Habits Tracker", category: "Life", icon: "bi-flower1", url: "/life", color: "#198754" },
             { title: "Financial Planner & Ledger", category: "Finance", icon: "bi-wallet2", url: "/finance", color: "#0dcaf0" },
