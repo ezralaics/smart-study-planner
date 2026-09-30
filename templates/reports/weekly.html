@@ -1,0 +1,159 @@
+{% extends "reports/layout.html" %}
+
+{% block title %}Weekly Macro Trends & Review | OmniDigest{% endblock %}
+
+{% block reports_css %}
+<style>
+    .weekly-hero {
+        background: radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.1) 0%, rgba(15, 23, 42, 0.02) 80%);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 20px;
+    }
+
+    .weekly-body h3 {
+        color: #0f172a;
+        font-size: 1.18rem;
+        font-weight: 700;
+        margin-top: 1.8rem;
+        margin-bottom: 0.8rem;
+        border-bottom: 2px solid rgba(99, 102, 241, 0.15);
+        padding-bottom: 6px;
+    }
+
+    [data-bs-theme="dark"] .weekly-body h3 {
+        color: #f1f5f9;
+        border-color: #334155;
+    }
+
+    .weekly-body ul {
+        padding-left: 1.25rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .weekly-body li {
+        margin-bottom: 0.7rem;
+        line-height: 1.6;
+    }
+</style>
+{% endblock %}
+
+{% block reports_content %}
+<div class="row g-4">
+    <div class="col-lg-9">
+        <div class="card weekly-hero p-4 p-md-5 shadow-sm mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-indigo-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1" style="font-size: 0.75rem;">
+                        <i class="bi bi-graph-up-arrow me-1"></i>7-Day Retrospective
+                    </span>
+                    <span class="badge bg-light text-muted border rounded-pill px-2 py-1" style="font-size: 0.72rem;" id="weeklyDateRangeBadge">
+                        Past 7 Days
+                    </span>
+                </div>
+                <button class="btn btn-outline-indigo btn-sm rounded-pill px-3" onclick="loadWeeklyReport(true)">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Re-Synthesize Weekly
+                </button>
+            </div>
+
+            <h2 class="fw-bold mb-3" id="weeklyTitle">Loading Weekly Macro Review...</h2>
+
+            <div class="weekly-body mb-4" id="weeklyContent">
+                <div class="text-center py-5 text-muted">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p class="small mb-0">Analyzing 7-day multi-source news trajectory...</p>
+                </div>
+            </div>
+
+            <div class="pt-3 border-top" id="weeklyCitationsContainer">
+                <small class="text-muted fw-bold d-block mb-2 text-uppercase" style="font-size: 0.72rem;">Sources &amp; Citations Reviewed:</small>
+                <div class="d-flex flex-wrap gap-2" id="weeklyCitationsList">
+                    <!-- Injected via Javascript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card digest-card p-4 shadow-sm mb-4">
+            <h6 class="fw-bold mb-2"><i class="bi bi-compass-fill text-primary me-2"></i>Executive Focus</h6>
+            <p class="text-muted small mb-3">Weekly reviews synthesize multi-source news trajectory to identify macroeconomic, technological, and sector trends.</p>
+            <hr class="my-2">
+            <small class="text-muted d-block fw-semibold" style="font-size: 0.72rem;">CADENCE</small>
+            <span class="small text-dark fw-bold">Every Sunday &amp; On-Demand</span>
+        </div>
+
+        <div class="card digest-card p-4 shadow-sm">
+            <h6 class="fw-bold mb-2"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Quick Actions</h6>
+            <a href="{{ url_for('reports.reports_page') }}" class="btn btn-outline-secondary btn-sm rounded-pill w-100 mb-2">
+                <i class="bi bi-sun me-1"></i> Today's Daily Briefing
+            </a>
+            <a href="{{ url_for('reports.reports_sources_page') }}" class="btn btn-outline-indigo btn-sm rounded-pill w-100">
+                <i class="bi bi-sliders me-1"></i> Curate News Feeds
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block reports_scripts %}
+<script>
+    async function loadWeeklyReport(forceRefresh = false) {
+        const contentEl = document.getElementById('weeklyContent');
+        contentEl.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="small mb-0">Analyzing past 7 days of daily intelligence briefings...</p>
+            </div>
+        `;
+
+        try {
+            const url = forceRefresh ? '/api/reports/weekly?refresh=true' : '/api/reports/weekly';
+            const res = await fetch(url);
+            const result = await res.json();
+            if (result.status === 'success') {
+                renderWeekly(result.data);
+            } else {
+                contentEl.innerHTML = `<div class="text-center py-4 text-danger">${result.message}</div>`;
+            }
+        } catch (err) {
+            contentEl.innerHTML = `<div class="text-center py-4 text-danger">Network error loading weekly review.</div>`;
+        }
+    }
+
+    function renderWeekly(data) {
+        document.getElementById('weeklyTitle').innerText = data.title || "Weekly Macro Intelligence Review";
+        document.getElementById('weeklyDateRangeBadge').innerText = `As of ${data.report_date || 'Today'}`;
+
+        let rawMd = data.summary_content || "";
+        // Headings
+        rawMd = rawMd.replace(/###\s*(.*)/g, '<h3>$1</h3>');
+        // Bold
+        rawMd = rawMd.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // List items
+        rawMd = rawMd.replace(/-\s+(.*)/g, '<li>$1</li>');
+        // Wrap <li> in <ul>
+        rawMd = rawMd.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+        rawMd = rawMd.replace(/<\/ul>\s*<ul>/g, '');
+        rawMd = rawMd.replace(/\n\n/g, '<br><br>');
+
+        document.getElementById('weeklyContent').innerHTML = rawMd;
+
+        const citations = data.source_citations || [];
+        const pillsEl = document.getElementById('weeklyCitationsList');
+        if (citations.length > 0) {
+            pillsEl.innerHTML = citations.map(c => `
+                <a href="${c.url || '#'}" target="_blank" rel="noopener noreferrer" class="citation-pill" title="${c.snippet || c.title}">
+                    <i class="bi bi-box-arrow-up-right text-muted"></i>
+                    <span>${c.title}</span>
+                </a>
+            `).join('');
+        } else {
+            pillsEl.innerHTML = '<span class="text-muted small">Synthesized across all followed news feeds over the past 7 days.</span>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadWeeklyReport(false);
+    });
+</script>
+{% endblock %}

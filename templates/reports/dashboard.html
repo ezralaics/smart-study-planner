@@ -1,0 +1,246 @@
+{% extends "reports/layout.html" %}
+
+{% block title %}Daily Executive Briefing | OmniDigest{% endblock %}
+
+{% block reports_css %}
+<style>
+    .briefing-hero {
+        background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, rgba(15, 23, 42, 0.03) 90%);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 20px;
+    }
+
+    .briefing-body h3 {
+        color: #0f172a;
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-top: 1.6rem;
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    [data-bs-theme="dark"] .briefing-body h3 {
+        color: #f1f5f9;
+    }
+
+    .briefing-body ul {
+        padding-left: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .briefing-body li {
+        margin-bottom: 0.6rem;
+        line-height: 1.6;
+    }
+
+    .archive-item {
+        border-radius: 12px;
+        padding: 10px 14px;
+        border: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .archive-item:hover, .archive-item.active {
+        border-color: #6366f1;
+        background-color: rgba(99, 102, 241, 0.05);
+    }
+
+    [data-bs-theme="dark"] .archive-item {
+        border-color: #334155;
+    }
+</style>
+{% endblock %}
+
+{% block reports_content %}
+<div class="row g-4">
+    <!-- Main Briefing Column -->
+    <div class="col-lg-8">
+        <div class="card briefing-hero p-4 p-md-5 shadow-sm mb-4" id="briefingMainCard">
+            <!-- Header Metadata -->
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-indigo-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1" style="font-size: 0.75rem;">
+                        <i class="bi bi-clock-history me-1"></i><span id="readingTimeBadge">3-minute read</span>
+                    </span>
+                    <span class="badge bg-light text-muted border rounded-pill px-2 py-1" style="font-size: 0.72rem;" id="reportDateBadge">
+                        Today
+                    </span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="triggerEmailBriefing()" title="Email this briefing to me">
+                        <i class="bi bi-envelope me-1"></i> Email Briefing
+                    </button>
+                    <button class="btn btn-indigo btn-sm rounded-pill px-3 shadow-sm" onclick="triggerRefreshBriefing()" title="Refresh with newest headlines">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh News
+                    </button>
+                </div>
+            </div>
+
+            <h2 class="fw-bold mb-3" id="briefingTitle">Loading Executive Briefing...</h2>
+
+            <!-- Structured Content -->
+            <div class="briefing-body mb-4" id="briefingContent">
+                <div class="text-center py-5 text-muted">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p class="small mb-0">Synthesizing live news feeds into executive digest...</p>
+                </div>
+            </div>
+
+            <!-- Source Citations Pill Row -->
+            <div class="pt-3 border-top" id="citationsContainer">
+                <small class="text-muted fw-bold d-block mb-2 text-uppercase" style="font-size: 0.72rem;">Sources &amp; Citations:</small>
+                <div class="d-flex flex-wrap gap-2" id="citationsPillsList">
+                    <!-- Injected via Javascript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Calendar Archive & Quick Feeds -->
+    <div class="col-lg-4">
+        <!-- Archive Card -->
+        <div class="card digest-card p-4 shadow-sm mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-calendar3 text-primary me-2"></i>Past Briefings Archive</h6>
+                <small class="text-muted">Last 30 Days</small>
+            </div>
+
+            <div class="d-flex flex-column gap-2" id="archiveListContainer">
+                <div class="text-center py-3 text-muted small">Loading past reports...</div>
+            </div>
+        </div>
+
+        <!-- Followed Sources Summary Card -->
+        <div class="card digest-card p-4 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-rss-fill text-warning me-2"></i>Active News Feeds</h6>
+                <a href="{{ url_for('reports.reports_sources_page') }}" class="small text-decoration-none fw-semibold">Manage <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <div class="d-flex flex-column gap-2" id="sidebarSourcesContainer">
+                <div class="text-center py-2 text-muted small">Loading sources...</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block reports_scripts %}
+<script>
+    let currentBriefingData = null;
+
+    async function loadTodayBriefing() {
+        try {
+            const res = await fetch('/api/reports/today');
+            const result = await res.json();
+            if (result.status === 'success') {
+                currentBriefingData = result.data;
+                renderBriefing(result.data);
+            } else {
+                document.getElementById('briefingContent').innerHTML = `
+                    <div class="text-center py-4 text-danger">Failed to load briefing: ${result.message}</div>
+                `;
+            }
+        } catch (err) {
+            document.getElementById('briefingContent').innerHTML = `
+                <div class="text-center py-4 text-danger">Network error loading briefing.</div>
+            `;
+        }
+    }
+
+    function renderBriefing(data) {
+        document.getElementById('briefingTitle').innerText = data.title || "Morning Executive Briefing";
+        document.getElementById('readingTimeBadge').innerText = `${data.reading_time_mins || 3}-minute read`;
+        document.getElementById('reportDateBadge').innerText = data.report_date || "Today";
+
+        // Render Markdown content to HTML
+        const rawMd = data.summary_content || "";
+        document.getElementById('briefingContent').innerHTML = formatMarkdown(rawMd);
+
+        // Render Citations
+        const citationsList = data.source_citations || [];
+        const pillsEl = document.getElementById('citationsPillsList');
+        if (citationsList.length > 0) {
+            pillsEl.innerHTML = citationsList.map(c => `
+                <a href="${c.url || '#'}" target="_blank" rel="noopener noreferrer" class="citation-pill" title="${c.snippet || c.title}">
+                    <i class="bi bi-box-arrow-up-right text-muted"></i>
+                    <span>${c.title}</span>
+                </a>
+            `).join('');
+        } else {
+            pillsEl.innerHTML = '<span class="text-muted small">Synthesized from user-selected news feeds.</span>';
+        }
+    }
+
+    function formatMarkdown(md) {
+        let html = md;
+        // Headings
+        html = html.replace(/###\s*(.*)/g, '<h3>$1</h3>');
+        // Bold
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // List items
+        html = html.replace(/-\s+(.*)/g, '<li>$1</li>');
+        // Wrap <li> in <ul>
+        html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+        html = html.replace(/<\/ul>\s*<ul>/g, '');
+        // Paragraph breaks
+        html = html.replace(/\n\n/g, '<br><br>');
+        return html;
+    }
+
+    async function loadArchiveHistory() {
+        const container = document.getElementById('archiveListContainer');
+        try {
+            const res = await fetch('/api/reports/history?type=daily&limit=10');
+            const data = await res.json();
+            if (data.status === 'success') {
+                if (data.data.length === 0) {
+                    container.innerHTML = '<div class="text-center py-3 text-muted small">No past reports archived yet.</div>';
+                    return;
+                }
+                container.innerHTML = data.data.map(r => `
+                    <div class="archive-item d-flex justify-content-between align-items-center" onclick='renderBriefing(${JSON.stringify(r)})'>
+                        <div>
+                            <div class="fw-bold text-dark small">${r.report_date}</div>
+                            <small class="text-muted text-truncate d-block" style="max-width: 180px;">${r.title}</small>
+                        </div>
+                        <i class="bi bi-chevron-right text-muted small"></i>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            container.innerHTML = '<div class="text-center py-3 text-danger small">Error loading archive.</div>';
+        }
+    }
+
+    async function loadSidebarSources() {
+        const container = document.getElementById('sidebarSourcesContainer');
+        try {
+            const res = await fetch('/api/reports/sources');
+            const data = await res.json();
+            if (data.status === 'success') {
+                const sources = data.data.sources || [];
+                const presets = data.data.presets || [];
+                const displayItems = sources.length > 0 ? sources : presets;
+
+                container.innerHTML = displayItems.slice(0, 4).map(s => `
+                    <div class="p-2 rounded-2 bg-light-subtle border d-flex align-items-center justify-content-between small">
+                        <span class="text-truncate fw-semibold" style="max-width: 180px;">${s.title}</span>
+                        <span class="badge bg-secondary-subtle text-secondary rounded-pill">${s.category}</span>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            container.innerHTML = '<div class="text-center py-2 text-muted small">Error loading sources.</div>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTodayBriefing();
+        loadArchiveHistory();
+        loadSidebarSources();
+    });
+</script>
+{% endblock %}

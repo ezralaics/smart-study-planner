@@ -20,6 +20,7 @@ from models.habit import Habit, HabitLog
 from models.finance import BudgetGoal, Transaction, FinancialAccount, FinancialTransaction
 from models.journal import JournalEntry
 from models.career import JobApplication
+from models.report import UserInterestSource, DigestReport
 
 # Enable foreign keys for SQLite test runs
 @event.listens_for(Engine, "connect")
@@ -1741,6 +1742,142 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
         self.assertEqual(tx_page_res.status_code, 200)
         budget_page_res = self.client.get('/finance/budgets')
         self.assertEqual(budget_page_res.status_code, 200)
+
+    def test_omnidigest_strict_decoupling(self):
+        """Verify OmniDigest models are strictly decoupled with zero references to academic or financial tables."""
+        from sqlalchemy import inspect
+        with self.app.app_context():
+            inspector = inspect(db.engine)
+            for table_name in ['user_interest_sources', 'digest_reports']:
+                fks = inspector.get_foreign_keys(table_name)
+                referred_tables = {fk['referred_table'] for fk in fks}
+                self.assertNotIn('courses', referred_tables)
+                self.assertNotIn('tasks', referred_tables)
+                self.assertNotIn('schedules', referred_tables)
+                self.assertNotIn('financial_accounts', referred_tables)
+                self.assertEqual(referred_tables, {'users'})
+
+    def test_omnidigest_caching_and_idempotency(self):
+        """Verify daily digest caching: consecutive calls for the same day return cached report without duplicate DB entries."""
+        from services.digest_service import get_or_create_daily_digest
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            today_val = date.today()
+
+            # First generation
+            report1 = get_or_create_daily_digest(student.id, target_date=today_val, force_refresh=False)
+            self.assertIsNotNone(report1)
+            self.assertIn('title', report1)
+            self.assertIn('Top 3 Must-Know Headlines', report1['summary_content'])
+
+            # Second call should fetch cached report with same ID
+            report2 = get_or_create_daily_digest(student.id, target_date=today_val, force_refresh=False)
+            self.assertEqual(report1['id'], report2['id'])
+
+            # Verify only 1 record exists in DB for this date
+            reports_in_db = DigestReport.query.filter_by(user_id=student.id, report_type='daily', report_date=today_val).all()
+            self.assertEqual(len(reports_in_db), 1)
+
+    def test_omnidigest_cascade_delete(self):
+        """Verify deleting a user cascades to all their interest sources and digest reports."""
+        with self.app.app_context():
+            temp_user = User(
+                fullname="Temp Digest User",
+                username="temp_digest_user",
+                email="tempdigest@test.com",
+                student_type="IT",
+                role="student"
+            )
+            temp_user.set_password("pass123")
+            db.session.add(temp_user)
+            db.session.commit()
+
+            # Add source and report
+            src = UserInterestSource(
+                user_id=temp_user.id,
+                title="The Edge Malaysia",
+                source_url="https://theedgemalaysia.com/rss",
+                category="finance"
+            )
+            rep = DigestReport(
+                user_id=temp_user.id,
+                report_type="daily",
+                report_date=date.today(),
+                title="Temp Briefing",
+                summary_content="Sample summary",
+                reading_time_mins=3
+            )
+            db.session.add_all([src, rep])
+            db.session.commit()
+
+            src_id = src.id
+            rep_id = rep.id
+
+            # Delete user
+            db.session.delete(temp_user)
+            db.session.commit()
+
+            # Verify cascade deletion
+            self.assertIsNone(db.session.get(UserInterestSource, src_id))
+            self.assertIsNone(db.session.get(DigestReport, rep_id))
+
+    def test_omnidigest_rss_feed_fault_tolerance(self):
+        """Verify feed ingestion handles unreachable or malformed URLs gracefully without crashing."""
+        from services.digest_service import fetch_source_headlines
+        # 1. Non-existent domain
+        res1 = fetch_source_headlines("http://invalid-non-existent-feed-domain-12345.com/rss")
+        self.assertEqual(res1, [])
+
+        # 2. Malformed URL
+        res2 = fetch_source_headlines("not-even-a-url")
+        self.assertEqual(res2, [])
+
+    def test_omnidigest_api_endpoints(self):
+        """Verify OmniDigest REST endpoints under an authenticated session."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.username
+                sess['role'] = student.role
+
+        # 1. GET /api/reports/today
+        res = self.client.get('/api/reports/today')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('summary_content', data['data'])
+
+        # 2. POST /api/reports/sources
+        create_src = self.client.post('/api/reports/sources', json={
+            'title': 'Hacker News RSS',
+            'source_url': 'https://news.ycombinator.com/rss',
+            'category': 'technology'
+        })
+        self.assertEqual(create_src.status_code, 201)
+        src_id = create_src.get_json()['data']['id']
+
+        # 3. GET /api/reports/sources
+        get_srcs = self.client.get('/api/reports/sources')
+        self.assertEqual(get_srcs.status_code, 200)
+        self.assertGreaterEqual(len(get_srcs.get_json()['data']['sources']), 1)
+
+        # 4. PUT /api/reports/sources/<id>
+        put_src = self.client.put(f'/api/reports/sources/{src_id}', json={'is_active': False})
+        self.assertEqual(put_src.status_code, 200)
+        self.assertFalse(put_src.get_json()['data']['is_active'])
+
+        # 5. DELETE /api/reports/sources/<id>
+        del_src = self.client.delete(f'/api/reports/sources/{src_id}')
+        self.assertEqual(del_src.status_code, 200)
+
+        # 6. Page views
+        p1 = self.client.get('/reports')
+        self.assertEqual(p1.status_code, 200)
+        p2 = self.client.get('/reports/weekly')
+        self.assertEqual(p2.status_code, 200)
+        p3 = self.client.get('/reports/sources')
+        self.assertEqual(p3.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()

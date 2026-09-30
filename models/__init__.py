@@ -10,10 +10,11 @@ from models.habit import Habit, HabitLog
 from models.finance import BudgetGoal, Transaction, FinancialAccount, FinancialTransaction
 from models.journal import JournalEntry
 from models.career import JobApplication
+from models.report import UserInterestSource, DigestReport
 
 __all__ = [
     'db', 'User', 'Course', 'Task', 'Schedule', 'Document', 'UserAIConfig', 
     'DirectMessage', 'Habit', 'HabitLog', 'BudgetGoal', 'Transaction', 
     'FinancialAccount', 'FinancialTransaction',
-    'JournalEntry', 'JobApplication'
+    'JournalEntry', 'JobApplication', 'UserInterestSource', 'DigestReport'
 ]

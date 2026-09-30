@@ -1,0 +1,229 @@
+{% extends "reports/layout.html" %}
+
+{% block title %}Curated News Sources & Feeds | OmniDigest{% endblock %}
+
+{% block reports_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">Curated News Sources &amp; Feeds</h4>
+        <p class="text-muted small mb-0">Follow your favorite Malaysian &amp; global news outlets, financial publications, sports portals, or niche tech feeds.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary rounded-pill px-3" onclick="loadSourcesPage()">
+            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+        </button>
+        <button class="btn btn-indigo rounded-pill px-3 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#addSourceModal">
+            <i class="bi bi-plus-lg me-1"></i> Add Custom Source
+        </button>
+    </div>
+</div>
+
+<!-- Curated Presets Carousel / Quick Add Grid -->
+<div class="card digest-card p-4 shadow-sm mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0"><i class="bi bi-star-fill text-warning me-2"></i>Curated Malaysian &amp; Global Presets</h6>
+        <small class="text-muted">1-Click Instant Follow</small>
+    </div>
+    <div class="row g-3" id="presetsContainer">
+        <!-- Injected via Javascript -->
+    </div>
+</div>
+
+<!-- My Subscribed Sources Section -->
+<div class="card digest-card p-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h6 class="fw-bold mb-0"><i class="bi bi-rss text-primary me-2"></i>My Subscribed News Sources</h6>
+            <small class="text-muted">These feeds are analyzed daily by the AI to synthesize your executive briefing.</small>
+        </div>
+        <span class="badge bg-light text-muted border rounded-pill px-3 py-2" id="sourcesCountBadge">0 Sources</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr style="font-size: 0.8rem;" class="text-uppercase text-muted">
+                    <th>Source Title</th>
+                    <th>Category</th>
+                    <th>Feed / Web URL</th>
+                    <th class="text-center">Active Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="userSourcesTbody">
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                        <span class="spinner-border spinner-border-sm me-2"></span>Loading feeds...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block reports_scripts %}
+<script>
+    let activeSources = [];
+
+    async function loadSourcesPage() {
+        try {
+            const res = await fetch('/api/reports/sources');
+            const data = await res.json();
+            if (data.status === 'success') {
+                activeSources = data.data.sources || [];
+                renderPresets(data.data.presets || []);
+                renderUserSources(activeSources);
+            }
+        } catch (err) {
+            console.error('Error loading sources:', err);
+        }
+    }
+
+    function renderPresets(presets) {
+        const container = document.getElementById('presetsContainer');
+        const followedUrls = new Set(activeSources.map(s => s.source_url.toLowerCase()));
+
+        container.innerHTML = presets.map(p => {
+            const isFollowed = followedUrls.has(p.source_url.toLowerCase());
+            const catBadge = {
+                'finance': 'bg-success-subtle text-success',
+                'technology': 'bg-info-subtle text-info',
+                'world_news': 'bg-primary-subtle text-primary',
+                'sports': 'bg-warning-subtle text-warning'
+            }[p.category] || 'bg-secondary-subtle text-secondary';
+
+            return `
+                <div class="col-md-6 col-lg-4">
+                    <div class="p-3 rounded-3 border bg-light-subtle h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge ${catBadge} rounded-pill text-uppercase" style="font-size: 0.68rem;">${p.category.replace('_', ' ')}</span>
+                                ${isFollowed ? '<span class="badge bg-success rounded-pill" style="font-size: 0.65rem;"><i class="bi bi-check2"></i> Added</span>' : ''}
+                            </div>
+                            <h6 class="fw-bold text-dark mb-1">${p.title}</h6>
+                            <small class="text-muted text-truncate d-block mb-3" style="font-size: 0.75rem;">${p.source_url}</small>
+                        </div>
+                        <div>
+                            <button class="btn ${isFollowed ? 'btn-outline-secondary disabled' : 'btn-outline-indigo'} btn-sm rounded-pill w-100" 
+                                    onclick="addPresetSource('${p.title}', '${p.source_url}', '${p.category}')"
+                                    ${isFollowed ? 'disabled' : ''}>
+                                <i class="bi ${isFollowed ? 'bi-check-lg' : 'bi-plus-lg'} me-1"></i>
+                                ${isFollowed ? 'Following' : 'Add to My Feeds'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderUserSources(sources) {
+        const tbody = document.getElementById('userSourcesTbody');
+        document.getElementById('sourcesCountBadge').innerText = `${sources.length} Source${sources.length === 1 ? '' : 's'}`;
+
+        if (sources.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        <i class="bi bi-rss-fill text-muted fs-1 d-block mb-2"></i>
+                        <h6 class="fw-bold mb-1">No Custom Sources Added</h6>
+                        <p class="text-muted small mb-3">Add any of the curated presets above or enter your own RSS URL to customize your executive daily briefing.</p>
+                        <button class="btn btn-indigo btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addSourceModal">
+                            <i class="bi bi-plus-lg me-1"></i> Add Your First Source
+                        </button>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = sources.map(s => {
+            return `
+                <tr>
+                    <td>
+                        <div class="fw-bold text-dark">${s.title}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-secondary border rounded-pill text-capitalize">${s.category.replace('_', ' ')}</span>
+                    </td>
+                    <td>
+                        <a href="${s.source_url}" target="_blank" rel="noopener noreferrer" class="text-muted small text-truncate d-inline-block" style="max-width: 280px;">
+                            ${s.source_url} <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.70rem;"></i>
+                        </a>
+                    </td>
+                    <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                            <input class="form-check-input" type="checkbox" role="switch" ${s.is_active ? 'checked' : ''} onchange="toggleSourceActive('${s.id}', this.checked)">
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-link text-danger p-0" onclick="deleteSource('${s.id}', '${s.title}')" title="Delete Source">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function addPresetSource(title, source_url, category) {
+        try {
+            const res = await fetch('/api/reports/sources', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, source_url, category })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                showDigestToast(`Added ${title} to your feeds!`);
+                loadSourcesPage();
+            } else {
+                showDigestToast(data.message || 'Failed to add preset', false);
+            }
+        } catch (err) {
+            showDigestToast('Network error adding preset', false);
+        }
+    }
+
+    async function toggleSourceActive(sourceId, isActive) {
+        try {
+            const res = await fetch(`/api/reports/sources/${sourceId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_active: isActive })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                showDigestToast(`Source ${isActive ? 'activated' : 'paused'}.`);
+            } else {
+                showDigestToast(data.message || 'Failed to update source', false);
+                loadSourcesPage();
+            }
+        } catch (err) {
+            showDigestToast('Network error updating source', false);
+        }
+    }
+
+    async function deleteSource(sourceId, title) {
+        if (!confirm(`Remove "${title}" from your feeds?`)) return;
+
+        try {
+            const res = await fetch(`/api/reports/sources/${sourceId}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                showDigestToast('Source removed.');
+                loadSourcesPage();
+            } else {
+                showDigestToast(data.message || 'Failed to delete source', false);
+            }
+        } catch (err) {
+            showDigestToast('Network error deleting source', false);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSourcesPage();
+    });
+</script>
+{% endblock %}
