@@ -1,0 +1,352 @@
+{% extends "finance/layout.html" %}
+
+{% block title %}Student Monthly Budgets & Goals | OmniFinance{% endblock %}
+
+{% block finance_css %}
+<style>
+    .budget-gauge-card {
+        border-radius: 16px;
+    }
+    .budget-bar {
+        height: 14px;
+        border-radius: 7px;
+        background-color: #e2e8f0;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block finance_content %}
+<!-- Header -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">Student Monthly Budgets</h4>
+        <p class="text-muted small mb-0">Set monthly spending limits, monitor savings targets, and review category allocations.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary rounded-pill px-3 py-2" data-bs-toggle="modal" data-bs-target="#setBudgetModal">
+            <i class="bi bi-sliders me-1"></i> Set Budget Limits
+        </button>
+        <button class="btn btn-emerald rounded-pill px-4 py-2 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#newTxModal">
+            <i class="bi bi-plus-circle me-1"></i> Log Expense / Income
+        </button>
+    </div>
+</div>
+
+<!-- Overview Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card fintech-card p-3 shadow-sm h-100">
+            <small class="text-muted fw-bold text-uppercase" style="font-size: 0.70rem;">Remaining Balance</small>
+            <h2 class="fw-bold text-success mb-1 mt-2" id="finRemaining">$0.00</h2>
+            <small class="text-muted" id="finBudgetSubtext">of $1,000.00 limit</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fintech-card p-3 shadow-sm h-100">
+            <small class="text-muted fw-bold text-uppercase" style="font-size: 0.70rem;">Total Spent (This Month)</small>
+            <h2 class="fw-bold text-danger mb-1 mt-2" id="finSpent">$0.00</h2>
+            <small class="text-muted" id="finExpenseCount">0 transactions recorded</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fintech-card p-3 shadow-sm h-100">
+            <small class="text-muted fw-bold text-uppercase" style="font-size: 0.70rem;">Savings Target</small>
+            <h2 class="fw-bold text-primary mb-1 mt-2" id="finSavings">$200.00</h2>
+            <small class="text-muted">Target for this month</small>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Gauge Progress Card -->
+<div class="card fintech-card p-4 mb-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold mb-0">Monthly Budget Gauge</h6>
+        <span class="badge bg-light text-dark border" id="finPercentBadge">0% Used</span>
+    </div>
+    <div class="budget-bar mb-3">
+        <div class="bg-primary h-100 transition-all" id="finGaugeBar" style="width: 0%;"></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2" id="finCategoriesContainer">
+        <!-- Categories dynamically loaded -->
+    </div>
+</div>
+
+<!-- Recent Transactions Table -->
+<div class="card fintech-card p-4 shadow-sm">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h6 class="fw-bold mb-0">Recent Budget Activity</h6>
+            <small class="text-muted">Direct student expenses &amp; allowances</small>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr style="font-size: 0.78rem;">
+                    <th>DATE</th>
+                    <th>DESCRIPTION</th>
+                    <th>CATEGORY</th>
+                    <th>TYPE</th>
+                    <th class="text-end">AMOUNT</th>
+                    <th class="text-center">ACTION</th>
+                </tr>
+            </thead>
+            <tbody id="txTableBody">
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted small">Loading transactions...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Log Transaction -->
+<div class="modal fade" id="newTxModal" tabindex="-1" aria-labelledby="newTxModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content fintech-card border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="newTxModalLabel"><i class="bi bi-wallet2 text-success me-2"></i>Log Student Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createTxForm" onsubmit="handleCreateTx(event)">
+                <div class="modal-body p-4">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Type</label>
+                            <select class="form-select rounded-3" id="txType">
+                                <option value="expense" selected>Expense (-)</option>
+                                <option value="income">Income (+)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Amount *</label>
+                            <input type="number" step="0.01" class="form-control rounded-3" id="txAmount" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Description *</label>
+                        <input type="text" class="form-control rounded-3" id="txDesc" placeholder="e.g. Campus Cafeteria Lunch" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Category</label>
+                            <select class="form-select rounded-3" id="txCategory">
+                                <option value="food">🍔 Food &amp; Dining</option>
+                                <option value="books">📚 Books &amp; Study</option>
+                                <option value="transport">🚌 Transport</option>
+                                <option value="bills">💡 Bills &amp; Tech</option>
+                                <option value="entertainment">🎮 Entertainment</option>
+                                <option value="income">💵 Income / Allowance</option>
+                                <option value="general" selected>⭐ Other</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Payment Method</label>
+                            <select class="form-select rounded-3" id="txPayment">
+                                <option value="card" selected>Card / eWallet</option>
+                                <option value="cash">Cash</option>
+                                <option value="transfer">Bank Transfer</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-emerald rounded-pill px-4 fw-semibold" id="saveTxBtn">Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Set Budget -->
+<div class="modal fade" id="setBudgetModal" tabindex="-1" aria-labelledby="setBudgetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content fintech-card border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="setBudgetModalLabel"><i class="bi bi-sliders text-secondary me-2"></i>Set Monthly Budget</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="setBudgetForm" onsubmit="handleSetBudget(event)">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Monthly Budget Limit ($) *</label>
+                        <input type="number" step="0.01" class="form-control rounded-3" id="budgetLimitInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Monthly Savings Target ($)</label>
+                        <input type="number" step="0.01" class="form-control rounded-3" id="savingsTargetInput" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-emerald rounded-pill px-4 fw-semibold" id="saveBudgetBtn">Save Budget</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block finance_scripts %}
+<script>
+let currentCurrency = '$';
+
+async function loadFinanceData() {
+    try {
+        const [sumRes, txRes] = await Promise.all([
+            fetch('/api/finance/summary'),
+            fetch('/api/finance/transactions')
+        ]);
+        const sumJson = await sumRes.json();
+        const txJson = await txRes.json();
+
+        if (sumJson.status === 'success') {
+            currentCurrency = sumJson.currency || '$';
+            document.getElementById('finRemaining').textContent = `${currentCurrency}${sumJson.remaining_budget.toFixed(2)}`;
+            document.getElementById('finSpent').textContent = `${currentCurrency}${sumJson.total_expense.toFixed(2)}`;
+            document.getElementById('finSavings').textContent = `${currentCurrency}${sumJson.savings_target.toFixed(2)}`;
+            document.getElementById('finBudgetSubtext').textContent = `of ${currentCurrency}${sumJson.budget_limit.toFixed(2)} limit`;
+            document.getElementById('finPercentBadge').textContent = `${sumJson.budget_usage_pct}% Used`;
+            
+            document.getElementById('budgetLimitInput').value = sumJson.budget_limit;
+            document.getElementById('savingsTargetInput').value = sumJson.savings_target;
+
+            const bar = document.getElementById('finGaugeBar');
+            bar.style.width = `${Math.min(100, sumJson.budget_usage_pct)}%`;
+            if (sumJson.budget_usage_pct > 90) bar.className = 'bg-danger h-100';
+            else if (sumJson.budget_usage_pct > 70) bar.className = 'bg-warning h-100';
+            else bar.className = 'bg-emerald h-100';
+
+            // Category breakdown
+            const catContainer = document.getElementById('finCategoriesContainer');
+            const cats = sumJson.category_breakdown || {};
+            if (Object.keys(cats).length > 0) {
+                catContainer.innerHTML = Object.entries(cats).map(([cat, amt]) => `
+                    <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small">
+                        ${cat.toUpperCase()}: ${currentCurrency}${amt.toFixed(2)}
+                    </span>
+                `).join('');
+            } else {
+                catContainer.innerHTML = '<small class="text-muted">No expenses recorded this month.</small>';
+            }
+        }
+
+        if (txJson.status === 'success') {
+            const txs = txJson.data || [];
+            document.getElementById('finExpenseCount').textContent = `${txs.length} transactions recorded`;
+            const tbody = document.getElementById('txTableBody');
+            if (txs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted small">No transactions yet. Click "+ Log Expense / Income" to start.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = txs.map(t => `
+                <tr>
+                    <td class="text-muted small">${t.transaction_date || ''}</td>
+                    <td class="fw-semibold text-dark">${escapeHtml(t.description)}</td>
+                    <td><span class="badge bg-light text-dark border text-capitalize">${escapeHtml(t.category)}</span></td>
+                    <td>
+                        <span class="badge ${t.type === 'expense' ? 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25' : 'bg-success bg-opacity-10 text-success border border-success border-opacity-25'} rounded-pill">
+                            ${t.type === 'expense' ? 'Expense' : 'Income'}
+                        </span>
+                    </td>
+                    <td class="text-end fw-bold ${t.type === 'expense' ? 'text-danger' : 'text-success'}">
+                        ${t.type === 'expense' ? '-' : '+'}${currentCurrency}${t.amount.toFixed(2)}
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-link text-danger p-0" onclick="deleteTransaction('${t.id}')" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    } catch (e) {
+        console.error("Finance error:", e);
+    }
+}
+
+async function handleCreateTx(e) {
+    e.preventDefault();
+    const type = document.getElementById('txType').value;
+    const amount = document.getElementById('txAmount').value;
+    const description = document.getElementById('txDesc').value.trim();
+    const category = document.getElementById('txCategory').value;
+    const payment_method = document.getElementById('txPayment').value;
+
+    const btn = document.getElementById('saveTxBtn');
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/finance/transactions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, amount, description, category, payment_method })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            bootstrap.Modal.getInstance(document.getElementById('newTxModal')).hide();
+            document.getElementById('createTxForm').reset();
+            loadFinanceData();
+            showFinanceToast('Transaction logged successfully!');
+        } else {
+            showFinanceToast(data.message || 'Error recording transaction', false);
+        }
+    } catch (e) {
+        showFinanceToast('An error occurred', false);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function handleSetBudget(e) {
+    e.preventDefault();
+    const monthly_budget_limit = document.getElementById('budgetLimitInput').value;
+    const savings_target = document.getElementById('savingsTargetInput').value;
+
+    try {
+        const res = await fetch('/api/finance/budget', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ monthly_budget_limit, savings_target })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            bootstrap.Modal.getInstance(document.getElementById('setBudgetModal')).hide();
+            loadFinanceData();
+            showFinanceToast('Budget limits updated successfully!');
+        } else {
+            showFinanceToast(data.message || 'Failed to update budget', false);
+        }
+    } catch (e) {
+        showFinanceToast('An error occurred', false);
+    }
+}
+
+async function deleteTransaction(txId) {
+    if (!confirm('Delete this transaction?')) return;
+    try {
+        const res = await fetch(`/api/finance/transactions/${txId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            loadFinanceData();
+            showFinanceToast('Transaction deleted.');
+        } else {
+            showFinanceToast('Failed to delete transaction', false);
+        }
+    } catch (e) {
+        showFinanceToast('Failed to delete transaction', false);
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/[&<>"']/g, function(m) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m];
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadFinanceData);
+</script>
+{% endblock %}

@@ -17,7 +17,7 @@ from models.task import Task
 from models.schedule import Schedule
 from models.message import DirectMessage
 from models.habit import Habit, HabitLog
-from models.finance import BudgetGoal, Transaction
+from models.finance import BudgetGoal, Transaction, FinancialAccount, FinancialTransaction
 from models.journal import JournalEntry
 from models.career import JobApplication
 
@@ -1547,6 +1547,200 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
             commit_res = commit_subtasks_to_board(student.id, parent_task_id=None, subtasks=decomp["subtasks"][:2])
             self.assertEqual(commit_res["status"], "success")
             self.assertEqual(commit_res["created_count"], 2)
+
+    def test_omnifinance_strict_decoupling(self):
+        """Verify OmniFinance models are strictly decoupled with zero references to Course, Task, or Schedule."""
+        from sqlalchemy import inspect
+        with self.app.app_context():
+            inspector = inspect(db.engine)
+            for table_name in ['financial_accounts', 'financial_transactions']:
+                fks = inspector.get_foreign_keys(table_name)
+                referred_tables = {fk['referred_table'] for fk in fks}
+                self.assertNotIn('courses', referred_tables)
+                self.assertNotIn('tasks', referred_tables)
+                self.assertNotIn('schedules', referred_tables)
+                if table_name == 'financial_accounts':
+                    self.assertEqual(referred_tables, {'users'})
+                elif table_name == 'financial_transactions':
+                    self.assertEqual(referred_tables, {'users', 'financial_accounts'})
+
+    def test_omnifinance_net_worth_and_asset_allocation(self):
+        """Verify aggregated net worth calculation: Total Assets - Liabilities across Malaysian platforms."""
+        from services.finance_service import get_net_worth_overview, create_or_update_account
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+
+            # 1. Create accounts across 5 categories
+            create_or_update_account(student.id, {
+                'institution_name': "Touch 'n Go eWallet",
+                'account_category': 'ewallet',
+                'current_balance': 350.00
+            })
+            create_or_update_account(student.id, {
+                'institution_name': "Maybank",
+                'account_category': 'bank_savings',
+                'current_balance': 4500.00
+            })
+            create_or_update_account(student.id, {
+                'institution_name': "myASNB",
+                'account_category': 'investment_unit_trust',
+                'current_balance': 8000.00
+            })
+            create_or_update_account(student.id, {
+                'institution_name': "Moomoo Malaysia",
+                'account_category': 'investment_stocks',
+                'current_balance': 2000.00
+            })
+            create_or_update_account(student.id, {
+                'institution_name': "PTPTN Education Loan",
+                'account_category': 'credit_debt',
+                'current_balance': 1500.00
+            })
+
+            overview = get_net_worth_overview(student.id)
+            # Assets = 350 + 4500 + 8000 + 2000 = 14850.00
+            self.assertEqual(overview['total_assets'], 14850.00)
+            # Liabilities = 1500.00
+            self.assertEqual(overview['total_liabilities'], 1500.00)
+            # Net Worth = 14850 - 1500 = 13350.00
+            self.assertEqual(overview['net_worth'], 13350.00)
+            self.assertEqual(overview['account_count'], 5)
+
+            # Check allocation percentage for ASNB (8000 / 14850 * 100 = 53.9%)
+            asnb_alloc = overview['allocations']['investment_unit_trust']
+            self.assertAlmostEqual(asnb_alloc['percentage'], 53.9, delta=0.5)
+
+    def test_omnifinance_account_crud_and_cascade_delete(self):
+        """Verify account creation, manual transaction logging, and cascade deletion."""
+        from services.finance_service import (
+            create_or_update_account, 
+            create_manual_transaction, 
+            delete_account,
+            get_account_by_id
+        )
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            acc_dict = create_or_update_account(student.id, {
+                'institution_name': "CIMB Bank",
+                'account_category': 'bank_savings',
+                'account_nickname': "Savings",
+                'current_balance': 1000.00
+            })
+            acc_id = acc_dict['id']
+
+            # Add transaction
+            tx_dict = create_manual_transaction(student.id, {
+                'account_id': acc_id,
+                'description': "Tealive Boba",
+                'amount': 12.50,
+                'transaction_type': 'expense'
+            })
+            tx_id = tx_dict['id']
+
+            # Verify transaction exists in db
+            tx = db.session.get(FinancialTransaction, uuid.UUID(tx_id))
+            self.assertIsNotNone(tx)
+
+            # Cascade delete account
+            deleted = delete_account(student.id, acc_id)
+            self.assertTrue(deleted)
+
+            # Verify account and transaction were deleted
+            self.assertIsNone(get_account_by_id(student.id, acc_id))
+            self.assertIsNone(db.session.get(FinancialTransaction, uuid.UUID(tx_id)))
+
+    def test_omnifinance_balance_reconcile(self):
+        """Verify balance reconciliation updates balance and logs an audit adjustment transaction."""
+        from services.finance_service import create_or_update_account, reconcile_account_balance
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            acc_dict = create_or_update_account(student.id, {
+                'institution_name': "Boost eWallet",
+                'account_category': 'ewallet',
+                'current_balance': 100.00
+            })
+            acc_id = acc_dict['id']
+
+            # Reconcile from 100.00 to 145.50 (+45.50)
+            res = reconcile_account_balance(student.id, acc_id, 145.50, note="Monthly Statement Audit")
+            self.assertEqual(res['current_balance'], 145.50)
+
+            # Check audit transaction created
+            adj_tx = FinancialTransaction.query.filter_by(account_id=acc_id).first()
+            self.assertIsNotNone(adj_tx)
+            self.assertEqual(adj_tx.transaction_type, 'income')
+            self.assertAlmostEqual(float(adj_tx.amount), 45.50, delta=0.01)
+
+    def test_omnifinance_statement_commit_and_balance_update(self):
+        """Verify committing parsed statement transactions correctly updates account balance."""
+        from services.finance_service import create_or_update_account
+        from services.statement_parser import commit_statement_transactions
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            acc = create_or_update_account(student.id, {
+                'institution_name': "RHB Bank",
+                'account_category': 'bank_savings',
+                'current_balance': 500.00
+            })
+            acc_id = acc['id']
+
+            payload = {
+                'transactions': [
+                    {'transaction_date': '2026-09-15', 'description': 'Salary Credit', 'amount': 1200.00, 'transaction_type': 'income'},
+                    {'transaction_date': '2026-09-16', 'description': 'Jaya Grocer', 'amount': 150.00, 'transaction_type': 'expense'}
+                ]
+            }
+
+            res = commit_statement_transactions(student.id, acc_id, payload)
+            self.assertEqual(res['status'], 'success')
+            self.assertEqual(res['committed_count'], 2)
+            # New balance = 500 + 1200 - 150 = 1550.00
+            self.assertEqual(res['new_balance'], 1550.00)
+
+    def test_omnifinance_api_endpoints(self):
+        """Verify OmniFinance RESTful endpoints operate properly under authenticated session."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.username
+                sess['role'] = student.role
+
+        # 1. Net worth endpoint
+        res = self.client.get('/api/finance/net-worth')
+        self.assertEqual(res.status_code, 200)
+        json_data = res.get_json()
+        self.assertEqual(json_data['status'], 'success')
+        self.assertIn('net_worth', json_data['data'])
+
+        # 2. Create account endpoint
+        create_res = self.client.post('/api/finance/accounts', json={
+            'institution_name': "Public Bank",
+            'account_category': 'bank_savings',
+            'account_nickname': "Fixed Deposit",
+            'current_balance': 5000.00
+        })
+        self.assertEqual(create_res.status_code, 201)
+        created_acc = create_res.get_json()['data']
+
+        # 3. Reconcile endpoint
+        rec_res = self.client.post(f"/api/finance/accounts/{created_acc['id']}/reconcile", json={
+            'new_balance': 5200.00
+        })
+        self.assertEqual(rec_res.status_code, 200)
+        self.assertEqual(rec_res.get_json()['data']['current_balance'], 5200.00)
+
+        # 4. View routes
+        dash_res = self.client.get('/finance')
+        self.assertEqual(dash_res.status_code, 200)
+        acc_page_res = self.client.get('/finance/accounts')
+        self.assertEqual(acc_page_res.status_code, 200)
+        stmt_page_res = self.client.get('/finance/statements')
+        self.assertEqual(stmt_page_res.status_code, 200)
+        tx_page_res = self.client.get('/finance/transactions')
+        self.assertEqual(tx_page_res.status_code, 200)
+        budget_page_res = self.client.get('/finance/budgets')
+        self.assertEqual(budget_page_res.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()

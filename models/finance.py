@@ -61,3 +61,5 @@ class Transaction(db.Model):
             'payment_method': self.payment_method,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+from models.financial_account import FinancialAccount, FinancialTransaction

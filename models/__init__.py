@@ -7,12 +7,13 @@ from models.document import Document
 from models.user_ai_config import UserAIConfig
 from models.message import DirectMessage
 from models.habit import Habit, HabitLog
-from models.finance import BudgetGoal, Transaction
+from models.finance import BudgetGoal, Transaction, FinancialAccount, FinancialTransaction
 from models.journal import JournalEntry
 from models.career import JobApplication
 
 __all__ = [
     'db', 'User', 'Course', 'Task', 'Schedule', 'Document', 'UserAIConfig', 
     'DirectMessage', 'Habit', 'HabitLog', 'BudgetGoal', 'Transaction', 
+    'FinancialAccount', 'FinancialTransaction',
     'JournalEntry', 'JobApplication'
 ]

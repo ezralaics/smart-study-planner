@@ -1,0 +1,395 @@
+{% extends "finance/layout.html" %}
+
+{% block title %}Statement Ingestion & AI Dropzone | OmniFinance{% endblock %}
+
+{% block finance_css %}
+<style>
+    .statement-dropzone {
+        border: 2px dashed #10b981;
+        border-radius: 20px;
+        background: rgba(16, 185, 129, 0.03);
+        padding: 3.5rem 2rem;
+        text-align: center;
+        transition: all 0.25s ease;
+        cursor: pointer;
+    }
+    .statement-dropzone:hover, .statement-dropzone.dragover {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: #059669;
+        transform: scale(1.01);
+    }
+    .supported-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid #e2e8f0;
+        padding: 0.35rem 0.85rem;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        color: #475569;
+    }
+    [data-bs-theme="dark"] .supported-pill {
+        background: #1e293b;
+        border-color: #334155;
+        color: #cbd5e1;
+    }
+</style>
+{% endblock %}
+
+{% block finance_content %}
+<div class="mb-4">
+    <h4 class="fw-bold mb-1">Financial Statement Ingestion</h4>
+    <p class="text-muted small mb-0">Upload monthly bank statements (PDF, CSV, TXT) from Touch 'n Go, Maybank, CIMB, ASNB, or Moomoo. Our AI and parsing engine extracts transactions automatically.</p>
+</div>
+
+<!-- Upload Section Card -->
+<div class="card fintech-card p-4 p-md-5 mb-4 shadow-sm">
+    <div class="row g-4 align-items-center mb-4">
+        <div class="col-md-7">
+            <label class="form-label fw-bold small text-uppercase text-muted">Target Account to Ingest Into</label>
+            <select class="form-select rounded-3 py-2" id="statementTargetAccount">
+                <option value="">-- Auto-Detect or Create New Account --</option>
+            </select>
+            <small class="text-muted">If none is selected, an account will be created or matched automatically based on the statement header.</small>
+        </div>
+        <div class="col-md-5 text-md-end">
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
+                <i class="bi bi-shield-check me-1"></i>Client-Side Encrypted & Ephemeral Parsing
+            </span>
+        </div>
+    </div>
+
+    <!-- Drag & Drop Area -->
+    <div class="statement-dropzone" id="dropzoneArea" onclick="document.getElementById('statementFileInput').click()">
+        <input type="file" id="statementFileInput" class="d-none" accept=".pdf,.csv,.txt,.tsv" onchange="handleFileSelected(this.files[0])">
+        <div class="mb-3">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle text-white shadow-sm"
+                  style="width: 68px; height: 68px; background: linear-gradient(135deg, #10b981, #059669);">
+                <i class="bi bi-cloud-arrow-up fs-2"></i>
+            </span>
+        </div>
+        <h5 class="fw-bold mb-1">Drag and drop your statement file here</h5>
+        <p class="text-muted small mb-3">Supports PDF, CSV, or TXT exports (Max 15MB)</p>
+        <button type="button" class="btn btn-emerald rounded-pill px-4 fw-semibold shadow-sm">
+            <i class="bi bi-folder2-open me-1"></i> Browse Files
+        </button>
+    </div>
+
+    <!-- Supported Banks Pill Row -->
+    <div class="mt-4 pt-3 border-top">
+        <small class="text-muted fw-bold d-block mb-2 text-uppercase" style="font-size: 0.72rem;">Supported Malaysian & Global Institutions:</small>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="supported-pill"><i class="bi bi-phone text-info"></i> Touch 'n Go eWallet</span>
+            <span class="supported-pill"><i class="bi bi-bank text-warning"></i> Maybank (M2U)</span>
+            <span class="supported-pill"><i class="bi bi-bank text-danger"></i> CIMB Bank (Octo)</span>
+            <span class="supported-pill"><i class="bi bi-safe text-primary"></i> myASNB Unit Trust</span>
+            <span class="supported-pill"><i class="bi bi-graph-up text-success"></i> Moomoo & Rakuten Trade</span>
+            <span class="supported-pill"><i class="bi bi-file-earmark-spreadsheet text-secondary"></i> Standard CSV Exports</span>
+        </div>
+    </div>
+</div>
+
+<!-- Parsing In-Progress Loader (Hidden by default) -->
+<div class="card fintech-card p-5 mb-4 shadow-sm text-center d-none" id="parsingProgressCard">
+    <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status">
+        <span class="visually-hidden">Parsing...</span>
+    </div>
+    <h5 class="fw-bold mb-1">Analyzing Statement Document...</h5>
+    <p class="text-muted small mb-0">Extracting merchant entries, transaction dates, and reconciling closing balances.</p>
+</div>
+
+<!-- Extracted Preview & Review Section (Hidden by default) -->
+<div class="card fintech-card p-4 shadow-sm mb-4 d-none" id="statementPreviewCard">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" id="previewParserBadge">
+                    AI Parsed
+                </span>
+                <h5 class="fw-bold mb-0" id="previewInstitutionTitle">Touch 'n Go eWallet</h5>
+            </div>
+            <small class="text-muted" id="previewPeriodSubtitle">Statement Period: Sep 2026</small>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="resetStatementUpload()">
+                <i class="bi bi-x-circle me-1"></i> Discard
+            </button>
+            <button class="btn btn-emerald btn-sm rounded-pill px-4 fw-semibold shadow-sm" id="btnCommitStatement" onclick="commitExtractedStatement()">
+                <span class="spinner-border spinner-border-sm me-1 d-none" id="commitSpinner"></span>
+                <i class="bi bi-check2-all me-1"></i> Commit <span id="commitCountBadge">0</span> Transactions
+            </button>
+        </div>
+    </div>
+
+    <!-- Metadata Pill Row -->
+    <div class="row g-2 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="p-3 rounded-3 bg-light-subtle border">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">ACCOUNT</small>
+                <span class="fw-bold" id="previewAccountMasked">•••• 8821</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 rounded-3 bg-light-subtle border">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">OPENING BALANCE</small>
+                <span class="fw-bold" id="previewOpeningBal">RM 0.00</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 rounded-3 bg-light-subtle border">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">CLOSING BALANCE</small>
+                <span class="fw-bold text-success" id="previewClosingBal">RM 0.00</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 rounded-3 bg-light-subtle border">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">TRANSACTIONS FOUND</small>
+                <span class="fw-bold text-primary" id="previewTxCount">0 Entries</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editable Extracted Transactions Table -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr style="font-size: 0.8rem;" class="text-uppercase text-muted">
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th class="text-end">Amount</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody id="statementTransactionsTbody">
+                <!-- Injected via Javascript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block finance_scripts %}
+<script>
+    let extractedPayload = null;
+
+    async function loadTargetAccounts() {
+        const select = document.getElementById('statementTargetAccount');
+        try {
+            const res = await fetch('/api/finance/accounts');
+            const data = await res.json();
+            if (data.status === 'success') {
+                const opts = data.data.map(a => `<option value="${a.id}">${a.institution_name} (${a.account_nickname}) - ${a.currency} ${a.current_balance.toFixed(2)}</option>`);
+                select.innerHTML = '<option value="">-- Match or Auto-Create Account --</option>' + opts.join('');
+            }
+        } catch (err) {
+            console.error('Error loading statement accounts:', err);
+        }
+    }
+
+    // Drag and drop handlers
+    const dropzone = document.getElementById('dropzoneArea');
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+        }, false);
+    });
+    dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length) {
+            handleFileSelected(files[0]);
+        }
+    });
+
+    async function handleFileSelected(file) {
+        if (!file) return;
+
+        const progressCard = document.getElementById('parsingProgressCard');
+        const previewCard = document.getElementById('statementPreviewCard');
+        progressCard.classList.remove('d-none');
+        previewCard.classList.add('d-none');
+
+        const formData = new FormData();
+        formData.append('file', file);
+        const targetAccId = document.getElementById('statementTargetAccount').value;
+        if (targetAccId) formData.append('account_id', targetAccId);
+
+        try {
+            const res = await fetch('/api/finance/parse-statement', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+
+            if (res.ok && result.status === 'success') {
+                extractedPayload = result.data;
+                renderStatementPreview(result);
+                showFinanceToast(`Successfully parsed statement from ${result.data.institution_name}!`);
+            } else {
+                showFinanceToast(result.message || 'Failed to parse statement file', false);
+            }
+        } catch (err) {
+            showFinanceToast('Network error during statement upload', false);
+        } finally {
+            progressCard.classList.add('d-none');
+        }
+    }
+
+    function renderStatementPreview(result) {
+        const previewCard = document.getElementById('statementPreviewCard');
+        const data = result.data;
+
+        document.getElementById('previewParserBadge').innerText = result.parser === 'ai' ? 'AI Vision & Text' : 'Malaysian Regex Engine';
+        document.getElementById('previewInstitutionTitle').innerText = data.institution_name;
+        document.getElementById('previewPeriodSubtitle').innerText = data.statement_period || 'Current Statement';
+        document.getElementById('previewAccountMasked').innerText = data.account_number_masked || '••••';
+        document.getElementById('previewOpeningBal').innerText = `${data.currency} ${(data.opening_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        document.getElementById('previewClosingBal').innerText = `${data.currency} ${(data.closing_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        document.getElementById('previewTxCount').innerText = `${data.transactions.length} Entries`;
+        document.getElementById('commitCountBadge').innerText = data.transactions.length;
+
+        const tbody = document.getElementById('statementTransactionsTbody');
+        tbody.innerHTML = data.transactions.map((tx, idx) => `
+            <tr id="previewRow_${idx}">
+                <td style="width: 130px;">
+                    <input type="date" class="form-control form-control-sm rounded-2" value="${tx.transaction_date}" onchange="updateExtractedTx(${idx}, 'transaction_date', this.value)">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm rounded-2" value="${tx.description}" onchange="updateExtractedTx(${idx}, 'description', this.value)">
+                </td>
+                <td style="width: 140px;">
+                    <select class="form-select form-select-sm rounded-2" onchange="updateExtractedTx(${idx}, 'category', this.value)">
+                        <option value="Food & Dining" ${tx.category === 'Food & Dining' ? 'selected' : ''}>Food & Dining</option>
+                        <option value="Transport" ${tx.category === 'Transport' ? 'selected' : ''}>Transport</option>
+                        <option value="Groceries" ${tx.category === 'Groceries' ? 'selected' : ''}>Groceries</option>
+                        <option value="Utilities" ${tx.category === 'Utilities' ? 'selected' : ''}>Utilities</option>
+                        <option value="Salary" ${tx.category === 'Salary' ? 'selected' : ''}>Salary</option>
+                        <option value="Investment" ${tx.category === 'Investment' ? 'selected' : ''}>Investment</option>
+                        <option value="Transfer" ${tx.category === 'Transfer' ? 'selected' : ''}>Transfer</option>
+                        <option value="General" ${tx.category === 'General' ? 'selected' : ''}>General</option>
+                    </select>
+                </td>
+                <td style="width: 110px;">
+                    <select class="form-select form-select-sm rounded-2" onchange="updateExtractedTx(${idx}, 'transaction_type', this.value)">
+                        <option value="expense" ${tx.transaction_type === 'expense' ? 'selected' : ''}>Expense</option>
+                        <option value="income" ${tx.transaction_type === 'income' ? 'selected' : ''}>Income</option>
+                    </select>
+                </td>
+                <td style="width: 120px;" class="text-end">
+                    <input type="number" step="0.01" class="form-control form-control-sm text-end rounded-2" value="${tx.amount}" onchange="updateExtractedTx(${idx}, 'amount', parseFloat(this.value))">
+                </td>
+                <td class="text-center" style="width: 50px;">
+                    <button class="btn btn-sm btn-link text-danger p-0" onclick="removeExtractedTx(${idx})" title="Remove">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        previewCard.classList.remove('d-none');
+        previewCard.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function updateExtractedTx(idx, key, val) {
+        if (extractedPayload && extractedPayload.transactions[idx]) {
+            extractedPayload.transactions[idx][key] = val;
+        }
+    }
+
+    function removeExtractedTx(idx) {
+        if (!extractedPayload) return;
+        extractedPayload.transactions.splice(idx, 1);
+        renderStatementPreview({ data: extractedPayload, parser: 'modified' });
+    }
+
+    async function commitExtractedStatement() {
+        if (!extractedPayload || !extractedPayload.transactions.length) {
+            showFinanceToast('No transactions to commit.', false);
+            return;
+        }
+
+        let targetAccId = document.getElementById('statementTargetAccount').value;
+        const btn = document.getElementById('btnCommitStatement');
+        const spinner = document.getElementById('commitSpinner');
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+
+        // If target account is not chosen, create or find one matching the extracted institution
+        if (!targetAccId) {
+            try {
+                const accRes = await fetch('/api/finance/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        institution_name: extractedPayload.institution_name,
+                        account_category: extractedPayload.account_category || 'bank_savings',
+                        account_nickname: `${extractedPayload.institution_name} Statement Account`,
+                        account_number_masked: extractedPayload.account_number_masked || '••••',
+                        current_balance: extractedPayload.opening_balance || 0,
+                        currency: extractedPayload.currency || 'MYR'
+                    })
+                });
+                const accData = await accRes.json();
+                if (accRes.ok && accData.status === 'success') {
+                    targetAccId = accData.data.id;
+                } else {
+                    showFinanceToast('Could not automatically link an account.', false);
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                    return;
+                }
+            } catch (err) {
+                showFinanceToast('Failed to create target account.', false);
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                return;
+            }
+        }
+
+        try {
+            const commitRes = await fetch('/api/finance/commit-statement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    account_id: targetAccId,
+                    statement_data: extractedPayload
+                })
+            });
+            const commitData = await commitRes.json();
+            if (commitRes.ok && commitData.status === 'success') {
+                showFinanceToast(commitData.message || 'Transactions successfully committed!');
+                resetStatementUpload();
+                loadTargetAccounts();
+            } else {
+                showFinanceToast(commitData.message || 'Failed to commit statement', false);
+            }
+        } catch (err) {
+            showFinanceToast('Network error while committing statement', false);
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    }
+
+    function resetStatementUpload() {
+        extractedPayload = null;
+        document.getElementById('statementFileInput').value = '';
+        document.getElementById('statementPreviewCard').classList.add('d-none');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTargetAccounts();
+    });
+</script>
+{% endblock %}
