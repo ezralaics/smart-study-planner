@@ -34,14 +34,21 @@ def dashboard():
 @login_required
 def switch_workspace(workspace_name):
     """Workspace Switcher: updates active workspace in session and redirects to module overview."""
+    from core.registry import get_module
+    key = workspace_name.lower().strip()
+    mod = get_module(key)
+    if mod:
+        session['active_workspace'] = key
+        return redirect(mod.url)
+    
     valid_workspaces = {
         'academics': '/student/dashboard',
         'life': '/life',
         'finance': '/finance',
+        'reports': '/reports',
         'journal': '/journal',
         'career': '/career'
     }
-    key = workspace_name.lower().strip()
     target = valid_workspaces.get(key)
     if target:
         session['active_workspace'] = key

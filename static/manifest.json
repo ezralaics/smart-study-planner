@@ -1,7 +1,7 @@
 {
-  "name": "Smart Study Planner - OmniLife OS",
-  "short_name": "StudyPlanner",
-  "description": "All-in-one AI study planner, timetable scheduler, grade calculator, and productivity suite.",
+  "name": "Life Planner OS — OmniLife",
+  "short_name": "LifePlanner",
+  "description": "Unified Life Management Operating System: Study, Finance, Habits, Intelligence Reports, Journal, and Career.",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
@@ -9,7 +9,7 @@
   "theme_color": "#0d6efd",
   "orientation": "portrait-primary",
   "lang": "en",
-  "categories": ["education", "productivity", "lifestyle"],
+  "categories": ["education", "finance", "productivity", "lifestyle"],
   "icons": [
     {
       "src": "/static/icons/icon-192x192.png",
@@ -32,24 +32,45 @@
   ],
   "shortcuts": [
     {
+      "name": "Command Center",
+      "short_name": "Command",
+      "description": "Today's unified life command center",
+      "url": "/dashboard",
+      "icons": [{ "src": "/static/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "Study Planner",
-      "short_name": "Planner",
-      "description": "View and manage your academic course plans",
+      "short_name": "Study",
+      "description": "Academic course plans and AI schedule",
       "url": "/study-planner",
       "icons": [{ "src": "/static/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Academic Calendar",
-      "short_name": "Calendar",
-      "description": "Check timetable and upcoming deadlines",
-      "url": "/calendar",
+      "name": "Financial Planner",
+      "short_name": "Finance",
+      "description": "Net worth and wealth accounts",
+      "url": "/finance",
       "icons": [{ "src": "/static/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "AI Study Assistant",
-      "short_name": "AI Tutor",
-      "description": "Ask questions and summarize lecture notes",
-      "url": "/study-assistant",
+      "name": "Daily Habits",
+      "short_name": "Habits",
+      "description": "Daily routines and habit streaks",
+      "url": "/life",
+      "icons": [{ "src": "/static/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Intelligence Reports",
+      "short_name": "Reports",
+      "description": "Morning AI briefings and weekly digests",
+      "url": "/reports",
+      "icons": [{ "src": "/static/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Journal & Reflection",
+      "short_name": "Journal",
+      "description": "Daily diary and mood tracker",
+      "url": "/journal",
       "icons": [{ "src": "/static/icons/icon-192x192.png", "sizes": "192x192" }]
     }
   ]

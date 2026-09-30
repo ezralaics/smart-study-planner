@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studyplanner-cache-v1';
+const CACHE_NAME = 'lifeplanner-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/offline',

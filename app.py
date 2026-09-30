@@ -121,60 +121,17 @@ def create_app(config_class=Config):
             active_ws = 'life'
         elif path.startswith('/finance'):
             active_ws = 'finance'
+        elif path.startswith('/reports'):
+            active_ws = 'reports'
         elif path.startswith('/journal'):
             active_ws = 'journal'
         elif path.startswith('/career'):
             active_ws = 'career'
-        elif path in ['/student/dashboard', '/study-planner', '/calendar', '/courses', '/classes', '/tasks', '/grades', '/study-assistant']:
+        elif path in ['/student/dashboard', '/study-planner', '/calendar', '/courses', '/classes', '/tasks', '/grades', '/study-assistant', '/analytics', '/automation']:
             active_ws = 'academics'
 
-        workspaces_list = [
-            {
-                'key': 'academics',
-                'name': 'Study & Academics',
-                'short_name': 'Academics',
-                'icon': 'bi-mortarboard-fill',
-                'color': '#0d6efd',
-                'url': '/student/dashboard',
-                'badge': 'Academic Modules'
-            },
-            {
-                'key': 'life',
-                'name': 'Life & Daily Habits',
-                'short_name': 'Habits',
-                'icon': 'bi-flower1',
-                'color': '#198754',
-                'url': '/life',
-                'badge': 'Habits & Wellness'
-            },
-            {
-                'key': 'finance',
-                'name': 'Financial Planner',
-                'short_name': 'Finances',
-                'icon': 'bi-wallet2',
-                'color': '#0dcaf0',
-                'url': '/finance',
-                'badge': 'Budget & Expenses'
-            },
-            {
-                'key': 'journal',
-                'name': 'Journal & Reflection',
-                'short_name': 'Journal',
-                'icon': 'bi-journal-richtext',
-                'color': '#6f42c1',
-                'url': '/journal',
-                'badge': 'Diary & Moods'
-            },
-            {
-                'key': 'career',
-                'name': 'Career & Job Tracker',
-                'short_name': 'Career',
-                'icon': 'bi-briefcase-fill',
-                'color': '#fd7e14',
-                'url': '/career',
-                'badge': 'Applications Kanban'
-            }
-        ]
+        from core.registry import get_workspaces_list
+        workspaces_list = get_workspaces_list()
 
         current_ws = next((w for w in workspaces_list if w['key'] == active_ws), workspaces_list[0])
 

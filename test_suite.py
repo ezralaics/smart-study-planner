@@ -1879,6 +1879,125 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
         p3 = self.client.get('/reports/sources')
         self.assertEqual(p3.status_code, 200)
 
+    # =========================================================================
+    # Life Planner OS (OmniLife) Enterprise Modular Monolith Test Cases
+    # =========================================================================
+
+    def test_core_package_exports_and_backward_compatibility(self):
+        """Verify core package exports and backward compatibility via extensions and utils/auth."""
+        import core
+        self.assertIsNotNone(core.db)
+        self.assertIsNotNone(core.GUID)
+        self.assertIsNotNone(core.login_required)
+        self.assertIsNotNone(core.role_required)
+        self.assertIsNotNone(core.registry)
+        self.assertIsNotNone(core.LifePlannerModule)
+
+        # Backward compatibility aliases
+        import extensions
+        self.assertIs(extensions.db, core.db)
+        self.assertIs(extensions.GUID, core.GUID)
+
+        import utils.auth
+        self.assertIs(utils.auth.login_required, core.login_required)
+        self.assertIs(utils.auth.role_required, core.role_required)
+
+    def test_pluggable_module_registry(self):
+        """Verify the 6 foundational Life Planner OS domain modules are registered."""
+        from core.registry import get_registered_modules, get_workspaces_list, get_module
+
+        modules = get_registered_modules()
+        self.assertGreaterEqual(len(modules), 6)
+
+        keys = [m.key for m in modules]
+        expected_keys = ['academics', 'finance', 'life', 'reports', 'journal', 'career']
+        for k in expected_keys:
+            self.assertIn(k, keys)
+            mod = get_module(k)
+            self.assertIsNotNone(mod)
+            self.assertTrue(mod.name)
+            self.assertTrue(mod.url)
+            self.assertTrue(mod.icon)
+
+        ws_list = get_workspaces_list()
+        self.assertGreaterEqual(len(ws_list), 6)
+        ws_keys = [w['key'] for w in ws_list]
+        for k in expected_keys:
+            self.assertIn(k, ws_keys)
+
+    def test_pluggable_registry_extension(self):
+        """Verify registering a new future domain module works cleanly without modifying core infrastructure."""
+        from core.registry import LifePlannerModule, registry, get_module
+
+        fitness_mod = LifePlannerModule(
+            key='fitness',
+            name='Health & Fitness',
+            short_name='Fitness',
+            icon='bi-heart-pulse-fill',
+            color='#e11d48',
+            url='/fitness',
+            badge='Workouts & Health',
+            description='Daily workout logging, cardio tracker and nutrition ledger'
+        )
+        registry.register(fitness_mod)
+
+        retrieved = get_module('fitness')
+        self.assertIsNotNone(retrieved)
+        self.assertEqual(retrieved.name, 'Health & Fitness')
+        self.assertEqual(retrieved.color, '#e11d48')
+        self.assertEqual(retrieved.to_dict()['badge'], 'Workouts & Health')
+
+    def test_workspace_switcher_all_six_domains(self):
+        """Verify /workspace/<name> seamlessly updates session and redirects for all 6 life domains."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.username
+                sess['role'] = student.role
+
+        domain_targets = {
+            'academics': '/student/dashboard',
+            'finance': '/finance',
+            'life': '/life',
+            'reports': '/reports',
+            'journal': '/journal',
+            'career': '/career'
+        }
+
+        for domain, expected_url in domain_targets.items():
+            res = self.client.get(f'/workspace/{domain}')
+            self.assertEqual(res.status_code, 302, f"Failed for domain {domain}")
+            self.assertIn(expected_url, res.headers['Location'])
+
+    def test_route_aliases_preserved(self):
+        """Verify legacy bookmark route aliases continue functioning seamlessly."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.username
+                sess['role'] = student.role
+
+        aliases = [
+            '/dashboard',
+            '/study-planner',
+            '/calendar',
+            '/grades',
+            '/study-assistant',
+            '/analytics',
+            '/finance',
+            '/life',
+            '/reports',
+            '/journal',
+            '/career'
+        ]
+
+        for route in aliases:
+            res = self.client.get(route)
+            self.assertIn(res.status_code, [200, 302], f"Route alias {route} failed with status {res.status_code}")
+
 if __name__ == '__main__':
     unittest.main()
+
 

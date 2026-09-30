@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Smart Study Planner{% endblock %}</title>
+    <title>{% block title %}Life Planner OS — OmniLife{% endblock %}</title>
     <!-- PWA & Mobile Web App Meta Tags -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0d6efd">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="StudyPlanner">
+    <meta name="apple-mobile-web-app-title" content="LifePlanner">
     <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192x192.png">
     <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg">
@@ -326,7 +326,9 @@
                 <i class="bi bi-list fs-4"></i>
             </button>
             <a class="navbar-brand fw-bold text-primary ms-2 d-flex align-items-center" href="/dashboard">
-                <i class="bi bi-cpu me-2"></i> Smart Study Planner
+                <i class="bi bi-compass-fill me-2"></i> Life Planner
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill ms-2" style="font-size: 0.72rem;">OmniLife OS</span>
+                <span class="visually-hidden">Smart Study Planner</span>
                 {% if session.get('role') == 'admin' %}
                     <span class="badge bg-dark border border-secondary text-light ms-2" style="font-size: 0.72rem;">Admin</span>
                 {% elif session.get('role') == 'educator' %}
@@ -351,12 +353,12 @@
                         data-bs-toggle="dropdown" 
                         aria-expanded="false" 
                         id="omniAppLauncherBtn" 
-                        title="OmniSuite App Switcher">
+                        title="Life Planner OS App Switcher">
                     <i class="bi bi-grid-3x3-gap-fill fs-5 text-primary"></i>
                 </button>
                 <div class="dropdown-menu dropdown-menu-start shadow-lg border-0 p-3" style="width: 340px; border-radius: 16px;" aria-labelledby="omniAppLauncherBtn">
                     <div class="d-flex align-items-center justify-content-between mb-3 px-1">
-                        <span class="fw-bold small text-uppercase text-muted" style="letter-spacing: 0.5px; font-size: 0.72rem;">OmniSuite Applications</span>
+                        <span class="fw-bold small text-uppercase text-muted" style="letter-spacing: 0.5px; font-size: 0.72rem;">Life Planner OS Applications</span>
                         <button class="btn btn-sm btn-link text-muted p-0 text-decoration-none small" onclick="openCommandPalette()"><i class="bi bi-search me-1"></i><kbd style="font-size: 0.65rem;">Ctrl K</kbd></button>
                     </div>
                     <div class="row g-2 mb-3">
@@ -379,7 +381,7 @@
                     </div>
                     <div class="border-top pt-2 d-flex align-items-center justify-content-between" style="font-size: 0.78rem;">
                         <a href="/dashboard" class="text-decoration-none text-primary fw-semibold"><i class="bi bi-speedometer2 me-1"></i>Command Center</a>
-                        <a href="/reports" class="text-decoration-none text-primary fw-semibold"><i class="bi bi-newspaper me-1"></i>OmniDigest</a>
+                        <a href="/reports" class="text-decoration-none text-primary fw-semibold"><i class="bi bi-newspaper me-1"></i>AI Digest</a>
                         <a href="/analytics" class="text-decoration-none text-primary fw-semibold"><i class="bi bi-graph-up-arrow me-1"></i>Analytics</a>
                         <a href="/settings" class="text-decoration-none text-secondary"><i class="bi bi-gear me-1"></i>Settings</a>
                     </div>
@@ -387,9 +389,9 @@
             </div>
 
             <!-- Global Search Trigger (Ctrl+K) -->
-            <button class="btn btn-light rounded-pill px-3 py-1 border d-none d-lg-flex align-items-center gap-2 text-muted shadow-sm ms-2 me-2" onclick="openCommandPalette()" style="font-size: 0.82rem;" title="Search OmniSuite (Ctrl+K)">
+            <button class="btn btn-light rounded-pill px-3 py-1 border d-none d-lg-flex align-items-center gap-2 text-muted shadow-sm ms-2 me-2" onclick="openCommandPalette()" style="font-size: 0.82rem;" title="Search Life Planner OS (Ctrl+K)">
                 <i class="bi bi-search"></i>
-                <span>Search OmniSuite...</span>
+                <span>Search Life Planner...</span>
                 <kbd class="bg-white border text-secondary px-1 py-0 rounded" style="font-size: 0.68rem;">Ctrl K</kbd>
             </button>
             {% endif %}
@@ -581,6 +583,17 @@
                         </a>
                         <a class="nav-link" href="/career#analytics">
                             <i class="bi bi-graph-up-arrow"></i> Pipeline Analytics
+                        </a>
+
+                    {% elif active_workspace == 'reports' %}
+                        <div class="px-3 py-1 text-uppercase text-muted small fw-bold" style="font-size: 0.75rem; color: #6366f1 !important;">
+                            <i class="bi bi-newspaper me-1"></i> Intelligence Reports
+                        </div>
+                        <a class="nav-link {% if active_page == 'reports_dashboard' %}active{% endif %}" href="/reports">
+                            <i class="bi bi-cpu-fill"></i> Morning AI Briefing &amp; Digests
+                        </a>
+                        <a class="nav-link {% if active_page == 'reports_sources' %}active{% endif %}" href="/reports/sources">
+                            <i class="bi bi-rss-fill"></i> Curated Feeds &amp; Sources
                         </a>
 
                     {% else %}
@@ -1367,7 +1380,9 @@
             { title: "Academic Analytics & AI Insights", category: "Analytics", icon: "bi-graph-up-arrow", url: "/analytics", color: "#0d6efd" },
             { title: "AI Study Assistant & Knowledge Base", category: "AI Tools", icon: "bi-robot", url: "/study-assistant", color: "#2563eb" },
             { title: "Life & Daily Habits Tracker", category: "Life", icon: "bi-flower1", url: "/life", color: "#198754" },
-            { title: "Financial Planner & Ledger", category: "Finance", icon: "bi-wallet2", url: "/finance", color: "#0dcaf0" },
+            { title: "Financial Planner & Wealth Ledger", category: "Finance", icon: "bi-wallet2", url: "/finance", color: "#0dcaf0" },
+            { title: "Executive Intelligence & Morning AI Digest", category: "Reports", icon: "bi-newspaper", url: "/reports", color: "#6366f1" },
+            { title: "Curated News Feeds & RSS Sources", category: "Reports", icon: "bi-rss-fill", url: "/reports/sources", color: "#6366f1" },
             { title: "Journal Diary & Mood Tracker", category: "Journal", icon: "bi-journal-richtext", url: "/journal", color: "#6f42c1" },
             { title: "Career & Job Application Kanban", category: "Career", icon: "bi-briefcase-fill", url: "/career", color: "#fd7e14" },
             { title: "Account & Application Settings", category: "System", icon: "bi-gear", url: "/settings", color: "#6c757d" },
