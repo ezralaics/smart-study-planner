@@ -15,6 +15,7 @@ from blueprints.journal import journal_bp
 from blueprints.career import career_bp
 from blueprints.study import study_bp
 from blueprints.analytics import analytics_bp
+from blueprints.automation import automation_bp
 
 # Import models so SQLAlchemy binds all tables during db.create_all()
 import models  # noqa: F401
@@ -40,6 +41,7 @@ def create_app(config_class=Config):
     app.register_blueprint(career_bp)
     app.register_blueprint(study_bp)
     app.register_blueprint(analytics_bp)
+    app.register_blueprint(automation_bp)
 
     with app.app_context():
         try:

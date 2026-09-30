@@ -34,6 +34,12 @@
             </p>
         </div>
         <div class="col-md-7 text-md-end d-flex justify-content-md-end align-items-center gap-2 flex-wrap">
+            <button id="importSyllabusBtn" class="btn btn-outline-primary shadow-sm px-3" onclick="openSyllabusModal()" title="Upload syllabus PDF to auto-extract course components">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Import Syllabus
+            </button>
+            <button id="rebalanceScheduleBtn" class="btn btn-outline-success shadow-sm px-3" onclick="rebalanceSchedule()" title="Self-heal schedule by shifting missed revisions forward">
+                <i class="bi bi-arrow-repeat me-1"></i>Rebalance Schedule
+            </button>
             <button id="autoSchedulerBtn" class="btn text-white shadow-sm px-3" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);" onclick="openAutoSchedulerModal()">
                 <i class="bi bi-magic me-1"></i>⚡ Auto-Scheduler ({{ current_tier.chunk_minutes }}m)
             </button>
@@ -296,6 +302,104 @@
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-success fw-bold px-4" id="btnApplySchedule" onclick="applyGeneratedSchedule()" disabled>
                     <i class="bi bi-calendar-plus me-1"></i> Apply & Sync to Calendar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Syllabus Ingestion & Course Builder Modal -->
+<div class="modal fade" id="syllabusImportModal" tabindex="-1" aria-labelledby="syllabusImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a4da2 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fs-4"><i class="bi bi-file-earmark-pdf-fill"></i></span>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="syllabusImportModalLabel">AI Syllabus Ingestion &amp; Course Builder</h5>
+                        <small class="opacity-75">Upload course syllabus PDF &rarr; AI extracts course details, assignments &amp; due dates</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Step 1: Upload Dropzone -->
+                <div id="syllabusUploadSection" class="p-4 border rounded-3 text-center bg-light mb-3" style="border: 2px dashed #cbd5e1 !important;">
+                    <i class="bi bi-cloud-arrow-up fs-1 text-primary d-block mb-2"></i>
+                    <h6 class="fw-bold mb-1">Select Course Syllabus PDF or Document</h6>
+                    <p class="text-muted small mb-3">Supported formats: PDF, TXT, or Image notes (Max 15MB)</p>
+                    <input type="file" id="syllabusFileInput" class="form-control d-inline-block w-auto" accept=".pdf,.txt,.md,.png,.jpg,.jpeg">
+                    <button type="button" class="btn btn-primary mt-2 d-block mx-auto text-white fw-bold px-4" id="btnParseSyllabus" onclick="parseSyllabusPdf()">
+                        <i class="bi bi-stars me-1"></i> Extract Syllabus with AI
+                    </button>
+                </div>
+
+                <!-- Parsing Spinner -->
+                <div id="syllabusLoadingState" class="text-center py-5 d-none">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Parsing syllabus...</span>
+                    </div>
+                    <h6 class="fw-bold text-dark">Analyzing Course Outline with AI...</h6>
+                    <p class="text-muted small mb-0">Extracting course title, credits, grading breakdown, and assessment due dates.</p>
+                </div>
+
+                <!-- Step 2: Verification & Review Form -->
+                <div id="syllabusReviewSection" class="d-none">
+                    <div class="alert alert-success d-flex align-items-center gap-2 py-2 small mb-3">
+                        <i class="bi bi-check-circle-fill fs-5"></i>
+                        <div><strong>Syllabus Parsed!</strong> Review the extracted course details and components below before importing.</div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-muted mb-1">COURSE TITLE</label>
+                            <input type="text" id="syllabusCourseName" class="form-control form-control-sm fw-bold">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold text-muted mb-1">SEMESTER / TERM</label>
+                            <input type="text" id="syllabusSemester" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold text-muted mb-1">CREDITS</label>
+                            <input type="number" id="syllabusCredits" class="form-control form-control-sm" min="1" max="8" value="3">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold text-muted mb-1">TARGET (%)</label>
+                            <input type="number" id="syllabusTargetGrade" class="form-control form-control-sm" min="40" max="100" value="80">
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small fw-bold text-uppercase text-secondary">Graded Assessment Components</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-light text-dark border" id="syllabusTotalWeightBadge">Total: 100%</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick="addSyllabusTaskRow()">
+                                <i class="bi bi-plus-lg me-1"></i>Add Row
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive border rounded-3 mb-2" style="max-height: 240px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0" id="syllabusTasksTable">
+                            <thead class="table-light small text-uppercase text-muted">
+                                <tr>
+                                    <th>Assessment Name</th>
+                                    <th style="width: 110px;">Weight (%)</th>
+                                    <th style="width: 140px;">Due Date</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="syllabusTasksBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary text-white fw-bold px-4 d-none" id="btnConfirmImportSyllabus" onclick="confirmImportSyllabus()">
+                    <i class="bi bi-check2-circle me-1"></i> Confirm &amp; Import to Planner
                 </button>
             </div>
         </div>
@@ -830,6 +934,224 @@
             alert('Network error while saving schedule.');
             applyBtn.disabled = false;
             applyBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Apply & Sync to Calendar';
+        }
+    }
+
+    // ==========================================
+    // AI Syllabus Ingestion & Schedule Rebalancing
+    // ==========================================
+    let syllabusParsedData = null;
+
+    function openSyllabusModal() {
+        const modalEl = document.getElementById('syllabusImportModal');
+        if (!modalEl) return;
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        document.getElementById('syllabusUploadSection').classList.remove('d-none');
+        document.getElementById('syllabusLoadingState').classList.add('d-none');
+        document.getElementById('syllabusReviewSection').classList.add('d-none');
+        document.getElementById('btnConfirmImportSyllabus').classList.add('d-none');
+        document.getElementById('syllabusFileInput').value = '';
+        modal.show();
+    }
+
+    async function parseSyllabusPdf() {
+        const fileInput = document.getElementById('syllabusFileInput');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            alert("Please choose a syllabus file (PDF, TXT, or Image) first.");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const uploadSection = document.getElementById('syllabusUploadSection');
+        const loadingState = document.getElementById('syllabusLoadingState');
+        const reviewSection = document.getElementById('syllabusReviewSection');
+        const confirmBtn = document.getElementById('btnConfirmImportSyllabus');
+
+        uploadSection.classList.add('d-none');
+        loadingState.classList.remove('d-none');
+        reviewSection.classList.add('d-none');
+        confirmBtn.classList.add('d-none');
+
+        try {
+            const res = await fetch('/api/automation/parse-syllabus', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+            loadingState.classList.add('d-none');
+
+            if (res.ok && result.status === 'success') {
+                syllabusParsedData = result.data;
+                renderSyllabusPreview(result.data);
+                reviewSection.classList.remove('d-none');
+                confirmBtn.classList.remove('d-none');
+            } else {
+                alert(result.message || 'Failed to parse syllabus.');
+                uploadSection.classList.remove('d-none');
+            }
+        } catch (err) {
+            console.error(err);
+            loadingState.classList.add('d-none');
+            uploadSection.classList.remove('d-none');
+            alert('Network error while parsing syllabus file.');
+        }
+    }
+
+    function renderSyllabusPreview(data) {
+        document.getElementById('syllabusCourseName').value = data.course_name || '';
+        document.getElementById('syllabusSemester').value = data.semester || currentSemester || 'Semester 1';
+        document.getElementById('syllabusCredits').value = data.credits || 3;
+        document.getElementById('syllabusTargetGrade').value = data.target_grade || 80;
+
+        const tbody = document.getElementById('syllabusTasksBody');
+        tbody.innerHTML = '';
+
+        const tasks = data.tasks || [];
+        tasks.forEach(t => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <input type="text" class="form-control form-control-sm syl-task-name" value="${t.task_name || ''}">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm syl-task-weight" min="0" max="100" step="0.5" value="${t.weightage || 0}" oninput="updateSyllabusTotalWeight()">
+                </td>
+                <td>
+                    <input type="date" class="form-control form-control-sm syl-task-due" value="${t.due_date || ''}">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeSyllabusTaskRow(this)" title="Remove row">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        updateSyllabusTotalWeight();
+    }
+
+    function addSyllabusTaskRow() {
+        const tbody = document.getElementById('syllabusTasksBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <input type="text" class="form-control form-control-sm syl-task-name" placeholder="Assessment name">
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm syl-task-weight" min="0" max="100" step="0.5" value="10" oninput="updateSyllabusTotalWeight()">
+            </td>
+            <td>
+                <input type="date" class="form-control form-control-sm syl-task-due">
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeSyllabusTaskRow(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        updateSyllabusTotalWeight();
+    }
+
+    function removeSyllabusTaskRow(btn) {
+        const row = btn.closest('tr');
+        if (row) row.remove();
+        updateSyllabusTotalWeight();
+    }
+
+    function updateSyllabusTotalWeight() {
+        const weightInputs = document.querySelectorAll('.syl-task-weight');
+        let total = 0;
+        weightInputs.forEach(i => { total += parseFloat(i.value) || 0; });
+        const badge = document.getElementById('syllabusTotalWeightBadge');
+        badge.textContent = `Total: ${Math.round(total)}%`;
+        if (Math.round(total) === 100) {
+            badge.className = 'badge bg-success text-white';
+        } else {
+            badge.className = 'badge bg-warning text-dark';
+        }
+    }
+
+    async function confirmImportSyllabus() {
+        const courseName = document.getElementById('syllabusCourseName').value.trim();
+        if (!courseName) {
+            alert('Please provide a course title.');
+            return;
+        }
+
+        const tasks = [];
+        document.querySelectorAll('#syllabusTasksBody tr').forEach(tr => {
+            const name = tr.querySelector('.syl-task-name').value.trim();
+            const weight = parseFloat(tr.querySelector('.syl-task-weight').value) || 0;
+            const due = tr.querySelector('.syl-task-due').value;
+            if (name) {
+                tasks.push({ task_name: name, weightage: weight, due_date: due });
+            }
+        });
+
+        const payload = {
+            course_name: courseName,
+            semester: document.getElementById('syllabusSemester').value.trim() || currentSemester,
+            credits: parseInt(document.getElementById('syllabusCredits').value) || 3,
+            target_grade: parseFloat(document.getElementById('syllabusTargetGrade').value) || 80.0,
+            tasks: tasks
+        };
+
+        const btn = document.getElementById('btnConfirmImportSyllabus');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Importing...';
+
+        try {
+            const res = await fetch('/api/automation/import-syllabus', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                alert(`🎉 ${data.message || 'Course and assessments imported successfully!'}`);
+                window.location.reload();
+            } else {
+                alert(data.message || 'Failed to import syllabus.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Confirm & Import to Planner';
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Network error while saving syllabus.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Confirm & Import to Planner';
+        }
+    }
+
+    async function rebalanceSchedule() {
+        const btn = document.getElementById('rebalanceScheduleBtn');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Rebalancing...';
+
+        try {
+            const res = await fetch('/api/automation/rebalance-schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                alert(`✨ ${data.message}`);
+                window.location.reload();
+            } else {
+                alert(data.message || 'Timetable is already optimal.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Network error while rebalancing schedule.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
         }
     }
 

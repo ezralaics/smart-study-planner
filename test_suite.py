@@ -1416,6 +1416,138 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
         self.assertEqual(ai_json["status"], "success")
         self.assertEqual(len(ai_json["data"]["items"]), 5)
 
+    def test_syllabus_parser_and_fallback(self):
+        """Verify syllabus text parser correctly extracts course details or gracefully degrades."""
+        from services.automation_service import _heuristic_syllabus_parser
+        text = """
+        CS301 - Cloud Architecture and Scalable Systems
+        Credit Hours: 4 Units
+        Grading Components:
+        - Lab 1 Docker: 15%
+        - Midterm Examination: 35%
+        - Final Project and Presentation: 50%
+        """
+        parsed = _heuristic_syllabus_parser(text, "CS301_Syllabus.pdf")
+        self.assertEqual(parsed["credits"], 4)
+        self.assertIn("CS301", parsed["course_name"])
+        self.assertTrue(len(parsed["tasks"]) >= 3)
+        weights = [t["weightage"] for t in parsed["tasks"]]
+        self.assertIn(15.0, weights)
+        self.assertIn(35.0, weights)
+        self.assertIn(50.0, weights)
+
+        # Malformed text test
+        malformed = "Welcome to university. Attendance is expected."
+        fallback = _heuristic_syllabus_parser(malformed, "notes.pdf")
+        self.assertTrue(len(fallback["tasks"]) >= 1)
+
+    def test_syllabus_batch_import_atomicity(self):
+        """Verify batch importing syllabus atomically creates Course and Task records with relational integrity."""
+        from services.automation_service import batch_import_syllabus
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            payload = {
+                "course_name": "CS402 — Distributed Computing Systems",
+                "semester": "Semester 1",
+                "credits": 4,
+                "target_grade": 88.0,
+                "tasks": [
+                    {"task_name": "Milestone 1: Raft Consensus", "weightage": 25.0, "due_date": "2026-10-20"},
+                    {"task_name": "Milestone 2: MapReduce Engine", "weightage": 35.0, "due_date": "2026-11-15"},
+                    {"task_name": "Final Defense", "weightage": 40.0, "due_date": "2026-12-05"}
+                ]
+            }
+            res = batch_import_syllabus(student.id, payload)
+            self.assertEqual(res["status"], "success")
+            self.assertEqual(res["tasks_count"], 3)
+
+            # Assert database state
+            course = Course.query.filter_by(course_name="CS402 — Distributed Computing Systems").first()
+            self.assertIsNotNone(course)
+            self.assertEqual(course.credits, 4)
+            self.assertEqual(len(course.tasks), 3)
+            for t in course.tasks:
+                self.assertEqual(t.course_id, course.id)
+                self.assertEqual(t.user_id, student.id)
+                self.assertGreater(t.weightage, 0)
+
+    def test_schedule_rebalancer_avoids_class_collisions(self):
+        """Verify self-healing schedule rebalancer cleans missed sessions and shifts revisions forward without class collisions."""
+        from services.automation_service import rebalance_missed_schedule
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            today = date.today()
+
+            # 1. Add fixed recurring Class on Monday 09:00 - 10:00
+            class_sched = Schedule(
+                user_id=student.id,
+                title="CS402 Lecture",
+                activity_type="Class",
+                day_of_week="Monday",
+                start_time="09:00",
+                end_time="10:00",
+                start_date=today,
+                end_date=today + timedelta(days=30)
+            )
+            # 2. Add past missed revision session
+            missed_sched = Schedule(
+                user_id=student.id,
+                title="Revision: Old Topic",
+                activity_type="Revision",
+                day_of_week="Sunday",
+                start_time="14:00",
+                end_time="15:00",
+                start_date=today - timedelta(days=2),
+                end_date=today - timedelta(days=2)
+            )
+            # 3. Add upcoming task
+            task = Task(
+                user_id=student.id,
+                task_name="Distributed Consensus Lab",
+                due_date=today + timedelta(days=7),
+                is_completed=False
+            )
+            db.session.add_all([class_sched, missed_sched, task])
+            db.session.commit()
+
+            rebalance_res = rebalance_missed_schedule(student.id)
+            self.assertEqual(rebalance_res["status"], "success")
+            self.assertGreaterEqual(rebalance_res["rebalanced_count"], 1)
+
+            # Assert old missed revision was purged
+            old_check = Schedule.query.filter_by(title="Revision: Old Topic").first()
+            self.assertIsNone(old_check)
+
+            # Assert new revision sessions do not overlap with Monday 09:00 - 10:00
+            monday_revisions = Schedule.query.filter_by(
+                user_id=student.id,
+                day_of_week="Monday",
+                activity_type="Revision"
+            ).all()
+            for r in monday_revisions:
+                # Interval overlap: max(start1, start2) < min(end1, end2)
+                overlap = max("09:00", r.start_time) < min("10:00", r.end_time)
+                self.assertFalse(overlap, f"Collision detected with Monday Class: {r.start_time} - {r.end_time}")
+
+    def test_task_decomposition_and_subtasks_commit(self):
+        """Verify task decomposer generates milestone sub-tasks and commits them to the task board."""
+        from services.automation_service import decompose_task_with_ai, commit_subtasks_to_board
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            decomp = decompose_task_with_ai(
+                student.id,
+                task_title="Machine Learning Term Paper",
+                due_date="2026-11-20",
+                course_name="CS501 AI"
+            )
+            self.assertEqual(decomp["status"], "success")
+            self.assertTrue(len(decomp["subtasks"]) >= 3)
+
+            # Test committing subtasks
+            commit_res = commit_subtasks_to_board(student.id, parent_task_id=None, subtasks=decomp["subtasks"][:2])
+            self.assertEqual(commit_res["status"], "success")
+            self.assertEqual(commit_res["created_count"], 2)
+
 if __name__ == '__main__':
     unittest.main()
 
