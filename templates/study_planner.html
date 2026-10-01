@@ -56,6 +56,45 @@
         </div>
     </div>
 
+    <!-- Daily StudyTip AI Cognitive Banner -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4" id="plannerStudyTipBanner" style="background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 60%), #ffffff; border: 1px solid rgba(99, 102, 241, 0.22) !important;">
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0" 
+                          style="width: 32px; height: 32px; background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); font-size: 0.95rem;">
+                        <i class="bi bi-lightbulb-fill"></i>
+                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-dark small">Today's Cognitive Study Technique</span>
+                        <span class="badge rounded-pill text-white" id="plannerTipCategoryBadge" style="background-color: #6366f1; font-size: 0.65rem;">
+                            Active Recall
+                        </span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/study/tips/saved" class="small text-decoration-none fw-semibold text-primary">
+                        <i class="bi bi-bookmark-star me-1"></i> Tip Vault &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div id="plannerTipSkeleton" class="py-2 d-flex flex-column gap-2">
+                <div class="omni-skeleton" style="height: 16px; width: 60%;"></div>
+                <div class="omni-skeleton" style="height: 13px; width: 90%;"></div>
+            </div>
+
+            <div id="plannerTipContentWrap" style="display: none;">
+                <h6 class="fw-bold mb-1 text-dark" id="plannerTipTitle" style="font-size: 0.95rem;"></h6>
+                <p class="text-muted small mb-2" id="plannerTipContent" style="line-height: 1.5;"></p>
+                <div class="p-2 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: rgba(99, 102, 241, 0.06); border: 1px dashed rgba(99, 102, 241, 0.3);">
+                    <small class="text-dark"><i class="bi bi-lightning-charge-fill text-warning me-1"></i> <strong>Micro-Action:</strong> <span id="plannerTipAction"></span></small>
+                    <small class="text-muted" id="plannerTipSource"></small>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <section id="courseListSection">
         <div class="row g-4" id="courseInventoryContainer">
             <div class="col-12 text-center py-5 text-muted">
@@ -1155,6 +1194,44 @@
         }
     }
 
-    window.addEventListener('load', loadPlannerCourses);
+    async function loadPlannerStudyTip() {
+        const skeleton = document.getElementById('plannerTipSkeleton');
+        const wrap = document.getElementById('plannerTipContentWrap');
+        try {
+            const res = await fetch('/api/tips/today');
+            const json = await res.json();
+            if (json.status === 'success' && json.data) {
+                const tip = json.data;
+                document.getElementById('plannerTipTitle').textContent = tip.title;
+                document.getElementById('plannerTipContent').textContent = tip.content;
+                document.getElementById('plannerTipAction').textContent = tip.action_item;
+                document.getElementById('plannerTipSource').textContent = tip.source_reference || 'Cognitive Psychology';
+
+                const catBadge = document.getElementById('plannerTipCategoryBadge');
+                if (catBadge) {
+                    const catLabels = {
+                        'active_recall': '🧠 Active Recall',
+                        'spaced_repetition': '🔁 Spaced Repetition',
+                        'pomodoro_flow': '⏱️ Pomodoro Flow',
+                        'deep_work': '🎯 Deep Work',
+                        'exam_anxiety': '🧘 Exam Anxiety',
+                        'retention_hack': '💡 Retention Hack'
+                    };
+                    catBadge.textContent = catLabels[tip.category] || tip.category.replace('_', ' ');
+                }
+
+                if (skeleton) skeleton.style.display = 'none';
+                if (wrap) wrap.style.display = 'block';
+            }
+        } catch (e) {
+            console.error("Failed to load planner study tip:", e);
+            if (skeleton) skeleton.style.display = 'none';
+        }
+    }
+
+    window.addEventListener('load', () => {
+        loadPlannerCourses();
+        loadPlannerStudyTip();
+    });
 </script>
 {% endblock %}

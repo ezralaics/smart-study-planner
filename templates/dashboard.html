@@ -210,6 +210,21 @@
     .split-summary-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.08);
+    /* StudyTip AI Widget Styling */
+    .study-tip-widget-card {
+        background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.06) 0%, transparent 50%), #ffffff;
+        border: 1px solid rgba(99, 102, 241, 0.2) !important;
+        border-radius: 18px;
+        transition: transform 0.24s var(--ease-spring), box-shadow 0.24s var(--ease-spring), border-color 0.24s;
+    }
+    .study-tip-widget-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px -6px rgba(99, 102, 241, 0.12);
+        border-color: rgba(99, 102, 241, 0.35) !important;
+    }
+    [data-bs-theme="dark"] .study-tip-widget-card {
+        background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 50%), #131b2e;
+        border-color: rgba(99, 102, 241, 0.3) !important;
     }
 </style>
 {% endblock %}
@@ -325,6 +340,72 @@
     <div class="row g-4">
         <!-- Column 1: Academics & Daily Habits -->
         <div class="col-lg-6">
+            <!-- Daily StudyTip AI Widget (Cognitive Science Booster) -->
+            <article class="card shadow-sm border-0 rounded-4 mb-4 study-tip-widget-card" id="dailyStudyTipCard">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0" 
+                                  style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);">
+                                <i class="bi bi-lightbulb-fill"></i>
+                            </span>
+                            <div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <h3 class="h5 fw-bold mb-0">StudyTip AI</h3>
+                                    <span class="badge rounded-pill text-white" id="cmdTipCategoryBadge" style="background-color: #6366f1; font-size: 0.68rem;">
+                                        Cognitive Science
+                                    </span>
+                                </div>
+                                <small class="text-muted" id="cmdTipDate">Today's evidence-based technique</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="/study/tips/saved" class="small text-decoration-none fw-semibold text-primary" title="View Saved Tips Vault">
+                                <i class="bi bi-bookmark-star me-1"></i> Vault &rarr;
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Shimmer Skeleton for StudyTip -->
+                    <div id="cmdTipSkeleton" class="py-2 d-flex flex-column gap-2">
+                        <div class="omni-skeleton" style="height: 18px; width: 65%;"></div>
+                        <div class="omni-skeleton" style="height: 14px; width: 95%;"></div>
+                        <div class="omni-skeleton" style="height: 14px; width: 85%;"></div>
+                        <div class="omni-skeleton" style="height: 38px; width: 100%; border-radius: 12px;"></div>
+                    </div>
+
+                    <!-- Dynamic Tip Content -->
+                    <div id="cmdTipContentWrap" style="display: none;">
+                        <h6 class="fw-bold mb-2 text-dark" id="cmdTipTitle" style="font-size: 1.05rem;"></h6>
+                        <p class="text-muted small mb-3" id="cmdTipContent" style="line-height: 1.6;"></p>
+                        
+                        <div class="p-3 rounded-3 mb-3" style="background: rgba(99, 102, 241, 0.06); border: 1px dashed rgba(99, 102, 241, 0.3);">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-lightning-charge-fill text-warning flex-shrink-0 mt-1"></i>
+                                <div>
+                                    <strong class="d-block small text-dark mb-1">Micro-Action Today:</strong>
+                                    <span class="text-secondary small" id="cmdTipAction"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top flex-wrap gap-2">
+                            <small class="text-muted text-truncate" style="max-width: 220px;" id="cmdTipSource">
+                                <i class="bi bi-journal-text me-1"></i> <span id="cmdTipSourceText"></span>
+                            </small>
+                            <div class="d-flex align-items-center gap-1">
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" id="cmdTipHelpfulBtn" onclick="reactToStudyTip('helpful')" title="Mark as helpful">
+                                    <i class="bi bi-hand-thumbs-up"></i> Helpful
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" id="cmdTipBookmarkBtn" onclick="toggleDailyTipBookmark()" title="Save to Vault">
+                                    <i class="bi bi-bookmark"></i> Save
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
             <!-- Academic Spotlight Widget -->
             <article class="card shadow-sm border-0 rounded-4 mb-4">
                 <div class="card-body p-4">
@@ -549,6 +630,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboardBriefing();
+    loadDailyStudyTip();
     loadHabitsSummary();
     loadFinanceSummary();
     loadJournalSummary();
@@ -748,6 +830,122 @@ async function loadCareerSummary() {
         }
     } catch (e) {
         console.error("Career summary error:", e);
+    }
+}
+
+// 5. StudyTip AI Engine
+let currentStudyTipId = null;
+
+async function loadDailyStudyTip() {
+    const skeleton = document.getElementById('cmdTipSkeleton');
+    const wrap = document.getElementById('cmdTipContentWrap');
+    try {
+        const res = await fetch('/api/tips/today');
+        const json = await res.json();
+        if (json.status === 'success' && json.data) {
+            const tip = json.data;
+            currentStudyTipId = tip.id;
+
+            document.getElementById('cmdTipTitle').textContent = tip.title;
+            document.getElementById('cmdTipContent').textContent = tip.content;
+            document.getElementById('cmdTipAction').textContent = tip.action_item;
+            document.getElementById('cmdTipSourceText').textContent = tip.source_reference || 'Cognitive Science';
+
+            // Category badge color
+            const catBadge = document.getElementById('cmdTipCategoryBadge');
+            if (catBadge) {
+                const catLabels = {
+                    'active_recall': '🧠 Active Recall',
+                    'spaced_repetition': '🔁 Spaced Repetition',
+                    'pomodoro_flow': '⏱️ Pomodoro Flow',
+                    'deep_work': '🎯 Deep Work',
+                    'exam_anxiety': '🧘 Exam Anxiety',
+                    'retention_hack': '💡 Retention Hack'
+                };
+                catBadge.textContent = catLabels[tip.category] || tip.category.replace('_', ' ');
+            }
+
+            // Sync bookmark state
+            const bookmarkBtn = document.getElementById('cmdTipBookmarkBtn');
+            if (bookmarkBtn) {
+                if (tip.is_bookmarked) {
+                    bookmarkBtn.className = 'btn btn-sm btn-primary rounded-pill px-2 py-1';
+                    bookmarkBtn.innerHTML = '<i class="bi bi-bookmark-fill"></i> Saved';
+                } else {
+                    bookmarkBtn.className = 'btn btn-sm btn-outline-secondary rounded-pill px-2 py-1';
+                    bookmarkBtn.innerHTML = '<i class="bi bi-bookmark"></i> Save';
+                }
+            }
+
+            // Sync reaction state
+            const helpfulBtn = document.getElementById('cmdTipHelpfulBtn');
+            if (helpfulBtn) {
+                if (tip.reaction === 'helpful') {
+                    helpfulBtn.className = 'btn btn-sm btn-success rounded-pill px-2 py-1';
+                    helpfulBtn.innerHTML = '<i class="bi bi-hand-thumbs-up-fill"></i> Helpful';
+                } else {
+                    helpfulBtn.className = 'btn btn-sm btn-outline-secondary rounded-pill px-2 py-1';
+                    helpfulBtn.innerHTML = '<i class="bi bi-hand-thumbs-up"></i> Helpful';
+                }
+            }
+
+            if (skeleton) skeleton.style.display = 'none';
+            if (wrap) wrap.style.display = 'block';
+        }
+    } catch (e) {
+        console.error("StudyTip fetch error:", e);
+        if (skeleton) skeleton.innerHTML = '<small class="text-muted">Could not load today\'s study tip.</small>';
+    }
+}
+
+async function toggleDailyTipBookmark() {
+    if (!currentStudyTipId) return;
+    try {
+        const res = await fetch(`/api/tips/${currentStudyTipId}/bookmark`, { method: 'POST' });
+        const json = await res.json();
+        if (json.status === 'success') {
+            const isBookmarked = json.data.is_bookmarked;
+            const btn = document.getElementById('cmdTipBookmarkBtn');
+            if (btn) {
+                btn.className = isBookmarked ? 'btn btn-sm btn-primary rounded-pill px-2 py-1' : 'btn btn-sm btn-outline-secondary rounded-pill px-2 py-1';
+                btn.innerHTML = isBookmarked ? '<i class="bi bi-bookmark-fill"></i> Saved' : '<i class="bi bi-bookmark"></i> Save';
+            }
+            if (typeof showOmniToast === 'function') {
+                showOmniToast(isBookmarked ? 'Tip saved to your Study Vault!' : 'Tip removed from Vault.', 'success');
+            }
+        }
+    } catch (e) {
+        console.error("Bookmark toggle failed:", e);
+    }
+}
+
+async function reactToStudyTip(reaction) {
+    if (!currentStudyTipId) return;
+    try {
+        const res = await fetch(`/api/tips/${currentStudyTipId}/react`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reaction: reaction })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+            const currentReaction = json.data.reaction;
+            const helpfulBtn = document.getElementById('cmdTipHelpfulBtn');
+            if (helpfulBtn) {
+                if (currentReaction === 'helpful') {
+                    helpfulBtn.className = 'btn btn-sm btn-success rounded-pill px-2 py-1';
+                    helpfulBtn.innerHTML = '<i class="bi bi-hand-thumbs-up-fill"></i> Helpful';
+                } else {
+                    helpfulBtn.className = 'btn btn-sm btn-outline-secondary rounded-pill px-2 py-1';
+                    helpfulBtn.innerHTML = '<i class="bi bi-hand-thumbs-up"></i> Helpful';
+                }
+            }
+            if (typeof showOmniToast === 'function') {
+                showOmniToast(currentReaction ? 'Thanks for your feedback!' : 'Feedback cleared.', 'info');
+            }
+        }
+    } catch (e) {
+        console.error("Reaction toggle failed:", e);
     }
 }
 

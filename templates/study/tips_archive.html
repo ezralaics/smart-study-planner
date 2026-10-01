@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Cognitive Tips Vault | StudyTip AI &bull; OmniLife OS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .vault-hero {
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%);
+        border-radius: 22px;
+        color: #ffffff;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 16px 36px -10px rgba(67, 56, 202, 0.35);
+    }
+    .vault-glow {
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(165, 180, 252, 0.25), transparent 70%);
+        filter: blur(60px);
+        pointer-events: none;
+    }
+
+    .tip-vault-card {
+        border-radius: 18px;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        transition: transform 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+                    box-shadow 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+                    border-color 0.3s;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    .tip-vault-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--category-accent, #6366f1);
+    }
+    .tip-vault-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.08);
+        border-color: rgba(99, 102, 241, 0.4);
+    }
+    [data-bs-theme="dark"] .tip-vault-card {
+        background: rgba(30, 41, 59, 0.75);
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+    [data-bs-theme="dark"] .tip-vault-card:hover {
+        border-color: rgba(129, 140, 248, 0.5);
+        box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Category Badges */
+    .cat-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+    }
+    .cat-active_recall { background: rgba(37, 99, 235, 0.1); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.2); }
+    .cat-spaced_repetition { background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); }
+    .cat-pomodoro_flow { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .cat-deep_work { background: rgba(139, 92, 246, 0.1); color: #7c3aed; border: 1px solid rgba(139, 92, 246, 0.2); }
+    .cat-exam_anxiety { background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); }
+    .cat-retention_hack { background: rgba(14, 165, 233, 0.1); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.2); }
+
+    .action-pill {
+        background: rgba(99, 102, 241, 0.06);
+        border: 1px dashed rgba(99, 102, 241, 0.3);
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+    [data-bs-theme="dark"] .action-pill {
+        background: rgba(99, 102, 241, 0.12);
+        border-color: rgba(99, 102, 241, 0.35);
+    }
+
+    .filter-btn {
+        border: 1px solid var(--surface-border, #e2e8f0);
+        background: rgba(255, 255, 255, 0.8);
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 7px 16px;
+        border-radius: 9999px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .filter-btn:hover {
+        background: #ffffff;
+        color: #0f172a;
+        border-color: #cbd5e1;
+        transform: translateY(-1px);
+    }
+    .filter-btn.active {
+        background: #312e81;
+        color: #ffffff;
+        border-color: #312e81;
+        box-shadow: 0 4px 12px rgba(49, 46, 129, 0.25);
+    }
+    [data-bs-theme="dark"] .filter-btn {
+        background: rgba(30, 41, 59, 0.6);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+    }
+    [data-bs-theme="dark"] .filter-btn:hover {
+        background: rgba(30, 41, 59, 1);
+        color: #f8fafc;
+    }
+    [data-bs-theme="dark"] .filter-btn.active {
+        background: #6366f1;
+        color: #ffffff;
+        border-color: #6366f1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="container py-4">
+    <!-- Header -->
+    <header class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <span class="rounded-4 d-inline-flex align-items-center justify-content-center text-white shadow-sm" 
+                  style="width: 50px; height: 50px; background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%); font-size: 1.45rem;">
+                <i class="bi bi-bookmark-star-fill"></i>
+            </span>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h3 class="fw-bold mb-0" style="letter-spacing: -0.02em;">Cognitive Study Vault</h3>
+                    <span class="badge bg-indigo-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
+                        StudyTip AI
+                    </span>
+                </div>
+                <p class="text-muted small mb-0">Your bookmarked cognitive science techniques, active recall strategies, and focus rituals.</p>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/study/planner" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-2">
+                <i class="bi bi-calendar3"></i> Study Planner
+            </a>
+            <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-2">
+                <i class="bi bi-speedometer2"></i> Command Center
+            </a>
+        </div>
+    </header>
+
+    <!-- Banner -->
+    <section class="vault-hero p-4 p-md-5 mb-4" aria-label="Study Vault Overview">
+        <div class="vault-glow"></div>
+        <div class="row align-items-center justify-content-between position-relative g-4" style="z-index: 1;">
+            <div class="col-md-8">
+                <span class="badge bg-white text-indigo fw-bold rounded-pill px-3 py-1 mb-2 shadow-sm text-dark">
+                    <i class="bi bi-mortarboard-fill me-1 text-primary"></i> Evidence-Based Learning
+                </span>
+                <h4 class="display-6 fw-bold mb-2 text-white">Your Personal Mastery Playbook</h4>
+                <p class="text-white-50 mb-0 small" style="max-width: 520px;">
+                    Techniques saved here are grounded in neuroplasticity, cognitive psychology, and empirical memory research. Review them periodically to strengthen your study systems.
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="d-inline-flex flex-column align-items-md-end p-3 rounded-4" style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);">
+                    <span class="display-5 fw-bold text-white mb-0">{{ saved_tips | length }}</span>
+                    <small class="text-white-50 text-uppercase fw-semibold" style="letter-spacing: 0.05em; font-size: 0.75rem;">Bookmarked Techniques</small>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filter Pills -->
+    <nav class="d-flex align-items-center gap-2 mb-4 overflow-x-auto pb-2" aria-label="Filter bookmarked study tips">
+        <a href="/study/tips/saved?category=all" class="filter-btn {% if active_category == 'all' %}active{% endif %}">
+            <i class="bi bi-grid-fill"></i> All Strategies ({{ saved_tips | length }})
+        </a>
+        <a href="/study/tips/saved?category=active_recall" class="filter-btn {% if active_category == 'active_recall' %}active{% endif %}">
+            🧠 Active Recall
+        </a>
+        <a href="/study/tips/saved?category=spaced_repetition" class="filter-btn {% if active_category == 'spaced_repetition' %}active{% endif %}">
+            🔁 Spaced Repetition
+        </a>
+        <a href="/study/tips/saved?category=pomodoro_flow" class="filter-btn {% if active_category == 'pomodoro_flow' %}active{% endif %}">
+            ⏱️ Pomodoro &amp; Flow
+        </a>
+        <a href="/study/tips/saved?category=deep_work" class="filter-btn {% if active_category == 'deep_work' %}active{% endif %}">
+            🎯 Deep Work
+        </a>
+        <a href="/study/tips/saved?category=exam_anxiety" class="filter-btn {% if active_category == 'exam_anxiety' %}active{% endif %}">
+            🧘 Exam Anxiety
+        </a>
+        <a href="/study/tips/saved?category=retention_hack" class="filter-btn {% if active_category == 'retention_hack' %}active{% endif %}">
+            💡 Retention Hacks
+        </a>
+    </nav>
+
+    <!-- Tips Grid -->
+    {% if saved_tips %}
+    <div class="row g-4" id="vaultTipsGrid">
+        {% for tip in saved_tips %}
+        <div class="col-md-6 col-lg-4" id="card-tip-{{ tip.id }}">
+            <article class="tip-vault-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="cat-badge cat-{{ tip.category }}">
+                        {{ tip.category | replace('_', ' ') }}
+                    </span>
+                    <button class="btn btn-sm btn-link text-danger p-0 text-decoration-none" 
+                            onclick="removeBookmark('{{ tip.id }}')" 
+                            title="Remove from vault" 
+                            aria-label="Remove {{ tip.title }} from vault">
+                        <i class="bi bi-bookmark-dash-fill fs-5"></i>
+                    </button>
+                </div>
+
+                <h5 class="fw-bold mb-2 text-dark" style="letter-spacing: -0.01em;">{{ tip.title }}</h5>
+                <p class="text-muted small mb-3 flex-grow-1" style="line-height: 1.6;">{{ tip.content }}</p>
+
+                <div class="action-pill mb-3">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-lightning-charge-fill text-warning flex-shrink-0 mt-1"></i>
+                        <div>
+                            <strong class="d-block small text-dark mb-1">Micro-Action:</strong>
+                            <span class="text-secondary small">{{ tip.action_item }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <footer class="pt-2 border-top d-flex align-items-center justify-content-between text-muted" style="font-size: 0.78rem;">
+                    <span class="text-truncate me-2" title="{{ tip.source_reference or 'Cognitive Science' }}">
+                        <i class="bi bi-journal-text me-1"></i> {{ tip.source_reference or 'Cognitive Science' }}
+                    </span>
+                    {% if tip.is_ai_generated %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill px-2">
+                        AI Custom
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2">
+                        Curated
+                    </span>
+                    {% endif %}
+                </footer>
+            </article>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Expressive Empty State -->
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);">
+        <div class="rounded-circle bg-indigo-subtle text-primary d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
+            <i class="bi bi-bookmark-plus fs-2 text-primary"></i>
+        </div>
+        <h5 class="fw-bold mb-2">Your Vault is Empty</h5>
+        <p class="text-muted small mx-auto mb-4" style="max-width: 440px;">
+            When you see a daily cognitive study tip that clicks with your learning style, click the bookmark icon to save it here for future exam prep.
+        </p>
+        <div>
+            <a href="/study/planner" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                <i class="bi bi-lightbulb-fill me-1"></i> View Today's Tip in Study Planner
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function removeBookmark(tipId) {
+    try {
+        const res = await fetch(`/api/tips/${tipId}/bookmark`, { method: 'POST' });
+        const json = await res.json();
+        if (json.status === 'success') {
+            const card = document.getElementById(`card-tip-${tipId}`);
+            if (card) {
+                card.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.92)';
+                setTimeout(() => {
+                    card.remove();
+                    // If no cards left, reload to show empty state
+                    const grid = document.getElementById('vaultTipsGrid');
+                    if (grid && grid.children.length === 0) {
+                        window.location.reload();
+                    }
+                }, 300);
+            }
+            if (typeof showOmniToast === 'function') {
+                showOmniToast('Tip removed from your vault.', 'info');
+            }
+        } else {
+            if (typeof showOmniToast === 'function') {
+                showOmniToast(json.message || 'Failed to update vault', 'error');
+            }
+        }
+    } catch (e) {
+        if (typeof showOmniToast === 'function') {
+            showOmniToast('Network error updating vault', 'error');
+        }
+    }
+}
+</script>
+{% endblock %}

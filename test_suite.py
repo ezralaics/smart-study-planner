@@ -21,6 +21,14 @@ from models.finance import BudgetGoal, Transaction, FinancialAccount, FinancialT
 from models.journal import JournalEntry
 from models.career import JobApplication
 from models.report import UserInterestSource, DigestReport
+from models.study_tip import StudyTip, UserTipInteraction
+from services.study_tip_service import (
+    get_or_generate_daily_tip,
+    toggle_reaction,
+    toggle_bookmark,
+    get_bookmarked_tips,
+    get_tip_archive
+)
 
 # Enable foreign keys for SQLite test runs
 @event.listens_for(Engine, "connect")
@@ -1996,6 +2004,127 @@ class SmartStudyPlannerUUIDTestCase(unittest.TestCase):
         for route in aliases:
             res = self.client.get(route)
             self.assertIn(res.status_code, [200, 302], f"Route alias {route} failed with status {res.status_code}")
+
+    def test_study_tip_model_defaults_and_uuid(self):
+        """Verify StudyTip and UserTipInteraction generate valid UUIDs and handle cascades."""
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            tip = StudyTip(
+                user_id=student.id,
+                category="active_recall",
+                title="Testing Effect Protocol",
+                content="Retrieval practice enhances retention.",
+                action_item="Write 3 facts from memory.",
+                source_reference="Roediger & Karpicke"
+            )
+            db.session.add(tip)
+            db.session.commit()
+
+            self.assertIsNotNone(tip.id)
+            self.assertEqual(uuid.UUID(str(tip.id)).version, 4)
+            self.assertEqual(tip.category, "active_recall")
+
+            # Test interaction
+            interaction = UserTipInteraction(
+                user_id=student.id,
+                tip_id=tip.id,
+                is_bookmarked=True,
+                reaction="helpful"
+            )
+            db.session.add(interaction)
+            db.session.commit()
+
+            self.assertEqual(uuid.UUID(str(interaction.id)).version, 4)
+            self.assertTrue(interaction.is_bookmarked)
+            self.assertEqual(interaction.reaction, "helpful")
+
+            # Verify dictionary representation
+            d = tip.to_dict(interaction)
+            self.assertTrue(d['is_bookmarked'])
+            self.assertEqual(d['reaction'], 'helpful')
+
+    def test_study_tip_zero_waste_caching(self):
+        """Verify multiple queries for today's tip return the identical record without duplicates."""
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            tip1 = get_or_generate_daily_tip(str(student.id))
+            self.assertIsNotNone(tip1['id'])
+
+            tip2 = get_or_generate_daily_tip(str(student.id))
+            self.assertEqual(tip1['id'], tip2['id'], "Zero-waste caching failed: duplicate tip generated on same day")
+
+    def test_study_tip_reaction_and_bookmark_toggle(self):
+        """Verify reaction and bookmark state toggles correctly."""
+        with self.app.app_context():
+            student = User.query.filter_by(username="student_user").first()
+            user_id = str(student.id)
+            tip = get_or_generate_daily_tip(user_id)
+            tip_id = tip['id']
+
+            # Bookmark toggle on
+            bm_res1 = toggle_bookmark(user_id, tip_id)
+            self.assertTrue(bm_res1['is_bookmarked'])
+
+            # Bookmark toggle off
+            bm_res2 = toggle_bookmark(user_id, tip_id)
+            self.assertFalse(bm_res2['is_bookmarked'])
+
+            # Reaction toggle
+            rx_res1 = toggle_reaction(user_id, tip_id, "helpful")
+            self.assertEqual(rx_res1['reaction'], "helpful")
+
+            # Clicking same reaction toggles to neutral/None
+            rx_res2 = toggle_reaction(user_id, tip_id, "helpful")
+            self.assertIsNone(rx_res2['reaction'])
+
+            # Switching to unhelpful
+            rx_res3 = toggle_reaction(user_id, tip_id, "unhelpful")
+            self.assertEqual(rx_res3['reaction'], "unhelpful")
+
+    def test_study_tip_api_endpoints(self):
+        """Verify REST API contracts for StudyTip AI endpoints."""
+        with self.client.session_transaction() as sess:
+            with self.app.app_context():
+                student = User.query.filter_by(username="student_user").first()
+                sess['user_id'] = str(student.id)
+                sess['username'] = student.username
+                sess['role'] = student.role
+
+        # 1. GET /api/tips/today
+        res = self.client.get('/api/tips/today')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data['status'], 'success')
+        tip = data['data']
+        self.assertIn('title', tip)
+        self.assertIn('category', tip)
+        self.assertIn('action_item', tip)
+        tip_id = tip['id']
+
+        # 2. POST /api/tips/<id>/bookmark
+        res_bm = self.client.post(f'/api/tips/{tip_id}/bookmark')
+        self.assertEqual(res_bm.status_code, 200)
+        self.assertTrue(res_bm.get_json()['data']['is_bookmarked'])
+
+        # 3. POST /api/tips/<id>/react
+        res_rx = self.client.post(f'/api/tips/{tip_id}/react', json={'reaction': 'helpful'})
+        self.assertEqual(res_rx.status_code, 200)
+        self.assertEqual(res_rx.get_json()['data']['reaction'], 'helpful')
+
+        # 4. GET /api/tips/saved
+        res_saved = self.client.get('/api/tips/saved')
+        self.assertEqual(res_saved.status_code, 200)
+        self.assertGreaterEqual(res_saved.get_json()['count'], 1)
+
+        # 5. GET /study/tips/saved (Web view)
+        res_view = self.client.get('/study/tips/saved')
+        self.assertEqual(res_view.status_code, 200)
+        self.assertIn(b'Cognitive Study Vault', res_view.data)
+
+        # 6. GET /api/tips/archive
+        res_archive = self.client.get('/api/tips/archive')
+        self.assertEqual(res_archive.status_code, 200)
+        self.assertGreaterEqual(res_archive.get_json()['count'], 1)
 
 if __name__ == '__main__':
     unittest.main()
