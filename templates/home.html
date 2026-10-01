@@ -3,265 +3,679 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome | Smart Study Planner</title>
+    <title>Life Planner OS | Smart Study Planner &amp; Personal Operating System</title>
+    <meta name="description" content="OmniLife OS: The unified life operating system combining academic study planning, wealth aggregation, habit tracking, AI briefings, and career progression into one seamless experience.">
+    
+    <!-- Design System Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
     <style>
-        :root { 
-            --primary-blue: #0d6efd; 
-            --deep-blue: #0a4da2;
-            --bg-light: #f8f9fa;
+        :root {
+            --brand-primary: #2563eb;
+            --brand-primary-hover: #1d4ed8;
+            --brand-accent: #38bdf8;
+            --brand-success: #10b981;
+            --brand-warning: #f59e0b;
+            --brand-purple: #8b5cf6;
+            
+            --surface-bg: #f8fafc;
+            --surface-card: rgba(255, 255, 255, 0.88);
+            --surface-border: rgba(226, 232, 240, 0.8);
+            
+            --text-heading: #0f172a;
+            --text-body: #475569;
+            --text-muted: #94a3b8;
+            
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: var(--bg-light);
-            overflow-x: hidden;
-        }
-        
-        /* Navbar styling */
-        .navbar {
-            background: rgba(255, 255, 255, 0.9) !important;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-        .navbar-brand { font-weight: 800; letter-spacing: -0.5px; }
 
-        /* Hero Section */
-        .hero-section {
-            background: linear-gradient(135deg, var(--bg-light) 0%, #eef6fc 100%);
-            padding: 120px 0 100px 0;
+        [data-bs-theme="dark"] {
+            --surface-bg: #090d16;
+            --surface-card: rgba(19, 27, 46, 0.85);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --text-heading: #f8fafc;
+            --text-body: #cbd5e1;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+            background-color: var(--surface-bg);
+            color: var(--text-body);
+            overflow-x: hidden;
+            letter-spacing: -0.01em;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-heading);
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        /* Glassmorphic Nav */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--surface-border);
+            transition: all 0.3s var(--ease-out-expo);
+        }
+        [data-bs-theme="dark"] .glass-nav {
+            background: rgba(9, 13, 22, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        /* Kinetic Brand Pill */
+        .brand-badge {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(56, 189, 248, 0.15) 100%);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            color: var(--brand-primary);
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.02em;
+        }
+
+        /* Hero Ambient Lighting */
+        .hero-wrap {
+            position: relative;
+            padding: 130px 0 90px;
+            overflow: hidden;
+        }
+        .hero-glow-1 {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 900px;
+            height: 500px;
+            background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(37, 99, 235, 0.15), rgba(56, 189, 248, 0.06), transparent 70%);
+            filter: blur(60px);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .hero-glow-2 {
+            position: absolute;
+            top: 250px;
+            right: -100px;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.12), transparent 70%);
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .hero-title {
+            font-size: clamp(2.35rem, 5.2vw, 4.1rem);
+            font-weight: 800;
+            line-height: 1.12;
+            letter-spacing: -0.035em;
+        }
+
+        .hero-gradient-text {
+            background: linear-gradient(135deg, #1e40af 0%, #2563eb 45%, #0284c7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        [data-bs-theme="dark"] .hero-gradient-text {
+            background: linear-gradient(135deg, #60a5fa 0%, #38bdf8 50%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Buttons */
+        .btn-brand-primary {
+            background: linear-gradient(135deg, var(--brand-primary) 0%, #1d4ed8 100%);
+            color: #ffffff !important;
+            border: none;
+            font-weight: 600;
+            padding: 13px 28px;
+            border-radius: 9999px;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            transition: all 0.25s var(--ease-spring);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-brand-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 16px 32px -6px rgba(37, 99, 235, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        }
+        .btn-brand-primary:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn-brand-ghost {
+            background: rgba(255, 255, 255, 0.85);
+            color: var(--text-heading) !important;
+            border: 1px solid var(--surface-border);
+            font-weight: 600;
+            padding: 13px 26px;
+            border-radius: 9999px;
+            backdrop-filter: blur(10px);
+            transition: all 0.25s var(--ease-spring);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        [data-bs-theme="dark"] .btn-brand-ghost {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .btn-brand-ghost:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+            border-color: rgba(37, 99, 235, 0.4);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 3D Glassmorphic App Window Mockup */
+        .perspective-frame {
+            perspective: 1200px;
             position: relative;
         }
-        .hero-title { font-weight: 800; letter-spacing: -1px; color: #1a1d20; line-height: 1.2; }
-        .hero-subtitle { color: #6c757d; font-size: 1.25rem; font-weight: 400; line-height: 1.6; }
-        .mockup-container { position: relative; perspective: 1000px; }
-        .mockup-card {
-            background: white; border-radius: 16px; padding: 20px;
-            box-shadow: 0 25px 50px -12px rgba(13, 110, 253, 0.25);
-            transform: rotateY(-5deg) rotateX(5deg);
-            transition: transform 0.5s ease;
+        .app-window {
+            background: var(--surface-card);
+            border: 1px solid var(--surface-border);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            transform: rotateY(-6deg) rotateX(4deg);
+            transition: transform 0.6s var(--ease-out-expo), box-shadow 0.6s var(--ease-out-expo);
+            will-change: transform;
         }
-        .mockup-card:hover { transform: rotateY(0deg) rotateX(0deg) translateY(-10px); }
-        .mockup-bar { height: 8px; border-radius: 4px; margin-bottom: 12px; background: #e9ecef; }
-        .mockup-bar.primary { background: var(--primary-blue); width: 40%; }
-        .mockup-bar.success { background: #198754; width: 60%; }
-
-        .feature-card {
-            background: white; border: none; border-radius: 16px;
-            padding: 30px 20px; transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            height: 100%; border-top: 4px solid transparent;
+        [data-bs-theme="dark"] .app-window {
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
-        .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.08);
-            border-top-color: var(--primary-blue);
-        }
-        .feature-icon-box {
-            width: 60px; height: 60px; border-radius: 12px;
-            background: #eef6fc; color: var(--primary-blue);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.8rem; margin: 0 auto 20px auto; transition: 0.3s;
-        }
-        .feature-card:hover .feature-icon-box { background: var(--primary-blue); color: white; }
-
-        .step-card {
-            background: white; border-radius: 16px; padding: 30px;
-            text-align: left; position: relative; z-index: 1; border: 1px solid #e9ecef;
-            transition: 0.3s;
-        }
-        .step-card:hover { border-color: var(--primary-blue); }
-        .step-number {
-            width: 45px; height: 45px; background-color: #eef6fc; color: var(--primary-blue);
-            border-radius: 12px; display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; font-weight: 800; margin-bottom: 20px;
+        .perspective-frame:hover .app-window {
+            transform: rotateY(0deg) rotateX(0deg) translateY(-8px);
+            box-shadow: 0 35px 80px -20px rgba(37, 99, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
 
-        .cta-section {
-            background: linear-gradient(135deg, var(--deep-blue) 0%, var(--primary-blue) 100%);
-            border-radius: 24px; padding: 60px 40px; position: relative; overflow: hidden;
+        .window-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 16px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid var(--surface-border);
         }
-        .cta-section::after {
-            content: ''; position: absolute; top: -50%; right: -10%;
-            width: 400px; height: 400px; background: rgba(255,255,255,0.1);
+        .window-dots {
+            display: flex;
+            gap: 6px;
+        }
+        .window-dot {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
+        }
+        .window-dot.red { background: #ef4444; }
+        .window-dot.yellow { background: #f59e0b; }
+        .window-dot.green { background: #10b981; }
+
+        /* Workspace Grid Cards */
+        .workspace-card {
+            background: var(--surface-card);
+            border: 1px solid var(--surface-border);
+            border-radius: 18px;
+            padding: 28px 24px;
+            height: 100%;
+            transition: all 0.35s var(--ease-out-expo);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+        .workspace-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: transparent;
+            transition: background 0.3s;
+        }
+        .workspace-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 18px 36px -10px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            border-color: rgba(37, 99, 235, 0.35);
+        }
+        .workspace-card:hover::before {
+            background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent));
+        }
+
+        .workspace-icon-wrap {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            transition: transform 0.3s var(--ease-spring);
+        }
+        .workspace-card:hover .workspace-icon-wrap {
+            transform: scale(1.1) rotate(2deg);
+        }
+
+        /* Step Card */
+        .journey-card {
+            background: var(--surface-card);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 28px;
+            position: relative;
+            transition: all 0.3s var(--ease-out-expo);
+            height: 100%;
+        }
+        .journey-card:hover {
+            border-color: var(--brand-primary);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px -8px rgba(37, 99, 235, 0.12);
+        }
+        .journey-step-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--brand-primary);
+            background: rgba(37, 99, 235, 0.08);
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+
+        /* Grand CTA Banner */
+        .grand-cta-wrap {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1d4ed8 100%);
+            border-radius: 28px;
+            padding: 70px 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 30px 70px -15px rgba(15, 23, 42, 0.35);
+        }
+        .grand-cta-glow {
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.25), transparent 70%);
+            filter: blur(80px);
+            pointer-events: none;
+        }
+
+        /* Focus rings for WCAG */
+        a:focus-visible, button:focus-visible {
+            outline: 2px solid var(--brand-primary);
+            outline-offset: 3px;
         }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg sticky-top shadow-sm py-3">
-        <div class="container">
-            <a class="navbar-brand text-primary d-flex align-items-center" href="/">
-                <i class="bi bi-cpu-fill fs-3 me-2"></i> Smart Study Planner
-            </a>
-            
-            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#homeNav">
-                <i class="bi bi-list fs-2 text-dark"></i>
-            </button>
-
-            <div class="collapse navbar-collapse" id="homeNav">
-                <ul class="navbar-nav mx-auto">
-                    <li class="nav-item"><a class="nav-link text-dark fw-semibold" href="#features">Features</a></li>
-                    <li class="nav-item"><a class="nav-link text-dark fw-semibold" href="#how-it-works">How it Works</a></li>
-                </ul>
-                <div class="ms-auto pt-3 pt-lg-0 d-flex gap-2">
-                    <a href="/login" class="btn btn-outline-primary px-4 fw-bold rounded-pill">Login</a>
-                    <a href="/register" class="btn btn-primary px-4 fw-bold rounded-pill shadow-sm">Sign Up</a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <header class="hero-section">
-        <div class="container">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-6 text-center text-lg-start animate__animated animate__fadeInLeft">
-                    <span class="badge bg-primary bg-opacity-10 text-primary mb-3 px-3 py-2 rounded-pill fw-bold border border-primary-subtle">
-                        <i class="bi bi-stars me-1"></i> FYP Prototype v1.0
+    <!-- Semantic Header & Navigation -->
+    <header>
+        <nav class="navbar navbar-expand-lg sticky-top glass-nav py-3" aria-label="Main Navigation">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-decoration-none" href="/" aria-label="Life Planner OS Home">
+                    <span class="d-inline-flex align-items-center justify-content-center text-white rounded-3 shadow-sm" 
+                          style="width: 38px; height: 38px; background: linear-gradient(135deg, #2563eb, #38bdf8); font-size: 1.15rem;">
+                        <i class="bi bi-grid-3x3-gap-fill"></i>
                     </span>
-                    <h1 class="display-4 hero-title mb-4">
-                        Master your university life with <span class="text-primary">Smart Study Planner.</span>
-                    </h1>
-                    <p class="hero-subtitle mb-5 pe-lg-4">
-                        Stop guessing what to study next. Smart Study Planner transforms your syllabus into a dynamic, priority-driven schedule that adapts when life happens.
-                    </p>
-                    <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start">
-                        <a href="/register" class="btn btn-primary btn-lg fw-bold px-5 rounded-pill shadow">Start Planning Free</a>
-                        <a href="#features" class="btn btn-light btn-lg fw-bold px-5 rounded-pill border">Learn More</a>
-                    </div>
-                </div>
+                    <span style="font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-heading);">
+                        OmniLife <span style="color: var(--brand-primary); font-weight: 700;">OS</span>
+                    </span>
+                    <span class="visually-hidden">Smart Study Planner</span>
+                </a>
                 
-                <div class="col-lg-6 d-none d-lg-block animate__animated animate__fadeInRight">
-                    <div class="mockup-container">
-                        <div class="mockup-card">
-                            <div class="d-flex justify-content-between mb-4">
-                                <div class="fw-bold text-dark"><i class="bi bi-grid-1x2 me-2 text-primary"></i>Dashboard</div>
-                                <span class="badge bg-success bg-opacity-10 text-success">On Track</span>
-                            </div>
-                            <div class="row g-3 mb-4">
-                                <div class="col-6"><div class="p-3 border rounded bg-light"><div class="mockup-bar w-50"></div><h4 class="mb-0 fw-bold">3</h4><small class="text-muted">Pending Tasks</small></div></div>
-                                <div class="col-6"><div class="p-3 border rounded bg-light"><div class="mockup-bar primary w-75"></div><h4 class="mb-0 fw-bold text-primary">3.85</h4><small class="text-muted">Target GPA</small></div></div>
-                            </div>
-                            <div class="fw-bold mb-2 small text-muted">UPCOMING DEADLINES</div>
-                            <div class="p-3 border rounded mb-2 border-start border-4 border-danger"><div class="mockup-bar w-75"></div><div class="mockup-bar success w-25 mb-0"></div></div>
-                            <div class="p-3 border rounded border-start border-4 border-warning"><div class="mockup-bar w-50"></div><div class="mockup-bar primary w-25 mb-0"></div></div>
-                        </div>
+                <button class="navbar-toggler border-0 shadow-none p-1" type="button" data-bs-toggle="collapse" data-bs-target="#homeNav" aria-controls="homeNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <i class="bi bi-list fs-2 text-dark"></i>
+                </button>
+
+                <div class="collapse navbar-collapse" id="homeNav">
+                    <ul class="navbar-nav mx-auto gap-lg-2">
+                        <li class="nav-item"><a class="nav-link fw-semibold px-3" href="#workspaces">Workspaces</a></li>
+                        <li class="nav-item"><a class="nav-link fw-semibold px-3" href="#features">AI Engine</a></li>
+                        <li class="nav-item"><a class="nav-link fw-semibold px-3" href="#how-it-works">How It Works</a></li>
+                    </ul>
+                    <div class="d-flex align-items-center gap-2 pt-3 pt-lg-0">
+                        <a href="/login" class="btn btn-brand-ghost px-4">Sign In</a>
+                        <a href="/register" class="btn btn-brand-primary px-4">
+                            Get Started Free <i class="bi bi-arrow-right"></i>
+                        </a>
                     </div>
                 </div>
             </div>
-        </div>
+        </nav>
     </header>
 
-    <section id="features" class="py-5 mt-4">
-        <div class="container">
-            <div class="text-center mb-5 animate__animated animate__fadeInUp">
-                <h2 class="fw-bold">Built for ambitious students.</h2>
-                <p class="text-muted fs-5">Everything you need to secure that Dean's List spot.</p>
-            </div>
-            
-            <div class="row g-4 text-center">
-                <div class="col-md-6 col-lg-3">
-                    <div class="card feature-card">
-                        <div class="feature-icon-box"><i class="bi bi-calendar-check"></i></div>
-                        <h5 class="fw-bold mb-3">Real Deadlines</h5>
-                        <p class="text-muted small mb-0">Plan your entire semester backwards from actual exam dates and submission deadlines.</p>
+    <!-- Main Content Landmark -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero-wrap">
+            <div class="hero-glow-1"></div>
+            <div class="hero-glow-2"></div>
+            <div class="container position-relative" style="z-index: 1;">
+                <div class="row align-items-center g-5">
+                    <div class="col-lg-6 text-center text-lg-start">
+                        <div class="brand-badge mb-3">
+                            <i class="bi bi-stars"></i> Personal Operating System v2.0
+                        </div>
+                        <h1 class="hero-title mb-4">
+                            One unified OS for your <span class="hero-gradient-text">studies, finances, &amp; life.</span>
+                        </h1>
+                        <p class="fs-5 mb-5 pe-lg-4" style="color: var(--text-body); max-width: 540px;">
+                            Stop juggling fractured apps. OmniLife seamlessly unifies syllabus automation, multi-account wealth tracking, daily habit rituals, executive AI briefings, and career pipelines into a single digital sanctuary.
+                        </p>
+                        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start">
+                            <a href="/register" class="btn btn-brand-primary btn-lg">
+                                Launch Life Workspace <i class="bi bi-arrow-right-short fs-4"></i>
+                            </a>
+                            <a href="#workspaces" class="btn btn-brand-ghost btn-lg">
+                                Explore Workspaces
+                            </a>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-center justify-content-lg-start gap-4 mt-5 text-muted small">
+                            <span class="d-flex align-items-center gap-2"><i class="bi bi-shield-check text-success fs-5"></i> Bank-Grade Privacy</span>
+                            <span class="d-flex align-items-center gap-2"><i class="bi bi-lightning-charge-fill text-warning fs-5"></i> 100% Free &amp; Open</span>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <div class="card feature-card" style="border-top-color: transparent;">
-                        <div class="feature-icon-box"><i class="bi bi-sort-numeric-down-alt"></i></div>
-                        <h5 class="fw-bold mb-3">Auto-Prioritize</h5>
-                        <p class="text-muted small mb-0">Our logic automatically ranks your tasks by urgency so you always know what to tackle first.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <div class="card feature-card">
-                        <div class="feature-icon-box"><i class="bi bi-arrow-repeat"></i></div>
-                        <h5 class="fw-bold mb-3">Instant Adjust</h5>
-                        <p class="text-muted small mb-0">Missed a study day? Just mark tasks as incomplete and watch your schedule instantly recalculate.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <div class="card feature-card">
-                        <div class="feature-icon-box"><i class="bi bi-graph-up-arrow"></i></div>
-                        <h5 class="fw-bold mb-3">Track Analytics</h5>
-                        <p class="text-muted small mb-0">Monitor your GPA trends, completed credits, and visual readiness dashboards in real-time.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+                    
+                    <div class="col-lg-6 d-none d-lg-block">
+                        <div class="perspective-frame">
+                            <div class="app-window">
+                                <div class="window-header">
+                                    <div class="window-dots">
+                                        <div class="window-dot red"></div>
+                                        <div class="window-dot yellow"></div>
+                                        <div class="window-dot green"></div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 small text-muted">
+                                        <i class="bi bi-lock-fill text-success" style="font-size: 0.75rem;"></i>
+                                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">omnilife.os/dashboard</span>
+                                    </div>
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1 small">
+                                        <i class="bi bi-record-fill me-1"></i> Live
+                                    </span>
+                                </div>
+                                
+                                <!-- Interactive Workspace Grid inside Mockup -->
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="p-3 rounded-3" style="background: rgba(37, 99, 235, 0.06); border: 1px solid rgba(37, 99, 235, 0.15);">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <small class="text-muted fw-semibold">ACADEMICS</small>
+                                                <i class="bi bi-mortarboard text-primary"></i>
+                                            </div>
+                                            <div class="fs-4 fw-bold text-dark">3.88 <small class="fs-6 text-muted">GPA</small></div>
+                                            <div class="progress mt-2" style="height: 5px;">
+                                                <div class="progress-bar bg-primary" style="width: 82%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 rounded-3" style="background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.15);">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <small class="text-muted fw-semibold">NET WORTH</small>
+                                                <i class="bi bi-wallet2 text-success"></i>
+                                            </div>
+                                            <div class="fs-4 fw-bold text-dark">RM 24,850</div>
+                                            <div class="text-success small fw-semibold"><i class="bi bi-arrow-up-right"></i> +14.2% vs last mo</div>
+                                        </div>
+                                    </div>
+                                </div>
 
-    <section id="how-it-works" class="py-5 bg-white">
-        <div class="container py-5">
-            <div class="row align-items-center">
-                <div class="col-lg-5 mb-5 mb-lg-0 pr-lg-5">
-                    <h2 class="fw-bold mb-4">From syllabus to success in four steps.</h2>
-                    <p class="text-muted fs-5 mb-4">We removed the friction from planning so you can spend 100% of your time actually studying.</p>
-                    <a href="/register" class="btn btn-outline-primary fw-bold rounded-pill px-4">Create your account <i class="bi bi-arrow-right ms-1"></i></a>
-                </div>
-                <div class="col-lg-7">
-                    <div class="row g-4">
-                        <div class="col-sm-6">
-                            <div class="step-card">
-                                <div class="step-number">01</div>
-                                <h6 class="fw-bold">Input Course Data</h6>
-                                <p class="text-muted small mb-0">Add your registered subjects, credit hours, and target grades into the Study Planner.</p>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="step-card" style="margin-top: 20px;">
-                                <div class="step-number">02</div>
-                                <h6 class="fw-bold">Build Timetable</h6>
-                                <p class="text-muted small mb-0">Use the 24-hour visual grid to slot in your lectures, tutorials, and club activities.</p>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="step-card">
-                                <div class="step-number">03</div>
-                                <h6 class="fw-bold">Manage Workflow</h6>
-                                <p class="text-muted small mb-0">Log your assignments and personal tasks. Watch them sync to your master calendar.</p>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="step-card" style="margin-top: 20px;">
-                                <div class="step-number">04</div>
-                                <h6 class="fw-bold">Update & Achieve</h6>
-                                <p class="text-muted small mb-0">Check off completed items and input final grades to unlock AI-driven insights.</p>
+                                <div class="p-3 rounded-3 mb-2" style="background: rgba(248, 250, 252, 0.9); border: 1px solid var(--surface-border);">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-warning bg-opacity-10 text-warning rounded-circle p-2"><i class="bi bi-fire"></i></span>
+                                            <div>
+                                                <div class="fw-bold small text-dark">Habit Routine: Morning Deep Work</div>
+                                                <small class="text-muted">14-day continuous streak</small>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-primary rounded-pill px-3 py-1">Active</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-3" style="background: rgba(248, 250, 252, 0.9); border: 1px solid var(--surface-border);">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-info bg-opacity-10 text-info rounded-circle p-2"><i class="bi bi-newspaper"></i></span>
+                                            <div>
+                                                <div class="fw-bold small text-dark">AI Morning Digest Ready</div>
+                                                <small class="text-muted">Tech &amp; Markets synthesized across 12 feeds</small>
+                                            </div>
+                                        </div>
+                                        <i class="bi bi-chevron-right text-muted"></i>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section class="py-5 mb-5">
-        <div class="container">
-            <div class="cta-section text-center text-white shadow-lg">
-                <h2 class="fw-bold mb-3 position-relative z-1">Study less chaos. Study more strategy.</h2>
-                <p class="mb-4 fs-5 opacity-75 position-relative z-1">Join the smarter way to plan your academic success.</p>
-                <a href="/register" class="btn btn-light text-primary btn-lg fw-bold px-5 rounded-pill shadow position-relative z-1">Get Started Now</a>
-            </div>
-        </div>
-    </section>
+        <!-- 6 Pluggable Workspaces Grid -->
+        <section id="workspaces" class="py-5" style="background: var(--surface-bg);">
+            <div class="container py-4">
+                <div class="text-center max-w-2xl mx-auto mb-5">
+                    <span class="brand-badge mb-2">Modular Architecture</span>
+                    <h2 class="display-6 fw-bold mb-3">Six Decoupled Workspaces. One Core Hub.</h2>
+                    <p class="text-muted fs-5">Each module operates with dedicated domain logic and database models, seamlessly united via the OmniSuite 9-Dot Launcher.</p>
+                </div>
+                
+                <div class="row g-4">
+                    <!-- 1. Academic Hub -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="workspace-card">
+                            <div class="workspace-icon-wrap" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
+                                <i class="bi bi-mortarboard-fill"></i>
+                            </div>
+                            <h4 class="h5 fw-bold mb-2">Academic &amp; Study Hub</h4>
+                            <p class="text-muted small mb-4">Course management, GPA projection simulator, dynamic 24-hr timetable, AI Syllabus parser, and priority task scheduling.</p>
+                            <div class="mt-auto d-flex align-items-center text-primary fw-semibold small gap-1">
+                                <span>Learn more</span> <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </div>
 
-    <footer class="py-4 bg-white border-top">
-        <div class="container text-center d-flex flex-column flex-md-row justify-content-between align-items-center">
-            <div class="mb-3 mb-md-0 fw-bold text-dark">
-                <i class="bi bi-cpu-fill text-primary me-2"></i>Smart Study Planner
+                    <!-- 2. Wealth & Finance -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="workspace-card">
+                            <div class="workspace-icon-wrap" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <i class="bi bi-wallet2"></i>
+                            </div>
+                            <h4 class="h5 fw-bold mb-2">OmniFinance Aggregator</h4>
+                            <p class="text-muted small mb-4">Multi-account tracking across Touch 'n Go, Maybank, CIMB, ASNB, and Moomoo. Smart monthly budgeting and cashflow metrics.</p>
+                            <div class="mt-auto d-flex align-items-center text-success fw-semibold small gap-1">
+                                <span>Learn more</span> <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Habits & Routines -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="workspace-card">
+                            <div class="workspace-icon-wrap" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="bi bi-flower1"></i>
+                            </div>
+                            <h4 class="h5 fw-bold mb-2">Life &amp; Daily Habits</h4>
+                            <p class="text-muted small mb-4">Daily routine rituals, atomic habit streaks, category-based focus tracking, and celebratory streak micro-interactions.</p>
+                            <div class="mt-auto d-flex align-items-center text-warning fw-semibold small gap-1">
+                                <span>Learn more</span> <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. AI Executive Digest -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="workspace-card">
+                            <div class="workspace-icon-wrap" style="background: rgba(14, 165, 233, 0.1); color: #0ea5e9;">
+                                <i class="bi bi-newspaper"></i>
+                            </div>
+                            <h4 class="h5 fw-bold mb-2">OmniDigest Intelligence</h4>
+                            <p class="text-muted small mb-4">Curated RSS feeds across technology, finance, and research. AI-synthesized morning briefs and weekly trend reviews.</p>
+                            <div class="mt-auto d-flex align-items-center text-info fw-semibold small gap-1">
+                                <span>Learn more</span> <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Reflection & Journal -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="workspace-card">
+                            <div class="workspace-icon-wrap" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                                <i class="bi bi-journal-bookmark-fill"></i>
+                            </div>
+                            <h4 class="h5 fw-bold mb-2">Journal &amp; Reflection</h4>
+                            <p class="text-muted small mb-4">Daily emotional mood tracker, long-form markdown entries, gratitude prompts, and private encrypted reflections.</p>
+                            <div class="mt-auto d-flex align-items-center text-purple fw-semibold small gap-1">
+                                <span>Learn more</span> <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Career Progression -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="workspace-card">
+                            <div class="workspace-icon-wrap" style="background: rgba(236, 72, 153, 0.1); color: #ec4899;">
+                                <i class="bi bi-briefcase-fill"></i>
+                            </div>
+                            <h4 class="h5 fw-bold mb-2">Career &amp; Internship Hub</h4>
+                            <p class="text-muted small mb-4">Kanban board job tracker, interview milestones, offer evaluations, and resume alignment checks.</p>
+                            <div class="mt-auto d-flex align-items-center text-danger fw-semibold small gap-1">
+                                <span>Learn more</span> <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="text-muted small">
-                &copy; 2026 | Simple. Secure. Student-Focused.
+        </section>
+
+        <!-- Four Step Workflow Section -->
+        <section id="how-it-works" class="py-5" style="border-top: 1px solid var(--surface-border);">
+            <div class="container py-5">
+                <div class="row align-items-center g-5">
+                    <div class="col-lg-5">
+                        <span class="brand-badge mb-3">Instant Onboarding</span>
+                        <h2 class="display-6 fw-bold mb-4">From chaos to complete clarity in 4 steps.</h2>
+                        <p class="text-muted fs-5 mb-4">
+                            We engineered OmniLife to respect your cognitive bandwidth. Setup takes under 90 seconds, and intelligent defaults handle the rest.
+                        </p>
+                        <a href="/register" class="btn btn-brand-primary">
+                            Create Your Free Account <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="col-lg-7">
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="journey-card">
+                                    <div class="journey-step-num">01</div>
+                                    <h5 class="fw-bold mb-2">Sync or Ingest</h5>
+                                    <p class="text-muted small mb-0">Upload your course syllabus PDF or connect financial balance snapshots in one click.</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="journey-card">
+                                    <div class="journey-step-num">02</div>
+                                    <h5 class="fw-bold mb-2">AI Optimization</h5>
+                                    <p class="text-muted small mb-0">The self-healing scheduler maps study sessions around your real calendar commitments.</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="journey-card">
+                                    <div class="journey-step-num">03</div>
+                                    <h5 class="fw-bold mb-2">Daily Execution</h5>
+                                    <p class="text-muted small mb-0">Review today's unified command center: check habits, tackle tasks, read your AI briefing.</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="journey-card">
+                                    <div class="journey-step-num">04</div>
+                                    <h5 class="fw-bold mb-2">Compounding Growth</h5>
+                                    <p class="text-muted small mb-0">Gain predictive GPA insights, net worth milestone charts, and productivity analytics.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Grand Call to Action -->
+        <section class="py-5">
+            <div class="container py-3">
+                <div class="grand-cta-wrap text-center text-white">
+                    <div class="grand-cta-glow"></div>
+                    <div class="position-relative" style="z-index: 1;">
+                        <span class="badge bg-white bg-opacity-20 text-white rounded-pill px-3 py-2 mb-3 fw-semibold">
+                            <i class="bi bi-rocket-takeoff-fill me-1"></i> Start Building Your Operating System
+                        </span>
+                        <h2 class="display-5 fw-bold mb-3 text-white">Master your time, wealth, and mind.</h2>
+                        <p class="fs-5 mb-4 text-white-50 mx-auto" style="max-width: 600px;">
+                            Join the next generation of high performers who treat life with intentional design.
+                        </p>
+                        <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+                            <a href="/register" class="btn btn-light text-primary btn-lg fw-bold px-5 rounded-pill shadow-lg">
+                                Get Started Free <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                            <a href="/login" class="btn btn-outline-light btn-lg fw-semibold px-4 rounded-pill">
+                                Returning Member
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Semantic Footer -->
+    <footer class="py-4 border-top" style="background: var(--surface-card);">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 text-muted small">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-grid-3x3-gap-fill text-primary fs-5"></i>
+                <span class="fw-bold text-dark">OmniLife OS</span>
+                <span class="text-secondary">&bull; Smart Study Planner &amp; Personal Operating System</span>
+            </div>
+            <div>
+                &copy; 2026 OmniLife. Engineered with modern modular architecture.
             </div>
         </div>
     </footer>
 
+    <!-- Bootstrap Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

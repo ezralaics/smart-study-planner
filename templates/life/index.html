@@ -1,42 +1,211 @@
 {% extends "base.html" %}
 
-{% block title %}Life & Daily Habits | OmniLife OS{% endblock %}
+{% block title %}Life &amp; Daily Habits | OmniLife OS{% endblock %}
 
 {% block extra_css %}
 <style>
+    /* Materiality & Depth Tokens */
     .habit-card {
-        border-radius: 14px;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        transition: transform 0.2s, box-shadow 0.2s;
+        border-radius: 18px;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        transition: transform 0.3s var(--ease-out-expo), box-shadow 0.3s var(--ease-out-expo), border-color 0.3s;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+        position: relative;
+        overflow: hidden;
+    }
+    .habit-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: transparent;
+        transition: background 0.3s var(--ease-out-expo);
     }
     .habit-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+        transform: translateY(-4px);
+        box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border-color: rgba(16, 185, 129, 0.4);
+    }
+    .habit-card:hover::before {
+        background: linear-gradient(90deg, #10b981, #059669);
     }
     [data-bs-theme="dark"] .habit-card {
-        background: #1e293b;
-        border-color: #334155;
+        background: rgba(30, 41, 59, 0.75);
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
     }
+    [data-bs-theme="dark"] .habit-card:hover {
+        border-color: rgba(16, 185, 129, 0.5);
+        box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    /* Spring-Physics Tactile Toggle Button */
     .habit-toggle-btn {
-        width: 38px;
-        height: 38px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
         border-radius: 50%;
         border: 2px solid #cbd5e1;
         background: transparent;
         color: transparent;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
+        font-size: 1.25rem;
         cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        padding: 0;
+        transition: all 0.3s var(--ease-spring);
+        position: relative;
+        outline: none;
+    }
+    .habit-toggle-btn:hover {
+        border-color: #10b981;
+        transform: scale(1.08);
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+    }
+    .habit-toggle-btn:active {
+        transform: scale(0.92);
     }
     .habit-toggle-btn.completed {
-        background: #198754;
-        border-color: #198754;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-color: #059669;
         color: #ffffff;
         transform: scale(1.05);
+        box-shadow: 0 6px 16px -2px rgba(16, 185, 129, 0.4);
+    }
+    .habit-toggle-btn.completed:hover {
+        transform: scale(1.12);
+        box-shadow: 0 8px 20px -2px rgba(16, 185, 129, 0.55);
+    }
+    .habit-toggle-btn i {
+        transition: transform 0.3s var(--ease-spring);
+        transform: scale(0.5);
+    }
+    .habit-toggle-btn.completed i {
+        transform: scale(1);
+    }
+    .habit-toggle-btn:focus-visible {
+        outline: 2px solid #10b981;
+        outline-offset: 3px;
+    }
+
+    /* Fire Streak Badge */
+    .streak-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(239, 68, 68, 0.12));
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        color: #d97706;
+        letter-spacing: 0.01em;
+    }
+    [data-bs-theme="dark"] .streak-badge {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(239, 68, 68, 0.2));
+        color: #fbbf24;
+        border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    /* Category Filter Pills */
+    .category-filter-btn {
+        border: 1px solid var(--surface-border, #e2e8f0);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(8px);
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 7px 16px;
+        border-radius: 9999px;
+        transition: all 0.25s var(--ease-out-expo);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .category-filter-btn:hover {
+        background: #ffffff;
+        color: #0f172a;
+        border-color: #cbd5e1;
+        transform: translateY(-1px);
+    }
+    .category-filter-btn.active {
+        background: #0f172a;
+        color: #ffffff;
+        border-color: #0f172a;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+    [data-bs-theme="dark"] .category-filter-btn {
+        background: rgba(30, 41, 59, 0.6);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+    }
+    [data-bs-theme="dark"] .category-filter-btn:hover {
+        background: rgba(30, 41, 59, 1);
+        color: #f8fafc;
+    }
+    [data-bs-theme="dark"] .category-filter-btn.active {
+        background: #10b981;
+        color: #ffffff;
+        border-color: #10b981;
+    }
+
+    /* Ambient Hero Banner */
+    .life-hero-banner {
+        background: linear-gradient(135deg, #064e3b 0%, #047857 55%, #059669 100%);
+        border-radius: 22px;
+        color: #ffffff;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 18px 40px -10px rgba(5, 150, 105, 0.35);
+    }
+    .life-hero-glow {
+        position: absolute;
+        top: -60%;
+        right: -10%;
+        width: 420px;
+        height: 420px;
+        background: radial-gradient(circle, rgba(52, 211, 153, 0.3), transparent 70%);
+        filter: blur(60px);
+        pointer-events: none;
+    }
+
+    /* Shimmer Skeleton Placeholder */
+    .habit-skeleton-card {
+        border-radius: 18px;
+        border: 1px solid rgba(226, 232, 240, 0.7);
+        background: #ffffff;
+        padding: 24px;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    [data-bs-theme="dark"] .habit-skeleton-card {
+        background: rgba(30, 41, 59, 0.7);
+        border-color: rgba(255, 255, 255, 0.06);
+    }
+    .skeleton-line {
+        height: 12px;
+        border-radius: 6px;
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+        background-size: 200% 100%;
+        animation: omniSkeletonShimmer 1.5s infinite;
+    }
+    [data-bs-theme="dark"] .skeleton-line {
+        background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+        background-size: 200% 100%;
+    }
+    @keyframes omniSkeletonShimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
     }
 </style>
 {% endblock %}
@@ -44,73 +213,161 @@
 {% block content %}
 <div class="container py-4">
     <!-- Workspace Header -->
-    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <header class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
-            <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white" 
-                  style="width: 44px; height: 44px; background-color: #198754; font-size: 1.25rem;">
+            <span class="rounded-4 d-inline-flex align-items-center justify-content-center text-white shadow-sm" 
+                  style="width: 50px; height: 50px; background: linear-gradient(135deg, #10b981 0%, #047857 100%); font-size: 1.45rem;">
                 <i class="bi bi-flower1"></i>
             </span>
             <div>
-                <h3 class="fw-bold mb-0">Life &amp; Daily Habits</h3>
-                <p class="text-muted small mb-0">Build consistent routines and monitor daily habit streaks.</p>
+                <div class="d-flex align-items-center gap-2">
+                    <h3 class="fw-bold mb-0" style="letter-spacing: -0.02em;">Life &amp; Daily Habits</h3>
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1 small fw-semibold">
+                        <i class="bi bi-clock-history me-1"></i> Today
+                    </span>
+                </div>
+                <p class="text-muted small mb-0">Build compounding daily rituals, morning mindfulness, and habit streaks.</p>
             </div>
         </div>
         <div class="d-flex gap-2">
-            <button class="btn btn-success rounded-pill px-3 py-2 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#newHabitModal">
-                <i class="bi bi-plus-circle me-1"></i> New Habit
+            <button class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" 
+                    data-bs-toggle="modal" data-bs-target="#newHabitModal">
+                <i class="bi bi-plus-circle-fill"></i> New Habit
             </button>
-            <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-3 py-2">
-                <i class="bi bi-speedometer2 me-1"></i> Command Center
+            <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-2">
+                <i class="bi bi-speedometer2"></i> Command Center
             </a>
         </div>
-    </div>
+    </header>
 
-    <!-- Progress Card -->
-    <div class="card shadow-sm border-0 rounded-4 mb-4" style="background: linear-gradient(135deg, #198754 0%, #0f5132 100%); color: #ffffff;">
-        <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div>
-                <span class="badge bg-white text-success fw-bold rounded-pill px-3 py-1 mb-2">Today's Focus</span>
-                <h4 class="fw-bold mb-1" id="habitsCompletedTitle">0 of 0 Completed</h4>
-                <p class="text-light opacity-75 small mb-0">Small steps every day lead to massive lifetime progress.</p>
+    <!-- Progress Card with Ambient Emerald Lighting -->
+    <section class="life-hero-banner p-4 p-md-5 mb-4" aria-label="Habits Completion Summary">
+        <div class="life-hero-glow"></div>
+        <div class="row align-items-center justify-content-between position-relative g-4" style="z-index: 1;">
+            <div class="col-md-7">
+                <span class="badge bg-white text-success fw-bold rounded-pill px-3 py-1 mb-2 shadow-sm">
+                    <i class="bi bi-check2-all me-1"></i> Today's Rhythm
+                </span>
+                <h4 class="display-6 fw-bold mb-2 text-white" id="habitsCompletedTitle">0 of 0 Completed</h4>
+                <p class="text-white-50 mb-3 small" style="max-width: 480px;">
+                    "We are what we repeatedly do. Excellence, then, is not an act, but a habit." Keep building your momentum.
+                </p>
+                <div class="progress rounded-pill bg-black bg-opacity-25" style="height: 8px; max-width: 400px;">
+                    <div class="progress-bar bg-white rounded-pill transition-all" id="habitsProgressBar" style="width: 0%; transition: width 0.6s var(--ease-spring);"></div>
+                </div>
             </div>
-            <div class="text-end">
-                <span class="display-6 fw-bold" id="habitsPercent">0%</span>
-                <small class="d-block text-light opacity-75">Daily Completion Rate</small>
+            <div class="col-md-5 text-md-end">
+                <div class="d-inline-flex flex-column align-items-md-end p-3 rounded-4" style="background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);">
+                    <span class="display-5 fw-bold text-white mb-0" id="habitsPercent">0%</span>
+                    <small class="text-white-50 text-uppercase fw-semibold" style="letter-spacing: 0.05em; font-size: 0.75rem;">Completion Rate</small>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Habits Grid -->
-    <div class="row g-3" id="habitsGridContainer">
-        <div class="col-12 text-center py-5">
-            <div class="spinner-border text-success" role="status"></div>
-            <p class="text-muted small mt-2">Loading your habits...</p>
+    <!-- Category Filter Controls -->
+    <nav class="d-flex align-items-center gap-2 mb-4 overflow-x-auto pb-2" aria-label="Filter habits by category">
+        <button class="category-filter-btn active" data-category="all" onclick="filterHabits('all', this)">
+            <i class="bi bi-grid-fill"></i> All Habits (<span id="countAll">0</span>)
+        </button>
+        <button class="category-filter-btn" data-category="learning" onclick="filterHabits('learning', this)">
+            📚 Learning (<span id="countLearning">0</span>)
+        </button>
+        <button class="category-filter-btn" data-category="health" onclick="filterHabits('health', this)">
+            🥗 Health (<span id="countHealth">0</span>)
+        </button>
+        <button class="category-filter-btn" data-category="fitness" onclick="filterHabits('fitness', this)">
+            🏃 Fitness (<span id="countFitness">0</span>)
+        </button>
+        <button class="category-filter-btn" data-category="mindfulness" onclick="filterHabits('mindfulness', this)">
+            🧘 Mindfulness (<span id="countMindfulness">0</span>)
+        </button>
+        <button class="category-filter-btn" data-category="general" onclick="filterHabits('general', this)">
+            ⭐ General (<span id="countGeneral">0</span>)
+        </button>
+    </nav>
+
+    <!-- Habits Grid with Content-Matching Skeleton Initializer -->
+    <main class="row g-3" id="habitsGridContainer" aria-live="polite">
+        <!-- 3-Column Pulsing Content Skeletons (Pass 4 UX standard) -->
+        <div class="col-md-6 col-lg-4">
+            <div class="habit-skeleton-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex gap-2 align-items-center w-75">
+                        <div class="skeleton-line rounded-circle" style="width: 38px; height: 38px;"></div>
+                        <div class="w-75">
+                            <div class="skeleton-line w-75 mb-2"></div>
+                            <div class="skeleton-line w-50"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-line rounded-circle" style="width: 44px; height: 44px;"></div>
+                </div>
+                <div class="skeleton-line w-100 mb-2"></div>
+                <div class="skeleton-line w-50 mt-auto"></div>
+            </div>
         </div>
-    </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="habit-skeleton-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex gap-2 align-items-center w-75">
+                        <div class="skeleton-line rounded-circle" style="width: 38px; height: 38px;"></div>
+                        <div class="w-75">
+                            <div class="skeleton-line w-75 mb-2"></div>
+                            <div class="skeleton-line w-50"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-line rounded-circle" style="width: 44px; height: 44px;"></div>
+                </div>
+                <div class="skeleton-line w-100 mb-2"></div>
+                <div class="skeleton-line w-50 mt-auto"></div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="habit-skeleton-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex gap-2 align-items-center w-75">
+                        <div class="skeleton-line rounded-circle" style="width: 38px; height: 38px;"></div>
+                        <div class="w-75">
+                            <div class="skeleton-line w-75 mb-2"></div>
+                            <div class="skeleton-line w-50"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-line rounded-circle" style="width: 44px; height: 44px;"></div>
+                </div>
+                <div class="skeleton-line w-100 mb-2"></div>
+                <div class="skeleton-line w-50 mt-auto"></div>
+            </div>
+        </div>
+    </main>
 </div>
 
 <!-- Modal: New Habit -->
 <div class="modal fade" id="newHabitModal" tabindex="-1" aria-labelledby="newHabitModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-bottom">
-                <h5 class="modal-title fw-bold" id="newHabitModalLabel"><i class="bi bi-flower1 text-success me-2"></i>Create New Habit</h5>
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom pb-3">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="newHabitModalLabel">
+                    <span class="rounded-circle bg-success bg-opacity-10 text-success p-2 d-inline-flex">
+                        <i class="bi bi-flower1"></i>
+                    </span>
+                    Create New Habit Ritual
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="createHabitForm" onsubmit="handleCreateHabit(event)">
                 <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label for="habitTitle" class="form-label fw-semibold small">Habit Title *</label>
-                        <input type="text" class="form-control rounded-3" id="habitTitle" placeholder="e.g. 20 Minutes Deep Reading" required>
+                        <label for="habitTitle" class="form-label fw-semibold small">Habit Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3 py-2" id="habitTitle" placeholder="e.g. 25 Minutes Deep Reading" required>
                     </div>
                     <div class="mb-3">
                         <label for="habitDesc" class="form-label fw-semibold small">Why is this important? (Optional)</label>
-                        <input type="text" class="form-control rounded-3" id="habitDesc" placeholder="e.g. Expand vocabulary and focus">
+                        <input type="text" class="form-control rounded-3 py-2" id="habitDesc" placeholder="e.g. Strengthen focus and expand knowledge">
                     </div>
-                    <div class="row g-2 mb-3">
+                    <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label for="habitCategory" class="form-label fw-semibold small">Category</label>
-                            <select class="form-select rounded-3" id="habitCategory">
+                            <select class="form-select rounded-3 py-2" id="habitCategory">
                                 <option value="learning">📚 Learning</option>
                                 <option value="health">🥗 Health &amp; Nutrition</option>
                                 <option value="fitness">🏃 Fitness &amp; Movement</option>
@@ -120,7 +377,7 @@
                         </div>
                         <div class="col-6">
                             <label for="habitFrequency" class="form-label fw-semibold small">Frequency</label>
-                            <select class="form-select rounded-3" id="habitFrequency">
+                            <select class="form-select rounded-3 py-2" id="habitFrequency">
                                 <option value="daily" selected>Daily (7 days)</option>
                                 <option value="weekdays">Weekdays (5 days)</option>
                                 <option value="weekly">Weekly (3-4 days)</option>
@@ -128,11 +385,32 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top">
-                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold" id="saveHabitBtn">Create Habit</button>
+                <div class="modal-footer border-top pt-3">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold" id="saveHabitBtn">
+                        <i class="bi bi-plus-circle me-1"></i> Create Habit
+                    </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Delete Confirmation (Accessible replacement for native confirm) -->
+<div class="modal fade" id="deleteHabitModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 border-0 shadow-lg text-center p-3">
+            <div class="modal-body">
+                <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3 d-inline-flex mx-auto mb-3">
+                    <i class="bi bi-trash3 fs-3"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Delete Habit?</h5>
+                <p class="text-muted small mb-4">This action will remove the habit and its streak history. It cannot be undone.</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4 fw-semibold" id="confirmDeleteHabitBtn">Delete</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -140,6 +418,10 @@
 
 {% block extra_js %}
 <script>
+let globalHabitsList = [];
+let currentCategoryFilter = 'all';
+let habitToDeleteId = null;
+
 document.addEventListener('DOMContentLoaded', loadHabits);
 
 async function loadHabits() {
@@ -148,81 +430,230 @@ async function loadHabits() {
         const res = await fetch('/api/life/habits');
         const json = await res.json();
         if (json.status === 'success') {
-            const habits = json.data || [];
-            const completed = json.completed_today_count || 0;
-            const total = json.total_habits_count || 0;
-            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-            document.getElementById('habitsCompletedTitle').textContent = `${completed} of ${total} Completed`;
-            document.getElementById('habitsPercent').textContent = `${pct}%`;
-
-            if (habits.length === 0) {
-                container.innerHTML = `
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
-                            <div class="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
-                                <i class="bi bi-flower1 fs-2"></i>
-                            </div>
-                            <h5 class="fw-bold">No habits registered yet</h5>
-                            <p class="text-muted small">Begin by setting up your daily routine, morning mindfulness, or study streak.</p>
-                            <div>
-                                <button class="btn btn-success rounded-pill px-4 fw-semibold" data-bs-toggle="modal" data-bs-target="#newHabitModal">
-                                    <i class="bi bi-plus-circle me-1"></i> Add First Habit
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = habits.map(h => `
-                <div class="col-md-6 col-lg-4">
-                    <div class="card habit-card p-3 shadow-sm h-100">
-                        <div class="d-flex align-items-start justify-content-between mb-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white" 
-                                      style="width: 34px; height: 34px; background-color: ${h.color};">
-                                    <i class="bi ${h.icon}"></i>
-                                </span>
-                                <div>
-                                    <h6 class="fw-bold mb-0 text-dark">${escapeHtml(h.title)}</h6>
-                                    <small class="text-muted text-capitalize">${escapeHtml(h.category)}</small>
-                                </div>
-                            </div>
-                            <button class="habit-toggle-btn ${h.today_completed ? 'completed' : ''}" 
-                                    onclick="toggleHabit('${h.id}', this)" title="Mark completed today">
-                                <i class="bi bi-check-lg"></i>
-                            </button>
-                        </div>
-                        ${h.description ? `<p class="text-muted small mb-2">${escapeHtml(h.description)}</p>` : ''}
-                        <div class="mt-auto pt-2 border-top d-flex align-items-center justify-content-between text-muted" style="font-size: 0.75rem;">
-                            <span>🔥 <strong class="text-dark">${h.streak_count}</strong> day streak</span>
-                            <button class="btn btn-link text-danger p-0 text-decoration-none" onclick="deleteHabit('${h.id}')" title="Delete habit">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            globalHabitsList = json.data || [];
+            updateCompletionBanner(json.completed_today_count || 0, json.total_habits_count || 0);
+            updateCategoryCounts();
+            renderHabits();
+        } else {
+            renderErrorState(json.message || 'Unable to retrieve habit entries.');
         }
     } catch (e) {
-        container.innerHTML = `<div class="col-12 text-center text-danger py-4">Failed to load habits.</div>`;
+        console.error("Habit fetch error:", e);
+        renderErrorState('Network error connecting to OmniLife habits service.');
     }
 }
 
-async function toggleHabit(habitId, btn) {
+function updateCompletionBanner(completed, total) {
+    const titleEl = document.getElementById('habitsCompletedTitle');
+    const pctEl = document.getElementById('habitsPercent');
+    const progressEl = document.getElementById('habitsProgressBar');
+    
+    if (titleEl) titleEl.textContent = `${completed} of ${total} Completed`;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    if (pctEl) pctEl.textContent = `${pct}%`;
+    if (progressEl) progressEl.style.width = `${pct}%`;
+}
+
+function updateCategoryCounts() {
+    const counts = { all: globalHabitsList.length, learning: 0, health: 0, fitness: 0, mindfulness: 0, general: 0 };
+    globalHabitsList.forEach(h => {
+        const cat = (h.category || 'general').toLowerCase();
+        if (counts[cat] !== undefined) counts[cat]++;
+        else counts.general++;
+    });
+
+    for (const [cat, count] of Object.entries(counts)) {
+        const el = document.getElementById(`count${cat.charAt(0).toUpperCase() + cat.slice(1)}`);
+        if (el) el.textContent = count;
+    }
+}
+
+function filterHabits(category, btnEl) {
+    currentCategoryFilter = category;
+    document.querySelectorAll('.category-filter-btn').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+    renderHabits();
+}
+
+function renderHabits() {
+    const container = document.getElementById('habitsGridContainer');
+    if (!container) return;
+
+    // Filter by active category
+    const filtered = currentCategoryFilter === 'all' 
+        ? globalHabitsList 
+        : globalHabitsList.filter(h => (h.category || 'general').toLowerCase() === currentCategoryFilter);
+
+    // Empty state 1: 0 total habits
+    if (globalHabitsList.length === 0) {
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4 p-5 text-center" style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px);">
+                    <div class="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
+                        <i class="bi bi-flower1 fs-1"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">No Habits Registered Yet</h5>
+                    <p class="text-muted small mx-auto mb-4" style="max-width: 440px;">
+                        Build compound momentum by tracking your morning routine, daily study session, or fitness workout.
+                    </p>
+                    <div>
+                        <button class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#newHabitModal">
+                            <i class="bi bi-plus-circle me-1"></i> Add First Habit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Empty state 2: 0 habits matching current filter
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4 p-5 text-center" style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px);">
+                    <div class="text-muted mb-3 fs-2"><i class="bi bi-funnel"></i></div>
+                    <h6 class="fw-bold mb-1">No habits found in "${currentCategoryFilter}"</h6>
+                    <p class="text-muted small mb-3">You don't have any routines tagged under this category yet.</p>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="filterHabits('all', document.querySelector('[data-category=all]'))">
+                            Show All Habits
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Render habit cards with bespoke micro-interactions
+    container.innerHTML = filtered.map(h => {
+        const isDone = Boolean(h.today_completed);
+        const iconColor = h.color || '#10b981';
+        return `
+            <div class="col-md-6 col-lg-4" id="habit-wrapper-${h.id}">
+                <article class="card habit-card p-4 h-100 d-flex flex-column" aria-labelledby="habit-title-${h.id}">
+                    <div class="d-flex align-items-start justify-content-between mb-3 gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="rounded-3 d-inline-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0" 
+                                  style="width: 40px; height: 40px; background-color: ${escapeHtml(iconColor)}; font-size: 1.15rem;">
+                                <i class="bi ${escapeHtml(h.icon || 'bi-flower1')}"></i>
+                            </span>
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark" id="habit-title-${h.id}">${escapeHtml(h.title)}</h6>
+                                <span class="badge bg-light text-secondary border text-capitalize px-2 py-0 small mt-1">
+                                    ${escapeHtml(h.category || 'general')}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Tactile Check Ring -->
+                        <button class="habit-toggle-btn ${isDone ? 'completed' : ''}" 
+                                id="btn-toggle-${h.id}"
+                                role="checkbox"
+                                aria-checked="${isDone}"
+                                aria-label="Toggle ${escapeHtml(h.title)} completed today"
+                                onclick="optimisticToggleHabit('${h.id}')" 
+                                onkeydown="handleToggleKeydown(event, '${h.id}')">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                    </div>
+
+                    ${h.description ? `<p class="text-muted small mb-3" style="line-height: 1.5;">${escapeHtml(h.description)}</p>` : ''}
+
+                    <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between text-muted" style="font-size: 0.8rem;">
+                        <span class="streak-badge" id="streak-badge-${h.id}">
+                            <i class="bi bi-fire text-danger"></i> 
+                            <span><strong>${h.streak_count || 0}</strong> day streak</span>
+                        </span>
+                        
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-capitalize small opacity-75">${escapeHtml(h.frequency || 'daily')}</span>
+                            <button class="btn btn-link text-muted p-1 text-decoration-none hover-danger" 
+                                    onclick="promptDeleteHabit('${h.id}')" 
+                                    aria-label="Delete habit ${escapeHtml(h.title)}">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        `;
+    }).join('');
+}
+
+function handleToggleKeydown(e, habitId) {
+    if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        optimisticToggleHabit(habitId);
+    }
+}
+
+async function optimisticToggleHabit(habitId) {
+    const habit = globalHabitsList.find(h => String(h.id) === String(habitId));
+    if (!habit) return;
+
+    const btn = document.getElementById(`btn-toggle-${habitId}`);
+    const streakBadge = document.getElementById(`streak-badge-${habitId}`);
+
+    // Capture previous state for rollback
+    const prevCompleted = Boolean(habit.today_completed);
+    const prevStreak = habit.streak_count || 0;
+
+    // Optimistic state flip
+    const nextCompleted = !prevCompleted;
+    habit.today_completed = nextCompleted;
+    if (nextCompleted) {
+        habit.streak_count = prevStreak + 1;
+    } else {
+        habit.streak_count = Math.max(0, prevStreak - 1);
+    }
+
+    // Immediate DOM feedback
+    if (btn) {
+        btn.classList.toggle('completed', nextCompleted);
+        btn.setAttribute('aria-checked', nextCompleted);
+    }
+    if (streakBadge) {
+        streakBadge.innerHTML = `<i class="bi bi-fire text-danger"></i> <span><strong>${habit.streak_count}</strong> day streak</span>`;
+    }
+
+    // Immediate banner recalculation
+    const completedCount = globalHabitsList.filter(h => h.today_completed).length;
+    updateCompletionBanner(completedCount, globalHabitsList.length);
+
+    // Toast feedback if completing
+    if (nextCompleted && typeof showOmniToast === 'function') {
+        showOmniToast(`Completed: ${habit.title}! Streak: ${habit.streak_count} days 🔥`, 'success');
+    }
+
     try {
         const res = await fetch(`/api/life/habits/${habitId}/toggle`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
         const data = await res.json();
-        if (data.status === 'success') {
-            loadHabits();
+        if (data.status !== 'success') {
+            throw new Error(data.message || 'Toggle request rejected');
         }
     } catch (e) {
-        console.error("Toggle error:", e);
+        console.error("Toggle sync failed, rolling back:", e);
+        // Rollback
+        habit.today_completed = prevCompleted;
+        habit.streak_count = prevStreak;
+        if (btn) {
+            btn.classList.toggle('completed', prevCompleted);
+            btn.setAttribute('aria-checked', prevCompleted);
+        }
+        if (streakBadge) {
+            streakBadge.innerHTML = `<i class="bi bi-fire text-danger"></i> <span><strong>${prevStreak}</strong> day streak</span>`;
+        }
+        const revertedCompleted = globalHabitsList.filter(h => h.today_completed).length;
+        updateCompletionBanner(revertedCompleted, globalHabitsList.length);
+
+        if (typeof showOmniToast === 'function') {
+            showOmniToast('Could not save habit progress. Reverted.', 'error');
+        }
     }
 }
 
@@ -235,7 +666,7 @@ async function handleCreateHabit(e) {
 
     const btn = document.getElementById('saveHabitBtn');
     btn.disabled = true;
-    btn.textContent = 'Saving...';
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status"></span>Creating...`;
 
     try {
         const res = await fetch('/api/life/habits', {
@@ -246,36 +677,87 @@ async function handleCreateHabit(e) {
         const data = await res.json();
         if (data.status === 'success') {
             const modalEl = document.getElementById('newHabitModal');
-            bootstrap.Modal.getInstance(modalEl).hide();
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
             document.getElementById('createHabitForm').reset();
+            
+            if (typeof showOmniToast === 'function') {
+                showOmniToast(`New habit "${title}" created!`, 'success');
+            }
             loadHabits();
         } else {
-            alert(data.message || 'Failed to create habit');
+            if (typeof showOmniToast === 'function') {
+                showOmniToast(data.message || 'Failed to create habit', 'error');
+            }
         }
     } catch (err) {
-        alert('An error occurred');
+        if (typeof showOmniToast === 'function') {
+            showOmniToast('Network error creating habit', 'error');
+        }
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Create Habit';
+        btn.innerHTML = `<i class="bi bi-plus-circle me-1"></i> Create Habit`;
     }
 }
 
-async function deleteHabit(habitId) {
-    if (!confirm('Are you sure you want to delete this habit?')) return;
+function promptDeleteHabit(habitId) {
+    habitToDeleteId = habitId;
+    const modalEl = document.getElementById('deleteHabitModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    const confirmBtn = document.getElementById('confirmDeleteHabitBtn');
+    confirmBtn.onclick = executeDeleteHabit;
+}
+
+async function executeDeleteHabit() {
+    if (!habitToDeleteId) return;
+    const modalEl = document.getElementById('deleteHabitModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+
     try {
-        const res = await fetch(`/api/life/habits/${habitId}`, { method: 'DELETE' });
+        const res = await fetch(`/api/life/habits/${habitToDeleteId}`, { method: 'DELETE' });
         const data = await res.json();
         if (data.status === 'success') {
+            if (modal) modal.hide();
+            if (typeof showOmniToast === 'function') {
+                showOmniToast('Habit deleted successfully.', 'success');
+            }
             loadHabits();
+        } else {
+            if (typeof showOmniToast === 'function') {
+                showOmniToast(data.message || 'Failed to delete habit', 'error');
+            }
         }
     } catch (e) {
-        alert('Failed to delete habit');
+        if (typeof showOmniToast === 'function') {
+            showOmniToast('Error deleting habit', 'error');
+        }
+    } finally {
+        habitToDeleteId = null;
     }
+}
+
+function renderErrorState(msg) {
+    const container = document.getElementById('habitsGridContainer');
+    if (!container) return;
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="alert alert-danger rounded-4 p-4 text-center">
+                <i class="bi bi-exclamation-triangle-fill fs-3 d-block mb-2 text-danger"></i>
+                <h6 class="fw-bold mb-1">Failed to load habits</h6>
+                <p class="small mb-3 text-muted">${escapeHtml(msg)}</p>
+                <button class="btn btn-sm btn-outline-danger rounded-pill px-4" onclick="loadHabits()">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Try Again
+                </button>
+            </div>
+        </div>
+    `;
 }
 
 function escapeHtml(text) {
     if (!text) return '';
-    return text.replace(/[&<>"']/g, function(m) {
+    return String(text).replace(/[&<>"']/g, function(m) {
         return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m];
     });
 }
