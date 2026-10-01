@@ -4,75 +4,162 @@
 
 {% block extra_css %}
 <style>
+    /* ==========================================================================
+       Life Planner OS — Bespoke Command Center Design System (Passes 1 & 2)
+       ========================================================================== */
+    :root {
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+        --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Ambient Hero Command Header */
     .command-header-card {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        background: radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.24) 0%, transparent 45%),
+                    radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.18) 0%, transparent 40%),
+                    linear-gradient(135deg, #0f172a 0%, #090d16 100%);
         color: #ffffff;
-        border-radius: 16px;
-        border: none;
-        padding: 24px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        padding: clamp(20px, 3.5vw, 32px);
         position: relative;
         overflow: hidden;
+        box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
     }
     .command-header-card::after {
         content: '';
         position: absolute;
-        top: -40px;
-        right: -40px;
-        width: 180px;
-        height: 180px;
-        background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
+        top: -60px;
+        right: -60px;
+        width: 220px;
+        height: 220px;
+        background: radial-gradient(circle, rgba(96, 165, 250, 0.25) 0%, transparent 70%);
         border-radius: 50%;
         pointer-events: none;
+        filter: blur(20px);
     }
+
+    .hero-title {
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: clamp(1.4rem, 2.8vw, 2.1rem);
+        letter-spacing: -0.025em;
+        line-height: 1.25;
+    }
+
+    /* Tactile Pluggable Workspace Pills Grid */
     .workspace-pill-card {
-        border-radius: 14px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
         background: #ffffff;
-        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-        text-decoration: none;
+        transition: transform 0.28s var(--ease-spring), box-shadow 0.28s var(--ease-spring), border-color 0.2s ease;
+        text-decoration: none !important;
         color: inherit;
         display: block;
         padding: 16px;
         height: 100%;
+        position: relative;
+        overflow: hidden;
+        will-change: transform;
     }
     .workspace-pill-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-        border-color: rgba(13, 110, 253, 0.4);
+        transform: translateY(-4px) scale(1.015);
+        box-shadow: 0 14px 28px -6px rgba(15, 23, 42, 0.10);
+        border-color: rgba(37, 99, 235, 0.35);
         color: inherit;
     }
+    .workspace-pill-card:active {
+        transform: scale(0.98);
+    }
     [data-bs-theme="dark"] .workspace-pill-card {
-        background: #1e293b;
-        border-color: #334155;
+        background: #131b2e;
+        border-color: rgba(255, 255, 255, 0.08);
         color: #f1f5f9;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     }
-    .quick-action-btn {
-        border-radius: 12px;
-        font-weight: 600;
-        padding: 10px 16px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.2s;
+    [data-bs-theme="dark"] .workspace-pill-card:hover {
+        border-color: rgba(96, 165, 250, 0.35);
+        box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.5);
     }
+
+    /* Interactive Live Pulse Dot */
+    .live-beacon {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background-color: #22c55e;
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+        animation: pulseBeacon 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+        vertical-align: middle;
+        margin-right: 4px;
+    }
+    @keyframes pulseBeacon {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Executive Briefing Container */
+    .executive-briefing-card {
+        background: radial-gradient(circle at 12% 18%, rgba(99, 102, 241, 0.09) 0%, transparent 60%),
+                    radial-gradient(circle at 88% 85%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+                    #ffffff;
+        border: 1px solid rgba(99, 102, 241, 0.22) !important;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 30px -8px rgba(99, 102, 241, 0.12);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    [data-bs-theme="dark"] .executive-briefing-card {
+        background: radial-gradient(circle at 12% 18%, rgba(99, 102, 241, 0.14) 0%, transparent 60%),
+                    #131b2e;
+        border-color: rgba(99, 102, 241, 0.35) !important;
+        box-shadow: 0 10px 32px -8px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Bespoke Pulsing Skeleton Loaders (Pass 4) */
+    .omni-skeleton {
+        background: linear-gradient(90deg, rgba(226, 232, 240, 0.6) 25%, rgba(241, 245, 249, 0.9) 50%, rgba(226, 232, 240, 0.6) 75%);
+        background-size: 200% 100%;
+        animation: omniSkeletonShine 1.6s infinite ease-in-out;
+        border-radius: 6px;
+    }
+    [data-bs-theme="dark"] .omni-skeleton {
+        background: linear-gradient(90deg, rgba(30, 41, 59, 0.8) 25%, rgba(51, 65, 85, 0.8) 50%, rgba(30, 41, 59, 0.8) 75%);
+        background-size: 200% 100%;
+    }
+    @keyframes omniSkeletonShine {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Habit Checklist Items with Tactile Check Rings */
     .habit-check-item {
-        border-radius: 12px;
+        border-radius: 14px;
         background: #f8fafc;
-        border: 1px solid #e2e8f0;
+        border: 1px solid rgba(15, 23, 42, 0.06);
         padding: 12px 16px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        transition: background 0.2s, transform 0.15s;
+        transition: background-color 0.18s ease, transform 0.18s var(--ease-spring), border-color 0.18s ease;
+        will-change: transform;
     }
     .habit-check-item:hover {
         background: #f1f5f9;
-        transform: translateX(2px);
+        transform: translateX(3px);
+        border-color: rgba(15, 23, 42, 0.12);
     }
     [data-bs-theme="dark"] .habit-check-item {
         background: #0f172a;
-        border-color: #334155;
+        border-color: rgba(255, 255, 255, 0.06);
     }
+    [data-bs-theme="dark"] .habit-check-item:hover {
+        background: #182238;
+        border-color: rgba(255, 255, 255, 0.12);
+    }
+
     .habit-check-btn {
         width: 32px;
         height: 32px;
@@ -84,69 +171,92 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: transform 0.22s var(--ease-spring), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    .habit-check-btn:hover {
+        transform: scale(1.1);
+        border-color: #198754;
     }
     .habit-check-btn.completed {
         background: #198754;
         border-color: #198754;
         color: #ffffff;
+        transform: scale(1.05);
     }
+    .habit-check-btn:active {
+        transform: scale(0.92);
+    }
+
+    /* Dynamic Financial Budget Gauge */
     .budget-gauge-container {
-        height: 12px;
+        height: 10px;
         border-radius: 6px;
         background-color: #e2e8f0;
         overflow: hidden;
+        position: relative;
     }
-    .speed-dial-badge {
-        font-size: 0.72rem;
-        letter-spacing: 0.5px;
+    [data-bs-theme="dark"] .budget-gauge-container {
+        background-color: #1e293b;
+    }
+    #cmdBudgetGaugeBar {
+        transition: width 0.75s var(--ease-out-expo), background-color 0.35s ease;
+    }
+
+    /* Split Widget Cards */
+    .split-summary-card {
+        border-radius: 16px;
+        transition: transform 0.24s var(--ease-spring), box-shadow 0.24s var(--ease-spring);
+    }
+    .split-summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.08);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <!-- Header Command Banner -->
-    <div class="command-header-card shadow-sm mb-4">
+<main class="container py-4">
+    <!-- Header Command Banner (Pass 1 & 2) -->
+    <header class="command-header-card mb-4" role="banner">
         <div class="row align-items-center">
             <div class="col-lg-8">
-                <span class="badge bg-primary bg-opacity-25 text-primary-subtle border border-primary border-opacity-25 mb-2 px-3 py-1 rounded-pill speed-dial-badge">
-                    <i class="bi bi-cpu me-1"></i> OMNILIFE OS • TODAY'S COMMAND CENTER
+                <span class="badge bg-primary bg-opacity-25 text-primary-subtle border border-primary border-opacity-25 mb-2 px-3 py-1 rounded-pill" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                    <i class="bi bi-compass-fill me-1"></i> OMNILIFE OS &bull; TODAY'S COMMAND CENTER
                 </span>
-                <h2 class="fw-bold mb-1">
+                <h1 class="fw-bold hero-title mb-1">
                     Good day, <span class="text-info">{{ session.get('username', 'Learner') }}</span>! ✨
-                </h2>
+                </h1>
                 <p class="text-light opacity-75 mb-0" style="font-size: 0.95rem;">
                     Unified telemetry across your Academics, Daily Habits, Finances, Intelligence Reports, Reflections, and Career.
                 </p>
             </div>
             <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
                 <div class="d-flex align-items-center justify-content-lg-end gap-2 flex-wrap">
-                    <button class="btn btn-primary rounded-pill px-3 py-2 btn-sm fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#quickAddModal">
+                    <button class="btn btn-primary rounded-pill px-3 py-2 btn-sm fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#quickAddModal" aria-label="Open Quick Actions">
                         <i class="bi bi-plus-circle me-1"></i> Quick Action
                     </button>
-                    <a href="/student/dashboard" class="btn btn-outline-light rounded-pill px-3 py-2 btn-sm fw-semibold">
+                    <a href="/student/dashboard" class="btn btn-outline-light rounded-pill px-3 py-2 btn-sm fw-semibold" aria-label="Go to Academic Hub">
                         <i class="bi bi-mortarboard me-1"></i> Academic Hub
                     </a>
                 </div>
             </div>
         </div>
-    </div>
+    </header>
 
-    <!-- Morning Executive Briefing Hero Widget -->
-    <div class="card shadow-sm border-0 rounded-4 mb-4" style="background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, rgba(15, 23, 42, 0.02) 90%); border: 1px solid rgba(99, 102, 241, 0.25) !important;">
+    <!-- Morning Executive Briefing Hero Widget (Pass 1, 2, 4) -->
+    <section class="executive-briefing-card mb-4" aria-labelledby="briefingHeading">
         <div class="card-body p-4">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                 <div class="d-flex align-items-center gap-3">
-                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white shadow-sm" 
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0" 
                           style="width: 44px; height: 44px; background: linear-gradient(135deg, #6366f1, #4f46e5); font-size: 1.2rem;">
                         <i class="bi bi-sun-fill text-warning"></i>
                     </span>
                     <div>
-                        <div class="d-flex align-items-center gap-2">
-                            <h5 class="fw-bold mb-0">🌅 Good Morning! Here is your 3-minute executive briefing.</h5>
-                            <span class="badge bg-indigo-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0" style="font-size: 0.70rem;">
-                                AI-Synthesized
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h2 class="h5 fw-bold mb-0" id="briefingHeading">🌅 Good Morning! Here is your 3-minute executive briefing.</h2>
+                            <span class="badge bg-indigo-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0 d-inline-flex align-items-center" style="font-size: 0.70rem;">
+                                <span class="live-beacon"></span> AI-Synthesized
                             </span>
                         </div>
                         <small class="text-muted" id="briefingDateSubtitle">Curated from your active news feeds &amp; market monitors.</small>
@@ -167,15 +277,18 @@
 
             <div class="collapse show" id="dashboardBriefingCollapse">
                 <div class="p-3 bg-white bg-opacity-75 rounded-3 border mb-3" id="dashboardBriefingContent" style="font-size: 0.92rem; line-height: 1.6;">
-                    <div class="text-center py-3 text-muted">
-                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
-                        <p class="small mb-0">Gathering headlines and synthesizing today's briefing...</p>
+                    <!-- Content-matching pulsating skeleton loaders (Pass 4) -->
+                    <div class="py-2 d-flex flex-column gap-2" id="briefingSkeletonLoader">
+                        <div class="omni-skeleton" style="height: 18px; width: 45%;"></div>
+                        <div class="omni-skeleton" style="height: 14px; width: 92%;"></div>
+                        <div class="omni-skeleton" style="height: 14px; width: 85%;"></div>
+                        <div class="omni-skeleton" style="height: 14px; width: 68%;"></div>
                     </div>
                 </div>
 
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
                     <div class="d-flex flex-wrap gap-2 align-items-center" id="dashboardBriefingCitations">
-                        <!-- Citation pills -->
+                        <!-- Citation pills populated dynamically -->
                     </div>
                     <a href="/reports" class="small text-decoration-none fw-semibold text-primary">
                         Full Reports Hub &rarr;
@@ -183,20 +296,22 @@
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- 6 Pluggable Workspaces Grid -->
-    <div class="row g-3 mb-4">
+    <!-- 6 Pluggable Workspaces Grid (Pass 1 & 3) -->
+    <section class="row g-3 mb-4" aria-label="Pluggable Workspaces">
         {% for ws in workspaces_list %}
         <div class="col-6 col-md-4 col-lg">
-            <a href="/workspace/{{ ws.key }}" class="workspace-pill-card shadow-sm">
+            <a href="/workspace/{{ ws.key }}" class="workspace-pill-card shadow-sm" aria-label="{{ ws.name }}">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white" 
                           style="width: 36px; height: 36px; background-color: {{ ws.color }}; font-size: 1rem;">
                         <i class="bi {{ ws.icon }}"></i>
                     </span>
                     {% if active_workspace == ws.key %}
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill" style="font-size: 0.65rem;">Active</span>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill" style="font-size: 0.65rem;">
+                        <span class="live-beacon"></span> Active
+                    </span>
                     {% endif %}
                 </div>
                 <div class="fw-bold mb-0 text-truncate" style="font-size: 0.90rem;">{{ ws.name }}</div>
@@ -204,21 +319,21 @@
             </a>
         </div>
         {% endfor %}
-    </div>
+    </section>
 
-    <!-- Unified Command Center Widgets -->
+    <!-- Unified Command Center Widgets Grid -->
     <div class="row g-4">
         <!-- Column 1: Academics & Daily Habits -->
         <div class="col-lg-6">
             <!-- Academic Spotlight Widget -->
-            <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <article class="card shadow-sm border-0 rounded-4 mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div class="d-flex align-items-center gap-2">
                             <span class="rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
                                 <i class="bi bi-mortarboard-fill"></i>
                             </span>
-                            <h5 class="fw-bold mb-0">Academic Spotlight</h5>
+                            <h3 class="h5 fw-bold mb-0">Academic Spotlight</h3>
                         </div>
                         <a href="/student/study-planner" class="small text-decoration-none fw-semibold">View Planner &rarr;</a>
                     </div>
@@ -239,10 +354,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </article>
 
             <!-- Habit Streak Checklist Widget -->
-            <div class="card shadow-sm border-0 rounded-4">
+            <article class="card shadow-sm border-0 rounded-4">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div class="d-flex align-items-center gap-2">
@@ -250,7 +365,7 @@
                                 <i class="bi bi-flower1"></i>
                             </span>
                             <div>
-                                <h5 class="fw-bold mb-0">Today's Habits</h5>
+                                <h3 class="h5 fw-bold mb-0">Today's Habits</h3>
                                 <small class="text-muted" id="habitsProgressText">Loading habits...</small>
                             </div>
                         </div>
@@ -258,19 +373,32 @@
                     </div>
 
                     <div id="habitsListContainer" class="d-flex flex-column gap-2">
-                        <div class="text-center py-4 text-muted">
-                            <div class="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
-                            <p class="small mb-0">Loading your habit streaks...</p>
+                        <!-- Pulsing Skeleton State for Habits -->
+                        <div class="d-flex flex-column gap-2 py-2" id="habitsSkeletonLoader">
+                            <div class="habit-check-item">
+                                <div class="d-flex align-items-center gap-2 w-75">
+                                    <div class="omni-skeleton rounded-circle" style="width: 28px; height: 28px;"></div>
+                                    <div class="omni-skeleton" style="height: 14px; width: 60%;"></div>
+                                </div>
+                                <div class="omni-skeleton rounded-circle" style="width: 32px; height: 32px;"></div>
+                            </div>
+                            <div class="habit-check-item">
+                                <div class="d-flex align-items-center gap-2 w-75">
+                                    <div class="omni-skeleton rounded-circle" style="width: 28px; height: 28px;"></div>
+                                    <div class="omni-skeleton" style="height: 14px; width: 50%;"></div>
+                                </div>
+                                <div class="omni-skeleton rounded-circle" style="width: 32px; height: 32px;"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </article>
         </div>
 
         <!-- Column 2: Financial Health & Reflections / Career -->
         <div class="col-lg-6">
             <!-- Financial Health Widget -->
-            <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <article class="card shadow-sm border-0 rounded-4 mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div class="d-flex align-items-center gap-2">
@@ -278,7 +406,7 @@
                                 <i class="bi bi-wallet2"></i>
                             </span>
                             <div>
-                                <h5 class="fw-bold mb-0">Financial Health</h5>
+                                <h3 class="h5 fw-bold mb-0">Financial Health</h3>
                                 <small class="text-muted" id="financeMonthLabel">Monthly Budget</small>
                             </div>
                         </div>
@@ -288,7 +416,7 @@
                     <div class="row align-items-center mb-3">
                         <div class="col-6">
                             <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.70rem;">Remaining Budget</small>
-                            <h3 class="fw-bold text-success mb-0" id="cmdRemainingBudget">$--</h3>
+                            <h4 class="fw-bold text-success mb-0" id="cmdRemainingBudget">$--</h4>
                         </div>
                         <div class="col-6 text-end">
                             <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.70rem;">Spent This Month</small>
@@ -297,30 +425,30 @@
                     </div>
 
                     <div class="budget-gauge-container mb-2">
-                        <div class="bg-primary h-100 transition-all" id="cmdBudgetGaugeBar" style="width: 0%;"></div>
+                        <div class="bg-primary h-100" id="cmdBudgetGaugeBar" style="width: 0%;"></div>
                     </div>
                     <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem;">
                         <span id="cmdUsagePercent">0% used</span>
                         <span id="cmdBudgetLimitLabel">Budget: $1,000.00</span>
                     </div>
                 </div>
-            </div>
+            </article>
 
             <!-- Reflections & Career Split Widget -->
             <div class="row g-3">
                 <!-- Journal Reflection Snippet -->
                 <div class="col-sm-6">
-                    <div class="card shadow-sm border-0 rounded-4 h-100">
+                    <article class="card split-summary-card shadow-sm border-0 rounded-4 h-100" style="border-top: 3px solid #6f42c1 !important;">
                         <div class="card-body p-3 d-flex flex-column justify-content-between">
                             <div>
                                 <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="badge rounded-pill bg-purple text-white px-2 py-1" style="background-color: #6f42c1; font-size: 0.68rem;">
+                                    <span class="badge rounded-pill text-white px-2 py-1" style="background-color: #6f42c1; font-size: 0.68rem;">
                                         <i class="bi bi-journal-richtext me-1"></i> Journal
                                     </span>
                                     <a href="/journal" class="small text-decoration-none">Write &rarr;</a>
                                 </div>
-                                <h6 class="fw-bold mb-1" id="cmdJournalTitle">Reflection Diary</h6>
-                                <p class="text-muted small mb-0 text-truncate-2" id="cmdJournalSnippet" style="font-size: 0.80rem;">
+                                <h4 class="h6 fw-bold mb-1" id="cmdJournalTitle">Reflection Diary</h4>
+                                <p class="text-muted small mb-0" id="cmdJournalSnippet" style="font-size: 0.80rem;">
                                     Track your thoughts, moods, and weekly learning goals.
                                 </p>
                             </div>
@@ -329,12 +457,12 @@
                                 <span class="badge bg-light text-dark border" id="cmdMoodBadge">😊 Good</span>
                             </div>
                         </div>
-                    </div>
+                    </article>
                 </div>
 
                 <!-- Career Applications Snippet -->
                 <div class="col-sm-6">
-                    <div class="card shadow-sm border-0 rounded-4 h-100">
+                    <article class="card split-summary-card shadow-sm border-0 rounded-4 h-100" style="border-top: 3px solid #fd7e14 !important;">
                         <div class="card-body p-3 d-flex flex-column justify-content-between">
                             <div>
                                 <div class="d-flex align-items-center justify-content-between mb-2">
@@ -343,7 +471,7 @@
                                     </span>
                                     <a href="/career" class="small text-decoration-none">Kanban &rarr;</a>
                                 </div>
-                                <h6 class="fw-bold mb-1" id="cmdCareerTitle">Job Applications</h6>
+                                <h4 class="h6 fw-bold mb-1" id="cmdCareerTitle">Job Applications</h4>
                                 <p class="text-muted small mb-0" id="cmdCareerSnippet" style="font-size: 0.80rem;">
                                     Track internships, job offers, and resume milestones.
                                 </p>
@@ -353,18 +481,18 @@
                                 <span class="badge bg-warning bg-opacity-10 text-dark fw-bold border border-warning" id="cmdCareerCount">0 Apps</span>
                             </div>
                         </div>
-                    </div>
+                    </article>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</main>
 
 <!-- Quick Action Speed Dial Modal -->
 <div class="modal fade" id="quickAddModal" tabindex="-1" aria-labelledby="quickAddModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-bottom">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom py-3 px-4 bg-light">
                 <h5 class="modal-title fw-bold" id="quickAddModalLabel"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Quick Actions</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -402,7 +530,7 @@
                     </a>
                     <a href="/journal" class="list-group-item list-group-item-action rounded-3 border d-flex align-items-center justify-content-between p-3">
                         <div class="d-flex align-items-center gap-3">
-                            <span class="rounded-circle bg-purple text-white p-2" style="background-color: #6f42c1;"><i class="bi bi-journal-text fs-5"></i></span>
+                            <span class="rounded-circle text-white p-2" style="background-color: #6f42c1;"><i class="bi bi-journal-text fs-5"></i></span>
                             <div>
                                 <div class="fw-bold">New Reflection Entry</div>
                                 <small class="text-muted">Record mood, thoughts, and lessons</small>
@@ -434,9 +562,10 @@ async function loadDashboardBriefing(forceRefresh = false) {
     
     if (forceRefresh) {
         contentEl.innerHTML = `
-            <div class="text-center py-3 text-muted">
-                <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
-                <p class="small mb-0">Re-synthesizing briefing from live news feeds...</p>
+            <div class="py-2 d-flex flex-column gap-2">
+                <div class="omni-skeleton" style="height: 18px; width: 50%;"></div>
+                <div class="omni-skeleton" style="height: 14px; width: 90%;"></div>
+                <div class="omni-skeleton" style="height: 14px; width: 75%;"></div>
             </div>
         `;
     }
@@ -448,7 +577,7 @@ async function loadDashboardBriefing(forceRefresh = false) {
 
         if (result.status === 'success') {
             const data = result.data;
-            document.getElementById('briefingDateSubtitle').innerText = `${data.report_date} &bull; ${data.reading_time_mins}-min executive read &bull; Curated from active feeds`;
+            document.getElementById('briefingDateSubtitle').innerHTML = `${data.report_date} &bull; ${data.reading_time_mins}-min executive read &bull; Curated from active feeds`;
 
             let formatted = data.summary_content || "";
             formatted = formatted.replace(/###\s*(.*)/g, '<h6 class="fw-bold text-dark mt-2 mb-1">$1</h6>');
@@ -477,31 +606,37 @@ async function loadDashboardBriefing(forceRefresh = false) {
 }
 
 async function triggerEmailBriefingDashboard() {
-    alert("Dispatching today's briefing to your email...");
+    if (typeof showOmniToast === 'function') {
+        showOmniToast("Dispatching today's briefing to your email...", "info");
+    }
     try {
         const res = await fetch('/api/reports/email-today', { method: 'POST' });
         const data = await res.json();
-        alert(data.message || 'Briefing dispatched!');
+        if (typeof showOmniToast === 'function') {
+            showOmniToast(data.message || 'Briefing dispatched!', 'success');
+        }
     } catch (e) {
-        alert('Network error emailing briefing.');
+        if (typeof showOmniToast === 'function') {
+            showOmniToast('Network error emailing briefing.', 'error');
+        }
     }
 }
 
-// 1. Habits Aggregator
+// 1. Habits Aggregator (Optimistic UI & Skeleton Loading)
 async function loadHabitsSummary() {
     const container = document.getElementById('habitsListContainer');
     const textProg = document.getElementById('habitsProgressText');
     try {
         const res = await fetch('/api/life/habits');
-        const json = await res.getJson ? await res.getJson() : await res.json();
+        const json = await res.json();
         if (json.status === 'success') {
             const habits = json.data || [];
             if (habits.length === 0) {
                 container.innerHTML = `
-                    <div class="text-center py-3 bg-light rounded-3">
+                    <div class="text-center py-4 bg-light rounded-3">
                         <i class="bi bi-flower1 text-muted fs-3 d-block mb-1"></i>
                         <small class="text-muted">No habits added yet.</small><br>
-                        <a href="/life" class="btn btn-sm btn-outline-success rounded-pill mt-2">Create First Habit</a>
+                        <a href="/life" class="btn btn-sm btn-outline-success rounded-pill mt-2 px-3">Create First Habit</a>
                     </div>
                 `;
                 textProg.textContent = '0 habits configured';
@@ -521,7 +656,7 @@ async function loadHabitsSummary() {
                         </div>
                     </div>
                     <button class="habit-check-btn ${h.today_completed ? 'completed' : ''}" 
-                            onclick="toggleCommandHabit('${h.id}', this)" title="Mark completed today">
+                            onclick="toggleCommandHabit('${h.id}', this)" title="Mark completed today" aria-label="Toggle habit completion">
                         <i class="bi bi-check-lg"></i>
                     </button>
                 </div>
@@ -533,6 +668,10 @@ async function loadHabitsSummary() {
 }
 
 async function toggleCommandHabit(habitId, btn) {
+    // Optimistic toggle for instant tactile feedback
+    const wasCompleted = btn.classList.contains('completed');
+    btn.classList.toggle('completed');
+
     try {
         const res = await fetch(`/api/life/habits/${habitId}/toggle`, {
             method: 'POST',
@@ -542,9 +681,16 @@ async function toggleCommandHabit(habitId, btn) {
         if (data.status === 'success') {
             btn.classList.toggle('completed', data.is_completed);
             loadHabitsSummary();
+            if (typeof showOmniToast === 'function') {
+                showOmniToast(data.is_completed ? "Habit marked completed! Keep it up! 🔥" : "Habit uncompleted", "success");
+            }
+        } else {
+            // Revert on failure
+            btn.classList.toggle('completed', wasCompleted);
         }
     } catch (e) {
         console.error("Habit toggle error:", e);
+        btn.classList.toggle('completed', wasCompleted);
     }
 }
 
