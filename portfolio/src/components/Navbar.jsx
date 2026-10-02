@@ -1,10 +1,10 @@
 import React from 'react';
-import { Sun, Moon, ArrowUpRight, Code, ShieldCheck } from 'lucide-react';
+import { Sun, Moon, ArrowUpRight } from 'lucide-react';
 
 export default function Navbar({ theme, toggleTheme }) {
   return (
     <header className="site-nav">
-      <div class="content-wrapper">
+      <div className="content-wrapper">
         <div className="nav-inner">
           <a href="#" className="brand-logo" id="nav-brand-logo">
             <span className="brand-dot"></span>

@@ -1,4 +1,4 @@
-# 🎓 Smart Study Planner &bull; OmniLife OS
+# 🎓 NextOmni &bull; AI-Powered Academic &amp; Life Operating System
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11+" />
@@ -9,15 +9,15 @@
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
-> **OmniLife OS** is an enterprise-grade modular life operating system and intelligent academic study planner. Engineered with clean layered architecture, it unifies academic syllabus automation, multi-account wealth aggregation, atomic habit tracking, AI executive briefings, reflection journaling, and career progression under a unified 9-Dot App Switcher.
+> **NextOmni** is an enterprise-grade modular life operating system and intelligent academic study planner. Engineered with clean layered architecture, it unifies academic syllabus automation, multi-account wealth aggregation, atomic habit tracking, AI executive briefings, reflection journaling, and career progression under a unified 9-Dot App Switcher.
 
 ---
 
-## 🌟 Key Workspaces (The OmniSuite Ecosystem)
+## 🌟 Key Workspaces (The NextOmni Ecosystem)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          OMNILIFE OS COMMAND CENTER                         │
+│                            NEXTOMNI COMMAND CENTER                          │
 │                    Unified 9-Dot Global Application Switcher                │
 └──────┬──────────────┬──────────────┬──────────────┬──────────────┬──────────┘
        │              │              │              │              │

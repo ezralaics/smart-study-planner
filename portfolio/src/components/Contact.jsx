@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Globe, Send, Check, Copy, MessageSquare } from 'lucide-react';
+import { Mail, Globe, Send, Check, Copy } from 'lucide-react';
 import { GithubIcon } from './Icons';
 
 export default function Contact() {
@@ -28,7 +28,7 @@ export default function Contact() {
       <div className="content-wrapper">
         <div className="section-header">
           <span className="section-tag">// Get In Touch</span>
-          <h2 className="section-title">Let’s Build Something Great Together</h2>
+          <h2 className="section-title">Let's Build Something Great Together</h2>
           <p className="section-subtitle">
             Whether you have an engineering role opening, a project opportunity, or want to discuss system architecture, my inbox is always open.
           </p>

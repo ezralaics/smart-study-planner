@@ -1,7 +1,7 @@
 {
-  "name": "Life Planner OS — OmniLife",
-  "short_name": "LifePlanner",
-  "description": "Unified Life Management Operating System: Study, Finance, Habits, Intelligence Reports, Journal, and Career.",
+  "name": "NextOmni OS — AI Academic & Life Operating System",
+  "short_name": "NextOmni",
+  "description": "NextOmni: Unified Life & Academic Management Operating System: Study, Finance, Habits, Intelligence Reports, Journal, and Career.",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
